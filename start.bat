@@ -1,7 +1,29 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
+
+REM Ensure we run from this script directory (project root)
+pushd "%~dp0"
+
+REM Use UTF-8 for nicer output (optional)
+chcp 65001 >nul
 
 REM --- Run "Мишка знает" (Next.js) ---
+
+where node >nul 2>nul
+if errorlevel 1 (
+  echo [ERROR] Node.js not found in PATH. Install Node.js LTS and reopen terminal.
+  popd
+  pause
+  exit /b 1
+)
+
+where npm >nul 2>nul
+if errorlevel 1 (
+  echo [ERROR] npm not found in PATH. Reinstall Node.js; npm comes bundled. Reopen terminal.
+  popd
+  pause
+  exit /b 1
+)
 
 echo [INFO] Node:
 node -v
@@ -38,4 +60,5 @@ if errorlevel 1 (
 echo [INFO] Starting dev server: http://localhost:3000
 call npm run dev
 
+popd
 pause

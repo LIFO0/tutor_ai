@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/.npm/
+/.pnpm-store/
 /.pnp
 .pnp.*
 .yarn/*
@@ -16,6 +18,8 @@
 # next.js
 /.next/
 /out/
+/.turbo/
+/.swc/
 
 # production
 /build
@@ -37,6 +41,14 @@ yarn-error.log*
 # sqlite
 database.db
 database.db-*
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
+*.db-journal
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 
 # vercel
 .vercel
@@ -44,3 +56,9 @@ database.db-*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editors / os
+.idea/
+.vscode/
+Thumbs.db
+*.stackdump

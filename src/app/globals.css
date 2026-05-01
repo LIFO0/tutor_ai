@@ -30,7 +30,89 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Hide browser built-in password "reveal" icon (Edge/IE) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 /* KaTeX default styles (loaded via layout) expect reasonable line-height */
 .katex {
   font-size: 1.02em;
+}
+
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0px);
+  }
+}
+
+.animate-element {
+  opacity: 0;
+  filter: blur(6px);
+  transform: translateY(10px);
+  animation: fadeSlideIn 700ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.animate-delay-100 {
+  animation-delay: 100ms;
+}
+.animate-delay-200 {
+  animation-delay: 200ms;
+}
+.animate-delay-300 {
+  animation-delay: 300ms;
+}
+.animate-delay-400 {
+  animation-delay: 400ms;
+}
+.animate-delay-500 {
+  animation-delay: 500ms;
+}
+.animate-delay-600 {
+  animation-delay: 600ms;
+}
+.animate-delay-700 {
+  animation-delay: 700ms;
+}
+.animate-delay-800 {
+  animation-delay: 800ms;
+}
+
+.custom-checkbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid rgb(228 228 231); /* zinc-200 */
+  background: rgba(255, 255, 255, 0.75);
+  display: inline-grid;
+  place-content: center;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.custom-checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+.custom-checkbox:checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.custom-checkbox:checked::after {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg);
+  margin-top: -1px;
+}
+
+.auth-input-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 6%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
 }

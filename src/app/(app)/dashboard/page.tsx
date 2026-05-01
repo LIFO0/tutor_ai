@@ -21,7 +21,7 @@ export default async function DashboardPage() {
             <div className="text-lg font-semibold">
               {user ? `Привет, ${user.name}!` : "Привет!"}
             </div>
-            <div className="text-sm text-zinc-500">
+            <div className="text-sm text-zinc-900 dark:text-zinc-50">
               Выберите предмет — и задавайте вопросы как в чате.
             </div>
           </div>
@@ -31,7 +31,7 @@ export default async function DashboardPage() {
             <Card key={s.key} className="border border-zinc-200/60 dark:border-zinc-800/60">
               <CardHeader className="flex flex-col items-start gap-1">
                 <div className="font-semibold">{s.title}</div>
-                <div className="text-xs text-zinc-500">{s.description}</div>
+                <div className="text-xs text-zinc-900 dark:text-zinc-50">{s.description}</div>
               </CardHeader>
               <CardContent>
                 <Link
@@ -70,19 +70,23 @@ export default async function DashboardPage() {
           <CardContent className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-                <div className="text-xs text-zinc-500">Решено сегодня</div>
+                <div className="text-xs text-zinc-900 dark:text-zinc-50">Решено сегодня</div>
                 <div className="text-2xl font-semibold">{stats.solvedToday}</div>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-                <div className="text-xs text-zinc-500">Решено всего</div>
+                <div className="text-xs text-zinc-900 dark:text-zinc-50">Решено всего</div>
                 <div className="text-2xl font-semibold">{stats.solvedTotal}</div>
               </div>
             </div>
 
             <div>
-              <div className="mb-2 text-xs font-medium text-zinc-500">Последние чаты</div>
+              <div className="mb-2 text-xs font-medium text-zinc-900 dark:text-zinc-50">
+                Последние чаты
+              </div>
               {recentChats.length === 0 ? (
-                <div className="text-sm text-zinc-500">Пока пусто — начните чат по предмету выше.</div>
+                <div className="text-sm text-zinc-900 dark:text-zinc-50">
+                  Пока пусто — начните чат по предмету выше.
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {recentChats.map((c) => (

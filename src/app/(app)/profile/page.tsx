@@ -87,10 +87,10 @@ export default function ProfilePage() {
         <CardHeader className="font-semibold">Профиль</CardHeader>
         <CardContent className="flex flex-col gap-3">
           {loading ? (
-            <div className="text-sm text-zinc-500">Загрузка…</div>
+            <div className="text-sm text-zinc-900 dark:text-zinc-50">Загрузка…</div>
           ) : user ? (
             <>
-              <div className="text-sm text-zinc-500">Email: {user.email}</div>
+              <div className="text-sm text-zinc-900 dark:text-zinc-50">Email: {user.email}</div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1">

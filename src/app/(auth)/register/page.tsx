@@ -9,6 +9,9 @@ import {
   CardContent,
   CardHeader,
 } from "@heroui/react";
+import Image from "next/image";
+
+import authImage from "../../../../9er6u.jpg";
 
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
 const avatars = ["bear1", "bear2", "bear3", "bear4"];
@@ -50,93 +53,123 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card className="w-full max-w-xl">
-      <CardHeader className="flex flex-col items-start gap-2">
-        <div className="text-sm font-medium text-zinc-500">🐻 Мишка знает</div>
-        <h1 className="text-2xl font-semibold tracking-tight">Регистрация</h1>
-        <p className="text-sm text-zinc-500">
-          Расскажите немного о себе — класс нужен, чтобы объяснения были “по программе”.
-        </p>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Имя</label>
-          <input
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+    <div className="min-h-screen w-full bg-white dark:bg-zinc-950">
+      <div className="grid min-h-screen grid-cols-1 md:grid-cols-2">
+        <div className="flex items-center px-6 py-10 sm:px-10">
+          <div className="w-full max-w-xl">
+            <Card className="shadow-none ring-0 bg-transparent">
+              <CardHeader className="flex flex-col items-start gap-2 px-0">
+                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                  🐻 Мишка знает
+                </div>
+                <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                  Sign up
+                </h1>
+                <p className="text-sm text-zinc-900 dark:text-zinc-50">
+                  Расскажите немного о себе — класс нужен, чтобы объяснения были “по программе”.
+                </p>
+              </CardHeader>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Email</label>
-          <input
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            autoComplete="email"
-          />
-        </div>
+              <CardContent className="flex flex-col gap-4 px-0 pt-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Имя</label>
+                  <input
+                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Пароль</label>
-          <input
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="new-password"
-          />
-          <div className="text-xs text-zinc-500">Минимум 6 символов</div>
-        </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Email</label>
+                  <input
+                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    autoComplete="email"
+                  />
+                </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-1">
-            <div className="text-sm font-medium">Класс</div>
-            <select
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
-              value={grade}
-              onChange={(e) => setGrade(Number(e.target.value))}
-            >
-              {grades.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Пароль</label>
+                  <input
+                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    type="password"
+                    autoComplete="new-password"
+                  />
+                  <div className="text-xs text-zinc-900 dark:text-zinc-50">Минимум 6 символов</div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1">
+                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Класс</div>
+                    <select
+                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                      value={grade}
+                      onChange={(e) => setGrade(Number(e.target.value))}
+                    >
+                      {grades.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Аватар</div>
+                    <select
+                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                      value={avatar}
+                      onChange={(e) => setAvatar(e.target.value)}
+                    >
+                      {avatars.map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {error ? <div className="text-sm text-red-600">{error}</div> : null}
+
+                <Button
+                  variant="primary"
+                  className="font-semibold"
+                  isDisabled={!canSubmit || loading}
+                  onPress={onSubmit}
+                >
+                  {loading ? "Создаём…" : "Создать аккаунт"}
+                </Button>
+
+                <div className="text-sm text-zinc-900 dark:text-zinc-50">
+                  Уже есть аккаунт?{" "}
+                  <Link className="text-[color:var(--color-accent)]" href="/login">
+                    Войти
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="text-sm font-medium">Аватар</div>
-            <select
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
-              value={avatar}
-              onChange={(e) => setAvatar(e.target.value)}
-            >
-              {avatars.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        {error ? <div className="text-sm text-red-600">{error}</div> : null}
-
-        <Button variant="primary" className="font-semibold" isDisabled={!canSubmit || loading} onPress={onSubmit}>
-          {loading ? "Создаём…" : "Создать аккаунт"}
-        </Button>
-
-        <div className="text-sm text-zinc-500">
-          Уже есть аккаунт?{" "}
-          <Link className="text-[color:var(--color-accent)]" href="/login">
-            Войти
-          </Link>
+        <div className="relative hidden md:block">
+          <Image
+            src={authImage}
+            alt="Forest"
+            fill
+            priority
+            className="object-cover"
+            sizes="(min-width: 768px) 50vw, 100vw"
+          />
+          <div className="absolute inset-0 bg-black/10" />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

@@ -13,11 +13,11 @@ export default async function Home() {
     <div className="min-h-full flex flex-1 items-center justify-center bg-[var(--color-background)] px-4 py-12">
       <Card className="w-full max-w-xl">
         <CardHeader className="flex flex-col gap-2 items-start">
-          <div className="text-sm font-medium text-zinc-500">🐻 Мишка знает</div>
+          <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">🐻 Мишка знает</div>
           <h1 className="text-2xl font-semibold tracking-tight">
             Виртуальный репетитор для 5–11 классов
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-900 dark:text-zinc-50">
             Чат с объяснениями, формулы в LaTeX и режим заданий с проверкой.
           </p>
         </CardHeader>

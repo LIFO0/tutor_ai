@@ -97,7 +97,7 @@ export function ChatWindow({
         <Bear mood={streaming ? "think" : "normal"} />
         <div className="flex flex-col">
           <div className="font-semibold">{headerTitle}</div>
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-zinc-900 dark:text-zinc-50">
             {streaming ? "Мишка думает и печатает…" : "Спросите что угодно по теме"}
           </div>
         </div>

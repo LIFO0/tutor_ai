@@ -22,7 +22,7 @@ export function Sidebar({ user }: { user: CurrentUser }) {
         <Bear />
         <div className="flex flex-col">
           <div className="text-sm font-semibold">Мишка знает</div>
-          <div className="text-xs text-zinc-500">ИИ-репетитор</div>
+          <div className="text-xs text-zinc-900 dark:text-zinc-50">ИИ-репетитор</div>
         </div>
       </div>
 
@@ -48,7 +48,7 @@ export function Sidebar({ user }: { user: CurrentUser }) {
             <Bear />
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium">{user.name}</div>
-              <div className="truncate text-xs text-zinc-500">{user.grade} класс</div>
+              <div className="truncate text-xs text-zinc-900 dark:text-zinc-50">{user.grade} класс</div>
             </div>
             <LogoutButton />
           </div>

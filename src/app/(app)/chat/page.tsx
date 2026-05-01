@@ -45,9 +45,9 @@ export default async function ChatListPage({
         <CardHeader className="font-semibold">Мои сессии</CardHeader>
         <CardContent className="flex flex-col gap-2">
           {sessions.length === 0 ? (
-            <div className="text-sm text-zinc-500">
-              Пока нет чатов. Выберите предмет выше, чтобы начать.
-            </div>
+              <div className="text-sm text-zinc-900 dark:text-zinc-50">
+                Пока нет чатов. Выберите предмет выше, чтобы начать.
+              </div>
           ) : (
             sessions.map((s) => (
               <Link

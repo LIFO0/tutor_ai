@@ -83,7 +83,7 @@ export default function TasksPage() {
 
       <Card>
         <CardHeader className="font-semibold">История</CardHeader>
-        <CardContent className="text-sm text-zinc-500">
+        <CardContent className="text-sm text-zinc-900 dark:text-zinc-50">
           История появится после первого задания. Пока можно перейти в{" "}
           <Link href="/chat" className="underline">
             чат

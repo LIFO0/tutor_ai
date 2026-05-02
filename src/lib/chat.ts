@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Subject } from "@/lib/subjects";
 import { getDb, schema } from "@/lib/db";
 
@@ -10,9 +10,12 @@ export async function listChatSessions(userId: number) {
       subject: schema.chatSessions.subject,
       title: schema.chatSessions.title,
       createdAt: schema.chatSessions.createdAt,
+      lastMessageAt: sql<string | null>`max(${schema.messages.createdAt})`,
     })
     .from(schema.chatSessions)
+    .leftJoin(schema.messages, eq(schema.messages.sessionId, schema.chatSessions.id))
     .where(eq(schema.chatSessions.userId, userId))
+    .groupBy(schema.chatSessions.id)
     .orderBy(desc(schema.chatSessions.id))
     .limit(50);
 }

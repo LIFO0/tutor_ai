@@ -23,11 +23,8 @@ export default async function ChatListPage({
 
   const sessions = await listChatSessions(user.id);
   return (
-    <div className="-mx-4 -my-6 flex min-h-[calc(100vh-3rem)] justify-center px-4 py-6">
-      <div className="w-full max-w-[420px]">
-        <ChatSessionsSidebar sessions={sessions} />
-      </div>
+    <div className="-mx-4 -my-6 flex min-h-[calc(100vh-3rem)] justify-center px-4 py-8 md:py-12">
+      <ChatSessionsSidebar sessions={sessions} />
     </div>
   );
 }
-

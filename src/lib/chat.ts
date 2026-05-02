@@ -114,3 +114,16 @@ export async function updateChatTitleIfEmpty(sessionId: number, title: string) {
     .where(and(eq(schema.chatSessions.id, sessionId), isNull(schema.chatSessions.title)));
 }
 
+/** Удаляет все сообщения сессии и саму сессию. Возвращает false, если сессия не найдена или не принадлежит пользователю. */
+export async function deleteChatSession(userId: number, sessionId: number): Promise<boolean> {
+  const session = await getChatSession(userId, sessionId);
+  if (!session) return false;
+
+  const db = getDb();
+  await db.delete(schema.messages).where(eq(schema.messages.sessionId, sessionId));
+  await db
+    .delete(schema.chatSessions)
+    .where(and(eq(schema.chatSessions.id, sessionId), eq(schema.chatSessions.userId, userId)));
+  return true;
+}
+

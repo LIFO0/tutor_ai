@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
-import { listChatSessions, listMessages } from "@/lib/chat";
+import { listMessages } from "@/lib/chat";
 import { getCurrentUser } from "@/lib/current-user";
 import { ChatWindow } from "@/components/chat/ChatWindow";
-import { ChatSessionsSidebar } from "@/components/chat/ChatSessionsSidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -21,11 +20,9 @@ export default async function ChatSessionPage({
   const data = await listMessages(user.id, id);
   if (!data) return notFound();
 
-  const sessions = await listChatSessions(user.id);
   return (
-    <div className="-mx-4 -my-6 flex min-h-[calc(100vh-3rem)] flex-col md:flex-row">
-      <ChatSessionsSidebar sessions={sessions} activeSessionId={id} />
-      <div className="h-[calc(100vh-3rem)] min-h-0 flex-1 px-4 py-3">
+    <div className="-mx-4 -my-6 min-h-[calc(100vh-3rem)] px-4 py-3">
+      <div className="mx-auto h-[calc(100vh-3rem)] min-h-0 w-full max-w-4xl">
         <ChatWindow
           sessionId={id}
           title={data.session.title}
@@ -35,4 +32,3 @@ export default async function ChatSessionPage({
     </div>
   );
 }
-

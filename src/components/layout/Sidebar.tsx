@@ -1,23 +1,86 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button, Card } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
 import { Bear } from "@/components/ui/Bear";
 import { LogoutButton } from "./LogoutButton";
 
+const RECENTS_LIMIT = 8;
+
+type ChatSessionRow = {
+  id: number;
+  subject: string;
+  title: string | null;
+  createdAt: string;
+  lastMessageAt: string | null;
+};
+
 export function Sidebar({ user }: { user: CurrentUser }) {
   const pathname = usePathname();
   const router = useRouter();
   const nav = [
     { href: "/dashboard", label: "Главная" },
-    { href: "/chat", label: "Чат" },
+    { href: "/chat", label: "Чаты" },
     { href: "/tasks", label: "Задания" },
     { href: "/profile", label: "Профиль" },
   ];
 
+  const [recentsOpen, setRecentsOpen] = useState(true);
+  const [recents, setRecents] = useState<ChatSessionRow[]>([]);
+  const [recentsLoading, setRecentsLoading] = useState(true);
+  const recentsFetchInFlight = useRef(false);
+
+  const loadRecents = useCallback(async () => {
+    if (recentsFetchInFlight.current) return;
+    recentsFetchInFlight.current = true;
+    try {
+      const res = await fetch("/api/chat/sessions");
+      const data = (await res.json()) as { ok?: boolean; sessions?: ChatSessionRow[] };
+      if (res.ok && data.ok && Array.isArray(data.sessions)) {
+        setRecents(data.sessions.slice(0, RECENTS_LIMIT));
+      } else {
+        setRecents([]);
+      }
+    } catch {
+      setRecents([]);
+    } finally {
+      recentsFetchInFlight.current = false;
+      setRecentsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadRecents();
+  }, [loadRecents]);
+
+  useEffect(() => {
+    const onFocus = () => void loadRecents();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadRecents]);
+
+  async function deleteSession(id: number) {
+    if (
+      !confirm(
+        "Удалить этот чат навсегда? Все сообщения будут удалены без возможности восстановления.",
+      )
+    ) {
+      return;
+    }
+    const res = await fetch(`/api/chat/sessions/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      alert("Не удалось удалить чат.");
+      return;
+    }
+    setRecents((prev) => prev.filter((s) => s.id !== id));
+    if (pathname === `/chat/${id}`) router.push("/chat");
+    if (pathname?.startsWith("/chat")) router.refresh();
+  }
+
   return (
-    <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-72 md:flex-col md:border-r md:border-zinc-200 md:bg-white md:dark:border-zinc-800 md:dark:bg-zinc-950">
+    <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-72 md:shrink-0 md:flex-col md:border-r md:border-zinc-200 md:bg-white md:dark:border-zinc-800 md:dark:bg-zinc-950">
       <div className="flex items-center gap-3 px-4 py-4">
         <Bear />
         <div className="flex flex-col">
@@ -26,7 +89,7 @@ export function Sidebar({ user }: { user: CurrentUser }) {
         </div>
       </div>
 
-      <nav className="mt-2 flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-3">
+      <nav className="mt-2 flex flex-col gap-1 overflow-y-auto px-3 pb-2">
         {nav.map((item) => {
           const active = pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
@@ -41,6 +104,68 @@ export function Sidebar({ user }: { user: CurrentUser }) {
           );
         })}
       </nav>
+
+      <div className="mx-3 my-2 border-t border-zinc-200 dark:border-zinc-800" />
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-2">
+        <button
+          type="button"
+          onClick={() => setRecentsOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
+        >
+          <span>Последние чаты</span>
+          <span
+            className="text-zinc-400 transition-transform dark:text-zinc-500"
+            style={{ transform: recentsOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+            aria-hidden
+          >
+            ▼
+          </span>
+        </button>
+
+        {recentsOpen ? (
+          <div className="mt-1 min-h-0 flex-1 overflow-y-auto pr-1">
+            {recentsLoading ? (
+              <div className="px-2 py-2 text-xs text-zinc-400">Загрузка…</div>
+            ) : recents.length === 0 ? (
+              <div className="px-2 py-2 text-xs text-zinc-400">Нет чатов</div>
+            ) : (
+              <ul className="flex flex-col gap-0.5">
+                {recents.map((s) => {
+                  const active = pathname === `/chat/${s.id}`;
+                  return (
+                    <li key={s.id} className="group relative">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/chat/${s.id}`)}
+                        className={[
+                          "flex w-full min-w-0 items-center rounded-lg py-2 pl-2 pr-9 text-left text-sm transition-colors",
+                          active
+                            ? "bg-zinc-200/80 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                            : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900",
+                        ].join(" ")}
+                      >
+                        <span className="truncate">{s.title || "Новый чат"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Удалить чат"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void deleteSession(s.id);
+                        }}
+                        className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity hover:bg-zinc-200 hover:text-zinc-700 group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                      >
+                        <span className="text-lg leading-none">×</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        ) : null}
+      </div>
 
       <div className="mt-auto px-3 pb-3">
         <Card className="p-3">
@@ -57,4 +182,3 @@ export function Sidebar({ user }: { user: CurrentUser }) {
     </aside>
   );
 }
-

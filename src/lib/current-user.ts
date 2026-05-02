@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { authCookieName, verifyAuthToken } from "@/lib/auth";
@@ -11,7 +12,7 @@ export type CurrentUser = {
   avatar: string;
 };
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+async function readCurrentUser(): Promise<CurrentUser | null> {
   const db = getDb();
   const c = await cookies();
   const token = c.get(authCookieName)?.value;
@@ -35,4 +36,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     return null;
   }
 }
+
+/** Один запрос к БД на RSC-рендер даже если layout и page оба вызывают getCurrentUser. */
+export const getCurrentUser = cache(readCurrentUser);
 

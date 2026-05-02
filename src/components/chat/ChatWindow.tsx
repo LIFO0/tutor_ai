@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { createSseParser } from "./sse";
-import { Bear } from "@/components/ui/Bear";
+import { BearTotem } from "@/components/ui/BearTotem";
+import { PENDING_CHAT_MESSAGE_KEY } from "@/lib/pending-chat-message";
 
 export type UiMessage = { id: string; role: "user" | "assistant"; content: string };
 type StreamChunk = { t: string };
@@ -23,14 +24,11 @@ export function ChatWindow({
   );
   const [streaming, setStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const pendingConsumedRef = useRef(false);
 
   const headerTitle = useMemo(() => title || "Чат", [title]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, streaming]);
-
-  async function send(text: string) {
+  const send = useCallback(async (text: string) => {
     const userMsg: UiMessage = { id: crypto.randomUUID(), role: "user", content: text };
     const assistantMsg: UiMessage = {
       id: crypto.randomUUID(),
@@ -89,12 +87,26 @@ export function ChatWindow({
       );
       setStreaming(false);
     }
-  }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (pendingConsumedRef.current) return;
+    const raw = typeof window !== "undefined" ? sessionStorage.getItem(PENDING_CHAT_MESSAGE_KEY) : null;
+    const trimmed = raw?.trim() ?? "";
+    if (!trimmed) return;
+    pendingConsumedRef.current = true;
+    sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
+    void send(trimmed);
+  }, [send]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, streaming]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-3 pb-3">
-        <Bear mood={streaming ? "think" : "normal"} />
+        <BearTotem variant={streaming ? "thinking" : "standard"} size="sm" />
         <div className="flex flex-col">
           <div className="font-semibold">{headerTitle}</div>
           <div className="text-xs text-zinc-900 dark:text-zinc-50">
@@ -116,4 +128,3 @@ export function ChatWindow({
     </div>
   );
 }
-

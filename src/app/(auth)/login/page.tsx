@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SignInPage } from "@/components/ui/sign-in";
-import authImage from "../../../../9er6u.jpg";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -76,7 +75,7 @@ export default function LoginPage() {
         error={error}
         loading={loading}
         defaultEmail={email}
-        rightImage={authImage}
+        rightImage="/bears/bear_welcoming_update.png"
         rightImageAlt="Bear illustration"
       />
 

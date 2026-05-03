@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@heroui/react";
+import { Button, ListBox, Select } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
 import { UserAvatar, AVATAR_IDS } from "@/components/ui/UserAvatar";
 
@@ -105,18 +105,49 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Класс</label>
-            <select
-              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-              value={grade}
-              onChange={(e) => setGrade(Number(e.target.value))}
+            <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor="settings-grade">
+              Класс
+            </label>
+            <Select
+              fullWidth
+              variant="secondary"
+              value={String(grade)}
+              onChange={(key) => {
+                if (key == null) return;
+                setGrade(Number(key));
+              }}
+              aria-label="Класс"
+              className="w-full"
             >
-              {grades.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
+              <Select.Trigger
+                id="settings-grade"
+                className={[
+                  "h-11 w-full justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 text-start text-sm font-normal text-zinc-900 shadow-none",
+                  "outline-none focus-visible:border-zinc-400 data-[focus-visible]:border-zinc-400 data-[focus-visible]:ring-0",
+                  "dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50",
+                ].join(" ")}
+              >
+                <Select.Value />
+                <Select.Indicator className="shrink-0 text-zinc-500 dark:text-zinc-400" />
+              </Select.Trigger>
+              <Select.Popover
+                placement="bottom start"
+                className="overflow-x-hidden"
+              >
+                <ListBox className="max-h-60 min-w-0 overflow-x-hidden overflow-y-auto py-1.5 px-2.5 outline-none">
+                  {grades.map((g) => (
+                    <ListBox.Item
+                      key={g}
+                      id={String(g)}
+                      textValue={`${g} класс`}
+                      className="mx-0.5 cursor-pointer rounded-lg px-3 py-2 text-sm text-zinc-900 outline-none data-[focused]:bg-zinc-100 data-[selected]:bg-zinc-100 data-[selected]:font-medium dark:text-zinc-50 dark:data-[focused]:bg-zinc-800 dark:data-[selected]:bg-zinc-800"
+                    >
+                      {g}
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
           </div>
         </div>
         <div className="flex flex-col gap-1.5">

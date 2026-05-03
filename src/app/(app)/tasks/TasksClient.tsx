@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, Button } from "@heroui/react";
+import { Button, Card, CardContent, CardHeader, ListBox, Select } from "@heroui/react";
 import type { Subject } from "@/lib/subjects";
 import { SUBJECTS } from "@/lib/subjects";
 
@@ -69,25 +69,59 @@ export function TasksClient({
         <CardHeader className="font-semibold">Режим заданий</CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Предмет</label>
-              <select
-                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value as Subject)}
+            <div className="flex flex-col gap-1.5">
+              <label
+                className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
+                htmlFor="tasks-subject"
               >
-                {SUBJECTS.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
+                Предмет
+              </label>
+              <Select
+                fullWidth
+                variant="secondary"
+                value={subject}
+                onChange={(key) => {
+                  if (key == null) return;
+                  setSubject(key as Subject);
+                }}
+                aria-label="Предмет"
+                className="w-full"
+              >
+                <Select.Trigger
+                  id="tasks-subject"
+                  className={[
+                    "h-11 w-full justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 text-start text-sm font-normal text-zinc-900 shadow-none",
+                    "outline-none focus-visible:border-zinc-400 data-[focus-visible]:border-zinc-400 data-[focus-visible]:ring-0",
+                    "dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50",
+                  ].join(" ")}
+                >
+                  <Select.Value />
+                  <Select.Indicator className="shrink-0 text-zinc-500 dark:text-zinc-400" />
+                </Select.Trigger>
+                <Select.Popover
+                  placement="bottom start"
+                  className="overflow-x-hidden"
+                >
+                  <ListBox className="max-h-60 min-w-0 overflow-x-hidden overflow-y-auto py-1.5 px-2.5 outline-none">
+                    {SUBJECTS.map((s) => (
+                      <ListBox.Item
+                        key={s.key}
+                        id={s.key}
+                        textValue={s.title}
+                        className="mx-0.5 cursor-pointer rounded-lg px-3 py-2 text-sm text-zinc-900 outline-none data-[focused]:bg-zinc-100 data-[selected]:bg-zinc-100 data-[selected]:font-medium dark:text-zinc-50 dark:data-[focused]:bg-zinc-800 dark:data-[selected]:bg-zinc-800"
+                      >
+                        {s.title}
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
+              </Select>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Тема</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Тема</label>
               <input
-                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950"
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="Например: дроби, закон Ома, причастия…"

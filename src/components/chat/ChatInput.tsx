@@ -71,7 +71,7 @@ export function ChatInput({
       {showMath ? (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
           <MathKeyboard
-            onInsert={(latex) => {
+            onInsert={(latex, caretBackoff = 0) => {
               const el = textareaRef.current;
               if (!el) {
                 setValue((v) => v + latex);
@@ -83,7 +83,7 @@ export function ChatInput({
               setValue(next);
               requestAnimationFrame(() => {
                 el.focus();
-                const pos = start + latex.length;
+                const pos = Math.max(start, start + latex.length - caretBackoff);
                 el.setSelectionRange(pos, pos);
               });
             }}
@@ -93,4 +93,3 @@ export function ChatInput({
     </div>
   );
 }
-

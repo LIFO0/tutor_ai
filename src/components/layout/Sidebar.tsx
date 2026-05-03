@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button, Card } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
-import { Bear } from "@/components/ui/Bear";
+import Image from "next/image";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { AccountProfileMenu } from "./AccountProfileMenu";
 import { ConfirmDeleteChatModal } from "@/components/chat/ConfirmDeleteChatModal";
@@ -105,8 +105,15 @@ export function Sidebar({ user }: { user: CurrentUser }) {
         isLoading={deleting}
       />
       <div className="flex items-center gap-3 px-4 py-4">
-        <Bear />
-        <div className="flex flex-col">
+        <Image
+          src="/avatars/av_test.png"
+          alt="Мишка знает"
+          width={36}
+          height={36}
+          className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-zinc-200/80 dark:ring-zinc-700/80"
+          sizes="36px"
+        />
+        <div className="flex min-w-0 flex-col">
           <div className="text-sm font-semibold">Мишка знает</div>
           <div className="text-xs text-zinc-900 dark:text-zinc-50">ИИ-репетитор</div>
         </div>

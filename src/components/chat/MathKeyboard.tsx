@@ -12,7 +12,13 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "spec", label: "Специальные" },
 ];
 
-type KeyDef = { label: string; insertLatex: string; displayLatex?: string };
+type KeyDef = {
+  label: string;
+  insertLatex: string;
+  displayLatex?: string;
+  /** Сдвиг каретки влево от конца вставки (например 2 — курсор внутри `{…}` у `\sqrt{}`). */
+  caretBackoff?: number;
+};
 
 const KEYS: Record<TabKey, KeyDef[]> = {
   basic: [
@@ -26,6 +32,7 @@ const KEYS: Record<TabKey, KeyDef[]> = {
     { label: ">", insertLatex: ">", displayLatex: ">" },
     { label: "≤", insertLatex: "≤", displayLatex: "\\le" },
     { label: "≥", insertLatex: "≥", displayLatex: "\\ge" },
+    { label: "%", insertLatex: "%", displayLatex: "\\%" },
   ],
   func: [
     { label: "sin", insertLatex: "sin()", displayLatex: "\\sin x" },
@@ -35,14 +42,39 @@ const KEYS: Record<TabKey, KeyDef[]> = {
     { label: "arcsin", insertLatex: "arcsin()", displayLatex: "\\arcsin x" },
     { label: "arccos", insertLatex: "arccos()", displayLatex: "\\arccos x" },
     { label: "arctan", insertLatex: "arctan()", displayLatex: "\\arctan x" },
-    { label: "√", insertLatex: "√()", displayLatex: "\\sqrt{x}" },
+    { label: "arccot", insertLatex: "arccot()", displayLatex: "\\operatorname{arccot} x" },
+    { label: "ln", insertLatex: "ln()", displayLatex: "\\ln x" },
+    { label: "lg", insertLatex: "lg()", displayLatex: "\\lg x" },
+    { label: "log", insertLatex: "log()", displayLatex: "\\log x" },
+    {
+      label: "logₙ",
+      insertLatex: "$\\log_{n}{}$",
+      displayLatex: "\\log_{n}x",
+      caretBackoff: 2,
+    },
   ],
   frac: [
     { label: "x²", insertLatex: "²", displayLatex: "x^{2}" },
     { label: "x³", insertLatex: "³", displayLatex: "x^{3}" },
     { label: "xⁿ", insertLatex: "^n", displayLatex: "x^{n}" },
-    { label: "√x", insertLatex: "√()", displayLatex: "\\sqrt{x}" },
-    { label: "∛x", insertLatex: "∛()", displayLatex: "\\sqrt[3]{x}" },
+    {
+      label: "√x",
+      insertLatex: "$\\sqrt{}$",
+      displayLatex: "\\sqrt{x}",
+      caretBackoff: 2,
+    },
+    {
+      label: "∛x",
+      insertLatex: "$\\sqrt[3]{}$",
+      displayLatex: "\\sqrt[3]{x}",
+      caretBackoff: 2,
+    },
+    {
+      label: "ⁿ√",
+      insertLatex: "$\\sqrt[n]{}$",
+      displayLatex: "\\sqrt[n]{x}",
+      caretBackoff: 2,
+    },
     { label: "x/y", insertLatex: "()/()", displayLatex: "\\frac{a}{b}" },
   ],
   spec: [
@@ -67,7 +99,11 @@ function renderLatex(latex: string) {
   }
 }
 
-export function MathKeyboard({ onInsert }: { onInsert: (latex: string) => void }) {
+export function MathKeyboard({
+  onInsert,
+}: {
+  onInsert: (latex: string, caretBackoff?: number) => void;
+}) {
   const [tab, setTab] = useState<TabKey>("basic");
   const keys = useMemo(() => KEYS[tab], [tab]);
 
@@ -96,7 +132,7 @@ export function MathKeyboard({ onInsert }: { onInsert: (latex: string) => void }
           <button
             key={`${tab}-${k.label}`}
             type="button"
-            onClick={() => onInsert(k.insertLatex)}
+            onClick={() => onInsert(k.insertLatex, k.caretBackoff)}
             className="h-9 rounded-lg border border-zinc-200 bg-white text-sm font-medium hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
             title={k.insertLatex}
           >
@@ -116,4 +152,3 @@ export function MathKeyboard({ onInsert }: { onInsert: (latex: string) => void }
     </div>
   );
 }
-

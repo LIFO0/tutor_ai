@@ -38,7 +38,7 @@ export function AnswerInput({
       </div>
       {showMath ? (
         <MathKeyboard
-          onInsert={(latex) => {
+          onInsert={(latex, caretBackoff = 0) => {
             const el = ref.current;
             if (!el) return onChange(value + latex);
             const start = el.selectionStart ?? el.value.length;
@@ -47,7 +47,7 @@ export function AnswerInput({
             onChange(next);
             requestAnimationFrame(() => {
               el.focus();
-              const pos = start + latex.length;
+              const pos = Math.max(start, start + latex.length - caretBackoff);
               el.setSelectionRange(pos, pos);
             });
           }}
@@ -56,4 +56,3 @@ export function AnswerInput({
     </div>
   );
 }
-

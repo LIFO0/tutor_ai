@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Image, { type StaticImageData } from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 
+export type SignInRightImage = string | StaticImageData;
+
 export interface SignInPageProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
@@ -13,7 +15,7 @@ export interface SignInPageProps {
   error?: React.ReactNode;
   loading?: boolean;
   defaultEmail?: string;
-  rightImage?: StaticImageData;
+  rightImage?: SignInRightImage;
   rightImageAlt?: string;
 }
 
@@ -129,17 +131,19 @@ export const SignInPage: React.FC<SignInPageProps> = ({
         </section>
 
         {rightImage ? (
-          <section className="animate-element animate-delay-200 hidden p-4 md:block">
-            <div className="relative h-full w-full overflow-hidden rounded-3xl">
-              <Image
-                src={rightImage}
-                alt={rightImageAlt}
-                fill
-                priority
-                className="object-cover"
-                sizes="(min-width: 768px) 50vw, 100vw"
-              />
-              <div className="absolute inset-0 bg-white/10" />
+          <section className="animate-element animate-delay-200 hidden p-4 md:block md:h-full md:min-h-0">
+            <div className="relative h-full w-full overflow-hidden rounded-3xl bg-[#F59E2F]">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-[31%] justify-center">
+                <Image
+                  src={rightImage}
+                  alt={rightImageAlt}
+                  width={720}
+                  height={960}
+                  priority
+                  className="h-auto w-[min(44vw,620px)] max-w-[calc(50vw-1.5rem)] translate-x-[1%] select-none object-contain md:w-[min(42vw,580px)]"
+                  sizes="(min-width: 768px) 44vw, 0px"
+                />
+              </div>
             </div>
           </section>
         ) : null}

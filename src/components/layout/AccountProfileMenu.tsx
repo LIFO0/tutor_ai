@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CircleHelp, LogOut, Settings } from "lucide-react";
 import { Popover } from "@heroui/react";
+import { Button as AriaButton } from "react-aria-components/Button";
 import type { CurrentUser } from "@/lib/current-user";
 
 const itemClass =
@@ -27,9 +28,12 @@ export function AccountProfileMenu({
 
   return (
     <Popover.Root>
-      <Popover.Trigger className="w-full cursor-pointer border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950">
+      <AriaButton
+        type="button"
+        className="w-full cursor-pointer border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950"
+      >
         {children}
-      </Popover.Trigger>
+      </AriaButton>
       <Popover.Content
         placement={placement}
         offset={8}

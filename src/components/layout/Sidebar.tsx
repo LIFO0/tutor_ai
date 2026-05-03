@@ -56,7 +56,8 @@ export function Sidebar({ user }: { user: CurrentUser }) {
   }, []);
 
   useEffect(() => {
-    void loadRecents();
+    const timeoutId = window.setTimeout(() => void loadRecents(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadRecents]);
 
   useEffect(() => {
@@ -192,20 +193,20 @@ export function Sidebar({ user }: { user: CurrentUser }) {
       <div className="relative mt-auto px-3 pb-3">
         <Card className="overflow-visible p-0 shadow-sm">
           <AccountProfileMenu user={user} placement="top">
-            <div className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/80">
+            <span className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/80">
               <UserAvatar avatar={user.avatar} size="md" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
                   {user.name}
-                </div>
-                <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                </span>
+                <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
                   {user.grade} класс
-                </div>
-              </div>
+                </span>
+              </span>
               <span className="text-zinc-400 dark:text-zinc-500" aria-hidden>
                 ···
               </span>
-            </div>
+            </span>
           </AccountProfileMenu>
         </Card>
       </div>

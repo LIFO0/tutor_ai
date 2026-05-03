@@ -35,7 +35,7 @@ export function ConfirmDeleteChatModal({
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
       <Modal.Trigger>
-        <button type="button" className="sr-only" tabIndex={-1}>
+        <button type="button" className="sr-only">
           Open
         </button>
       </Modal.Trigger>

@@ -17,13 +17,15 @@ export default async function TaskPage({ params }: { params: Promise<{ taskId: s
   if (!task) return notFound();
 
   return (
-    <TaskRunner
-      taskId={id}
-      taskText={task.taskText}
-      checked={task.correct !== null && task.correct !== undefined}
-      initialAnswer={task.userAnswer}
-      initialFeedback={task.aiFeedback}
-    />
+    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+      <TaskRunner
+        taskId={id}
+        taskText={task.taskText}
+        checked={task.correct !== null && task.correct !== undefined}
+        initialAnswer={task.userAnswer}
+        initialFeedback={task.aiFeedback}
+      />
+    </div>
   );
 }
 

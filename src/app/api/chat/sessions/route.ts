@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/auth";
 import { getCurrentUser } from "@/lib/current-user";
 import { createChatSession, listChatSessions } from "@/lib/chat";
-import type { Subject } from "@/lib/subjects";
+import { isValidChatSubject, type Subject } from "@/lib/subjects";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     | { subject?: Subject; title?: string }
     | null;
   const subject = body?.subject;
-  if (subject !== "math" && subject !== "physics" && subject !== "russian") {
+  if (!isValidChatSubject(subject)) {
     return jsonError("Invalid subject", 400);
   }
 

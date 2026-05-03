@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import type { Subject } from "@/lib/subjects";
-import { SUBJECTS } from "@/lib/subjects";
+import { CHAT_SUBJECTS } from "@/lib/subjects";
+import { ConfirmDeleteChatModal } from "./ConfirmDeleteChatModal";
 
 type ChatSessionRow = {
   id: number;
@@ -15,7 +16,7 @@ type ChatSessionRow = {
 };
 
 function subjectLabel(subject: string) {
-  const found = SUBJECTS.find((s) => s.key === (subject as Subject));
+  const found = CHAT_SUBJECTS.find((s) => s.key === (subject as Subject));
   return found?.title ?? subject;
 }
 
@@ -50,6 +51,9 @@ export function ChatSessionsSidebar({
   const [q, setQ] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
   const newChatWrapRef = useRef<HTMLDivElement>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!newChatOpen) return;
@@ -71,28 +75,46 @@ export function ChatSessionsSidebar({
     });
   }, [q, sessions]);
 
-  async function deleteSession(sessionId: number) {
-    if (
-      !confirm(
-        "Удалить этот чат навсегда? Все сообщения будут удалены без возможности восстановления.",
-      )
-    ) {
-      return;
+  function requestDelete(sessionId: number) {
+    if (deleting) return;
+    setPendingDeleteId(sessionId);
+    setDeleteModalOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (deleting) return;
+    const sessionId = pendingDeleteId;
+    if (typeof sessionId !== "number") return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/chat/sessions/${sessionId}`, { method: "DELETE" });
+      if (!res.ok) {
+        alert("Не удалось удалить чат.");
+        return;
+      }
+      const isActive =
+        (typeof activeSessionId === "number" && activeSessionId === sessionId) ||
+        pathname === `/chat/${sessionId}`;
+      setDeleteModalOpen(false);
+      setPendingDeleteId(null);
+      if (isActive) router.push("/chat");
+      if (pathname?.startsWith("/chat")) router.refresh();
+    } finally {
+      setDeleting(false);
     }
-    const res = await fetch(`/api/chat/sessions/${sessionId}`, { method: "DELETE" });
-    if (!res.ok) {
-      alert("Не удалось удалить чат.");
-      return;
-    }
-    const isActive =
-      (typeof activeSessionId === "number" && activeSessionId === sessionId) ||
-      pathname === `/chat/${sessionId}`;
-    if (isActive) router.push("/chat");
-    if (pathname?.startsWith("/chat")) router.refresh();
   }
 
   return (
-    <aside className="w-full max-w-4xl">
+    <aside className="w-full">
+      <ConfirmDeleteChatModal
+        isOpen={deleteModalOpen}
+        onOpenChange={(open) => {
+          setDeleteModalOpen(open);
+          if (!open && !deleting) setPendingDeleteId(null);
+        }}
+        onConfirm={confirmDelete}
+        isLoading={deleting}
+      />
       <div className="sticky top-0 z-20 px-1 pb-1 pt-0 sm:px-0">
         <div className="flex items-center justify-between gap-3 pb-1">
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-2xl">
@@ -108,7 +130,7 @@ export function ChatSessionsSidebar({
             </button>
             {newChatOpen ? (
               <div className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-950 dark:shadow-xl">
-                {SUBJECTS.map((s) => (
+                {CHAT_SUBJECTS.map((s) => (
                   <button
                     key={s.key}
                     type="button"
@@ -197,7 +219,7 @@ export function ChatSessionsSidebar({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      void deleteSession(s.id);
+                      requestDelete(s.id);
                     }}
                     className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-opacity hover:bg-zinc-200/80 hover:text-zinc-700 group-hover:opacity-100 dark:hover:bg-zinc-700/70 dark:hover:text-zinc-200 sm:right-2 sm:h-9 sm:w-9"
                   >

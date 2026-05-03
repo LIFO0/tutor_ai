@@ -1,5 +1,13 @@
 import Database from "better-sqlite3";
 
+function ensureUserColumns(sqlite: Database.Database) {
+  const cols = sqlite.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  const has = (n: string) => cols.some((c) => c.name === n);
+  if (!has("chat_name")) {
+    sqlite.exec("ALTER TABLE users ADD COLUMN chat_name TEXT");
+  }
+}
+
 export function ensureTables(sqlite: Database.Database) {
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -41,5 +49,6 @@ export function ensureTables(sqlite: Database.Database) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  ensureUserColumns(sqlite);
 }
 

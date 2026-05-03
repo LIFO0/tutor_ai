@@ -10,6 +10,7 @@ export type CurrentUser = {
   email: string;
   grade: number;
   avatar: string;
+  chatName: string | null;
 };
 
 async function readCurrentUser(): Promise<CurrentUser | null> {
@@ -27,6 +28,7 @@ async function readCurrentUser(): Promise<CurrentUser | null> {
         email: schema.users.email,
         grade: schema.users.grade,
         avatar: schema.users.avatar,
+        chatName: schema.users.chatName,
       })
       .from(schema.users)
       .where(eq(schema.users.id, payload.userId))

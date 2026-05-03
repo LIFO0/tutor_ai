@@ -16,14 +16,22 @@ export async function PUT(req: Request) {
   if (!user) return jsonError("Unauthorized", 401);
 
   const body = (await req.json().catch(() => null)) as
-    | { name?: string; grade?: number; avatar?: string }
+    | { name?: string; grade?: number; avatar?: string; chatName?: string | null }
     | null;
 
   const name = body?.name?.trim();
   const grade = body?.grade === undefined ? undefined : Number(body.grade);
   const avatar = body?.avatar?.trim();
+  const chatNameRaw = body?.chatName;
+  const chatName =
+    chatNameRaw === undefined
+      ? undefined
+      : chatNameRaw === null || String(chatNameRaw).trim() === ""
+        ? null
+        : String(chatNameRaw).trim();
 
-  const patch: Partial<{ name: string; grade: number; avatar: string }> = {};
+  const patch: Partial<{ name: string; grade: number; avatar: string; chatName: string | null }> =
+    {};
   if (name !== undefined) {
     if (!name) return jsonError("Имя не может быть пустым.", 400);
     patch.name = name;
@@ -37,6 +45,12 @@ export async function PUT(req: Request) {
   if (avatar !== undefined) {
     if (!avatar) return jsonError("Аватар не может быть пустым.", 400);
     patch.avatar = avatar;
+  }
+  if (chatName !== undefined) {
+    if (chatName && chatName.length > 80) {
+      return jsonError("Обращение слишком длинное (макс. 80 символов).", 400);
+    }
+    patch.chatName = chatName;
   }
 
   if (Object.keys(patch).length === 0) {

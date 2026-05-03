@@ -1,0 +1,178 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@heroui/react";
+import type { CurrentUser } from "@/lib/current-user";
+import { UserAvatar, AVATAR_IDS } from "@/components/ui/UserAvatar";
+
+const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
+
+type Baseline = {
+  name: string;
+  email: string;
+  grade: number;
+  avatar: string;
+  chatName: string | null;
+};
+
+export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  const [baseline, setBaseline] = useState<Baseline | null>(() => ({
+    name: initialUser.name,
+    email: initialUser.email,
+    grade: initialUser.grade,
+    avatar: initialUser.avatar,
+    chatName: initialUser.chatName,
+  }));
+  const [name, setName] = useState(initialUser.name);
+  const [grade, setGrade] = useState(initialUser.grade);
+  const [avatar, setAvatar] = useState(initialUser.avatar);
+  const [chatName, setChatName] = useState(initialUser.chatName?.trim() ?? "");
+
+  const changed = useMemo(() => {
+    if (!baseline) return false;
+    const cn = chatName.trim() || null;
+    const bn = baseline.chatName?.trim() || null;
+    return (
+      baseline.name !== name.trim() ||
+      baseline.grade !== grade ||
+      baseline.avatar !== avatar ||
+      bn !== cn
+    );
+  }, [baseline, name, grade, avatar, chatName]);
+
+  async function save() {
+    if (!changed) return;
+    setSaving(true);
+    setError(null);
+    setOk(null);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          grade,
+          avatar,
+          chatName: chatName.trim() || null,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok: true }
+        | { ok: false; error: string }
+        | null;
+      if (!res.ok || !data || data.ok !== true) {
+        throw new Error((data as { error?: string } | null)?.error || "Не удалось сохранить");
+      }
+      const cn = chatName.trim() || null;
+      setBaseline((b) =>
+        b
+          ? {
+              ...b,
+              name: name.trim(),
+              grade,
+              avatar,
+              chatName: cn,
+            }
+          : b,
+      );
+      setOk("Сохранено. Класс и обращение в чате применятся к новым ответам.");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-5">
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Данные ученика</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Имя</label>
+            <input
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Класс</label>
+            <select
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              value={grade}
+              onChange={(e) => setGrade(Number(e.target.value))}
+            >
+              {grades.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Как обращаться к тебе в чате
+          </label>
+          <input
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+            value={chatName}
+            onChange={(e) => setChatName(e.target.value)}
+            placeholder="Например: Саша — если пусто, используется имя выше"
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Так тебя увидит Мишка в системных подсказках к ответам.
+          </p>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Аватар</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-xl">
+          {AVATAR_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setAvatar(id)}
+              className={[
+                "flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors",
+                avatar === id
+                  ? "border-[color:var(--color-accent)] bg-[color:var(--color-accent)]/10"
+                  : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900",
+              ].join(" ")}
+            >
+              <UserAvatar avatar={id} size="lg" selected={avatar === id} />
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">Мишка {id.slice(-1)}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Профиль</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Email привязан к аккаунту и не меняется здесь.
+        </p>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2.5 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-200">
+          {baseline?.email ?? initialUser.email}
+        </div>
+      </section>
+
+      {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
+      {ok ? <div className="text-sm text-emerald-600 dark:text-emerald-400">{ok}</div> : null}
+
+      <Button variant="primary" isDisabled={!changed || saving} onPress={save}>
+        {saving ? "Сохраняем…" : "Сохранить изменения"}
+      </Button>
+    </div>
+  );
+}

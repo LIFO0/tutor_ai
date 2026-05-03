@@ -5,7 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button, Card } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
 import { Bear } from "@/components/ui/Bear";
-import { LogoutButton } from "./LogoutButton";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { AccountProfileMenu } from "./AccountProfileMenu";
+import { ConfirmDeleteChatModal } from "@/components/chat/ConfirmDeleteChatModal";
 
 const RECENTS_LIMIT = 8;
 
@@ -24,13 +26,15 @@ export function Sidebar({ user }: { user: CurrentUser }) {
     { href: "/dashboard", label: "Главная" },
     { href: "/chat", label: "Чаты" },
     { href: "/tasks", label: "Задания" },
-    { href: "/profile", label: "Профиль" },
   ];
 
   const [recentsOpen, setRecentsOpen] = useState(true);
   const [recents, setRecents] = useState<ChatSessionRow[]>([]);
   const [recentsLoading, setRecentsLoading] = useState(true);
   const recentsFetchInFlight = useRef(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadRecents = useCallback(async () => {
     if (recentsFetchInFlight.current) return;
@@ -61,26 +65,44 @@ export function Sidebar({ user }: { user: CurrentUser }) {
     return () => window.removeEventListener("focus", onFocus);
   }, [loadRecents]);
 
-  async function deleteSession(id: number) {
-    if (
-      !confirm(
-        "Удалить этот чат навсегда? Все сообщения будут удалены без возможности восстановления.",
-      )
-    ) {
-      return;
+  function requestDelete(id: number) {
+    if (deleting) return;
+    setPendingDeleteId(id);
+    setDeleteModalOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (deleting) return;
+    const id = pendingDeleteId;
+    if (typeof id !== "number") return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/chat/sessions/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        alert("Не удалось удалить чат.");
+        return;
+      }
+      setRecents((prev) => prev.filter((s) => s.id !== id));
+      setDeleteModalOpen(false);
+      setPendingDeleteId(null);
+      if (pathname === `/chat/${id}`) router.push("/chat");
+      if (pathname?.startsWith("/chat")) router.refresh();
+    } finally {
+      setDeleting(false);
     }
-    const res = await fetch(`/api/chat/sessions/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      alert("Не удалось удалить чат.");
-      return;
-    }
-    setRecents((prev) => prev.filter((s) => s.id !== id));
-    if (pathname === `/chat/${id}`) router.push("/chat");
-    if (pathname?.startsWith("/chat")) router.refresh();
   }
 
   return (
     <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-72 md:shrink-0 md:flex-col md:border-r md:border-zinc-200 md:bg-white md:dark:border-zinc-800 md:dark:bg-zinc-950">
+      <ConfirmDeleteChatModal
+        isOpen={deleteModalOpen}
+        onOpenChange={(open) => {
+          setDeleteModalOpen(open);
+          if (!open && !deleting) setPendingDeleteId(null);
+        }}
+        onConfirm={confirmDelete}
+        isLoading={deleting}
+      />
       <div className="flex items-center gap-3 px-4 py-4">
         <Bear />
         <div className="flex flex-col">
@@ -152,7 +174,7 @@ export function Sidebar({ user }: { user: CurrentUser }) {
                         aria-label="Удалить чат"
                         onClick={(e) => {
                           e.stopPropagation();
-                          void deleteSession(s.id);
+                          requestDelete(s.id);
                         }}
                         className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity hover:bg-zinc-200 hover:text-zinc-700 group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
                       >
@@ -167,16 +189,24 @@ export function Sidebar({ user }: { user: CurrentUser }) {
         ) : null}
       </div>
 
-      <div className="mt-auto px-3 pb-3">
-        <Card className="p-3">
-          <div className="flex items-center gap-3">
-            <Bear />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium">{user.name}</div>
-              <div className="truncate text-xs text-zinc-900 dark:text-zinc-50">{user.grade} класс</div>
+      <div className="relative mt-auto px-3 pb-3">
+        <Card className="overflow-visible p-0 shadow-sm">
+          <AccountProfileMenu user={user} placement="top">
+            <div className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/80">
+              <UserAvatar avatar={user.avatar} size="md" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                  {user.name}
+                </div>
+                <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                  {user.grade} класс
+                </div>
+              </div>
+              <span className="text-zinc-400 dark:text-zinc-500" aria-hidden>
+                ···
+              </span>
             </div>
-            <LogoutButton />
-          </div>
+          </AccountProfileMenu>
         </Card>
       </div>
     </aside>

@@ -11,5 +11,9 @@ export default async function TasksPage() {
 
   const stats = await getTaskStats(user.id);
 
-  return <TasksClient solvedToday={stats.solvedToday} solvedTotal={stats.solvedTotal} />;
+  return (
+    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+      <TasksClient solvedToday={stats.solvedToday} solvedTotal={stats.solvedTotal} />
+    </div>
+  );
 }

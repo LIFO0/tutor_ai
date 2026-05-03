@@ -23,10 +23,16 @@ export function ChatWindow({
     initialMessages.map((m) => ({ id: String(m.id), role: m.role, content: m.content })),
   );
   const [streaming, setStreaming] = useState(false);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingConsumedRef = useRef(false);
 
   const headerTitle = useMemo(() => title || "Чат", [title]);
+
+  const lastMessageFingerprint = useMemo(() => {
+    const last = messages.at(-1);
+    if (!last) return 0;
+    return last.content.length + (last.role === "assistant" ? 1 : 0);
+  }, [messages]);
 
   const send = useCallback(async (text: string) => {
     const userMsg: UiMessage = { id: crypto.randomUUID(), role: "user", content: text };
@@ -100,12 +106,15 @@ export function ChatWindow({
   }, [send]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, streaming]);
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    // Скроллим строго контейнер ленты, чтобы не появлялся скролл страницы.
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [messages.length, streaming, lastMessageFingerprint]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-3 pb-3">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center gap-3 pb-3">
         <BearTotem variant={streaming ? "thinking" : "standard"} size="sm" />
         <div className="flex flex-col">
           <div className="font-semibold">{headerTitle}</div>
@@ -114,15 +123,21 @@ export function ChatWindow({
           </div>
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden">
+        <div
+          ref={messagesScrollRef}
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-auto px-3 pt-1 pb-4"
+        >
           {messages.map((m) => (
             <MessageBubble key={m.id} role={m.role} content={m.content} />
           ))}
-          <div ref={bottomRef} />
         </div>
-        <div className="sticky bottom-0 -mx-1 bg-zinc-50/95 pt-2 pb-3 backdrop-blur dark:bg-black/85">
+        <div className="shrink-0 bg-zinc-50/95 px-3 pt-2 pb-2 backdrop-blur dark:bg-black/85">
           <ChatInput onSend={send} disabled={streaming} />
+          <p className="mt-2 px-1 text-center text-xs leading-snug text-zinc-500 dark:text-zinc-400">
+            Мишка знает — это искусственный интеллект, и он может ошибаться. Пожалуйста,
+            перепроверяйте ответы.
+          </p>
         </div>
       </div>
     </div>

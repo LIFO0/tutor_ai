@@ -9,7 +9,7 @@ import {
 } from "@/lib/chat";
 import { systemPrompt } from "@/lib/prompts";
 import { streamYandexCompletion } from "@/lib/yandex-gpt";
-import type { Subject } from "@/lib/subjects";
+import { normalizeChatSubject } from "@/lib/subjects";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -37,8 +37,9 @@ export async function POST(req: Request) {
       try {
         const sys = systemPrompt({
           name: user.name,
+          chatName: user.chatName,
           grade: user.grade,
-          subject: session.subject as Subject,
+          subject: normalizeChatSubject(session.subject),
         });
 
         const ctx = await listRecentMessagesForSession({

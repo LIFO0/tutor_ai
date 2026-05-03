@@ -21,8 +21,8 @@ export default async function ChatSessionPage({
   if (!data) return notFound();
 
   return (
-    <div className="-mx-4 -my-6 min-h-[calc(100vh-3rem)] px-4 py-3">
-      <div className="mx-auto h-[calc(100vh-3rem)] min-h-0 w-full max-w-4xl">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mx-auto flex min-h-0 w-full max-w-3xl min-w-0 flex-1 flex-col">
         <ChatWindow
           sessionId={id}
           title={data.session.title}

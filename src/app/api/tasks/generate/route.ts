@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { Subject } from "@/lib/subjects";
+import { isSchoolSubject, type Subject } from "@/lib/subjects";
 import { jsonError } from "@/lib/api/auth";
 import { getCurrentUser } from "@/lib/current-user";
 import { taskGeneratePrompt } from "@/lib/prompts";
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const subject = body?.subject;
   const topic = body?.topic?.trim() ?? "";
 
-  if (subject !== "math" && subject !== "physics" && subject !== "russian") {
+  if (!isSchoolSubject(subject)) {
     return jsonError("Invalid subject", 400);
   }
   if (!topic) return jsonError("Введите тему.", 400);

@@ -8,6 +8,8 @@ export const users = sqliteTable("users", {
   name: text("name").notNull(),
   grade: integer("grade").notNull(), // 5..11
   avatar: text("avatar").notNull().default("bear1"),
+  /** Как обращаться к ученику в чате с ИИ; если пусто — используется name */
+  chatName: text("chat_name"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
@@ -18,7 +20,7 @@ export const chatSessions = sqliteTable("chat_sessions", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id),
-  subject: text("subject").notNull(), // math | physics | russian
+  subject: text("subject").notNull(), // math | physics | russian | free (в БД могут быть старые mixed|general|creative)
   title: text("title"),
   createdAt: text("created_at")
     .notNull()

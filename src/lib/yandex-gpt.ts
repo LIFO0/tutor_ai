@@ -94,6 +94,25 @@ async function fetchCompletionText(params: {
   }
 }
 
+export async function completeYandexText(params: {
+  messages: LlmMessage[];
+  maxTokens?: number;
+  temperature?: number;
+}) {
+  const apiKey = getOptionalEnv("YANDEX_GPT_API_KEY");
+  const folderId = getOptionalEnv("YANDEX_FOLDER_ID");
+  if (!apiKey || !folderId) return null;
+
+  const text = await fetchCompletionText({
+    apiKey,
+    folderId,
+    messages: params.messages,
+    maxTokens: params.maxTokens,
+    temperature: params.temperature,
+  });
+  return text;
+}
+
 export async function* streamYandexCompletion(params: {
   messages: LlmMessage[];
   maxTokens?: number;

@@ -106,7 +106,7 @@ export function Sidebar({ user }: { user: CurrentUser }) {
       />
       <div className="flex items-center gap-3 px-4 py-4">
         <Image
-          src="/avatars/av_test.png"
+          src="/avatars/av_main.png"
           alt="Мишка знает"
           width={36}
           height={36}
@@ -115,7 +115,6 @@ export function Sidebar({ user }: { user: CurrentUser }) {
         />
         <div className="flex min-w-0 flex-col">
           <div className="text-sm font-semibold">Мишка знает</div>
-          <div className="text-xs text-zinc-900 dark:text-zinc-50">ИИ-репетитор</div>
         </div>
       </div>
 
@@ -126,7 +125,7 @@ export function Sidebar({ user }: { user: CurrentUser }) {
             <Button
               key={item.href}
               variant={active ? "secondary" : "ghost"}
-              className="justify-start"
+              className="justify-start rounded-2xl"
               onPress={() => router.push(item.href)}
             >
               {item.label}
@@ -141,7 +140,7 @@ export function Sidebar({ user }: { user: CurrentUser }) {
         <button
           type="button"
           onClick={() => setRecentsOpen((v) => !v)}
-          className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
+          className="flex w-full items-center justify-between gap-2 rounded-2xl px-2 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
         >
           <span>Последние чаты</span>
           <span
@@ -169,7 +168,7 @@ export function Sidebar({ user }: { user: CurrentUser }) {
                         type="button"
                         onClick={() => router.push(`/chat/${s.id}`)}
                         className={[
-                          "flex w-full min-w-0 items-center rounded-lg py-2 pl-2 pr-9 text-left text-sm transition-colors",
+                          "flex w-full min-w-0 items-center rounded-2xl py-2 pl-2 pr-9 text-left text-sm transition-colors",
                           active
                             ? "bg-zinc-200/80 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
                             : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900",
@@ -198,9 +197,9 @@ export function Sidebar({ user }: { user: CurrentUser }) {
       </div>
 
       <div className="relative mt-auto px-3 pb-3">
-        <Card className="overflow-visible p-0 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl p-0 shadow-sm">
           <AccountProfileMenu user={user} placement="top">
-            <span className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/80">
+            <span className="flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/80">
               <UserAvatar avatar={user.avatar} size="md" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">

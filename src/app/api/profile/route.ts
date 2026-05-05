@@ -44,6 +44,13 @@ export async function PUT(req: Request) {
   }
   if (avatar !== undefined) {
     if (!avatar) return jsonError("Аватар не может быть пустым.", 400);
+    // Allow built-in avatars (bear1..bear4) and uploaded avatars under /uploads/avatars/.
+    if (
+      !/^bear[1-4]$/.test(avatar) &&
+      !/^\/uploads\/avatars\/user-\d+\.png(\?v=\d+)?$/.test(avatar)
+    ) {
+      return jsonError("Некорректный аватар.", 400);
+    }
     patch.avatar = avatar;
   }
   if (chatName !== undefined) {

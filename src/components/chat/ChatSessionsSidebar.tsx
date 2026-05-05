@@ -124,12 +124,12 @@ export function ChatSessionsSidebar({
             <button
               type="button"
               onClick={() => setNewChatOpen((v) => !v)}
-              className="inline-flex h-9 items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-800 shadow-sm hover:border-[color:var(--accent)]/35 hover:bg-zinc-50/90 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-[color:var(--accent)]/28 dark:hover:bg-zinc-800/80 sm:h-10 sm:px-4"
+              className="inline-flex h-9 items-center justify-center rounded-2xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-800 shadow-sm hover:border-[color:var(--accent)]/35 hover:bg-zinc-50/90 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-[color:var(--accent)]/28 dark:hover:bg-zinc-800/80 sm:h-10 sm:px-4"
             >
               Новый чат
             </button>
             {newChatOpen ? (
-              <div className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-950 dark:shadow-xl">
+              <div className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-950 dark:shadow-xl">
                 {CHAT_SUBJECTS.map((s) => (
                   <button
                     key={s.key}
@@ -161,7 +161,7 @@ export function ChatSessionsSidebar({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Поиск чатов"
-            className="h-11 w-full min-w-0 rounded-xl border-0 bg-zinc-100/90 pl-10 pr-4 text-[15px] text-zinc-900 shadow-inner outline-none ring-1 ring-zinc-200/80 placeholder:text-zinc-500 focus:bg-white focus:ring-2 focus:ring-zinc-300/90 focus:ring-offset-0 dark:bg-zinc-900/50 dark:text-zinc-50 dark:ring-zinc-700/80 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950 dark:focus:ring-zinc-600/80 sm:h-12 sm:rounded-2xl sm:pl-11 sm:text-base"
+            className="h-11 w-full min-w-0 rounded-2xl border-0 bg-zinc-100/90 pl-10 pr-4 text-[15px] text-zinc-900 shadow-inner outline-none ring-1 ring-zinc-200/80 placeholder:text-zinc-500 focus:bg-white focus:ring-2 focus:ring-zinc-300/90 focus:ring-offset-0 dark:bg-zinc-900/50 dark:text-zinc-50 dark:ring-zinc-700/80 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-950 dark:focus:ring-zinc-600/80 sm:h-12 sm:rounded-2xl sm:pl-11 sm:text-base"
           />
         </div>
       </div>
@@ -189,7 +189,7 @@ export function ChatSessionsSidebar({
                     type="button"
                     onClick={() => router.push(`/chat/${s.id}`)}
                     className={[
-                      "w-full rounded-xl border py-3.5 pl-3 pr-11 text-left shadow-sm shadow-transparent ring-1 ring-inset ring-transparent",
+                      "w-full rounded-2xl border py-3.5 pl-3 pr-11 text-left shadow-sm shadow-transparent ring-1 ring-inset ring-transparent",
                       "transition-[border-color,box-shadow,background-color,ring-color] duration-200 ease-out sm:py-4 sm:pl-3.5",
                       active
                         ? "border-zinc-200/80 bg-zinc-100/95 dark:border-zinc-600/45 dark:bg-zinc-800/55 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] dark:hover:border-zinc-500/55"

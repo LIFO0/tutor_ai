@@ -37,7 +37,7 @@ export function AccountProfileMenu({
       <Popover.Content
         placement={placement}
         offset={8}
-        className="w-[min(calc(100vw-2rem),256px)] overflow-hidden rounded-xl border border-zinc-200/90 bg-white p-0 shadow-xl shadow-zinc-900/8 outline-none ring-1 ring-zinc-900/5 dark:border-zinc-700/80 dark:bg-zinc-950 dark:shadow-black/40 dark:ring-white/10"
+        className="w-[min(calc(100vw-2rem),256px)] overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-0 shadow-xl shadow-zinc-900/8 outline-none ring-1 ring-zinc-900/5 dark:border-zinc-700/80 dark:bg-zinc-950 dark:shadow-black/40 dark:ring-white/10"
       >
         <Popover.Dialog className="!p-2 outline-none">
           <nav aria-label="Меню аккаунта" className="flex flex-col gap-1.5">

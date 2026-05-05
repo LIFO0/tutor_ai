@@ -9,9 +9,11 @@ import { MixedMathInput, type MixedMathInputHandle } from "@/components/math/Mix
 export function ChatInput({
   onSend,
   disabled,
+  placeholder,
 }: {
   onSend: (text: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }) {
   const [value, setValue] = useState("");
   const [showMath, setShowMath] = useState(false);
@@ -32,7 +34,7 @@ export function ChatInput({
           ref={inputRef}
           value={value}
           onChange={setValue}
-          placeholder="С чего начнём?"
+          placeholder={placeholder ?? "С чего начнём?"}
           disabled={disabled}
           className="min-w-0 flex-1"
           inputClassName="min-h-11"

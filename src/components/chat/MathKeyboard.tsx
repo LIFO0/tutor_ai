@@ -113,7 +113,7 @@ export function MathKeyboard({
   const keys = useMemo(() => KEYS[tab], [tab]);
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button

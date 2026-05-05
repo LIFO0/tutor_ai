@@ -5,7 +5,8 @@ import {
   addMessage,
   getChatSession,
   listRecentMessagesForSession,
-  updateChatTitleIfEmpty,
+  maybeUpdateChatSubjectInitialWindow,
+  maybeUpdateChatTitleInitialWindow,
 } from "@/lib/chat";
 import { systemPrompt } from "@/lib/prompts";
 import { streamYandexCompletion } from "@/lib/yandex-gpt";
@@ -30,7 +31,6 @@ export async function POST(req: Request) {
 
   const beforeDbWriteMs = Date.now();
   await addMessage({ sessionId, role: "user", content: message });
-  await updateChatTitleIfEmpty(sessionId, message.slice(0, 40));
   const afterDbWriteMs = Date.now();
 
   const encoder = new TextEncoder();
@@ -62,9 +62,6 @@ export async function POST(req: Request) {
           })) ?? [{ role: "user" as const, text: message }];
 
         const isDev = process.env.NODE_ENV !== "production";
-
-        // Send a tiny initial chunk so the client knows the stream started.
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ t: "…" })}\n\n`));
 
         if (isDev) {
           controller.enqueue(
@@ -126,6 +123,19 @@ export async function POST(req: Request) {
       } finally {
         if (full.trim()) {
           await addMessage({ sessionId, role: "assistant", content: full });
+        }
+        // Auto-title in the initial window, based on the dialog context.
+        // Best-effort: ignore failures so chat streaming never breaks.
+        try {
+          await maybeUpdateChatTitleInitialWindow({ userId: user.id, sessionId });
+        } catch {
+          // ignore
+        }
+        // Auto-subject in the initial window (free -> math/russian/physics).
+        try {
+          await maybeUpdateChatSubjectInitialWindow({ userId: user.id, sessionId });
+        } catch {
+          // ignore
         }
       }
     },

@@ -24,6 +24,7 @@ export default async function TaskPage({ params }: { params: Promise<{ taskId: s
         checked={task.correct !== null && task.correct !== undefined}
         initialAnswer={task.userAnswer}
         initialFeedback={task.aiFeedback}
+        initialCorrect={task.correct}
       />
     </div>
   );

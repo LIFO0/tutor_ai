@@ -1,9 +1,29 @@
 import { notFound } from "next/navigation";
-import { listMessages } from "@/lib/chat";
+import type { Metadata } from "next";
+import { getChatSession, listMessages } from "@/lib/chat";
 import { getCurrentUser } from "@/lib/current-user";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ sessionId: string }>;
+}): Promise<Metadata> {
+  const user = await getCurrentUser();
+  if (!user) return { title: "Мишка знает" };
+
+  const { sessionId } = await params;
+  const id = Number(sessionId);
+  if (!Number.isInteger(id)) return { title: "Мишка знает" };
+
+  const session = await getChatSession(user.id, id);
+  if (!session) return { title: "Мишка знает" };
+
+  const topic = session.title?.trim();
+  return { title: topic ? `Мишка знает - ${topic}` : "Мишка знает" };
+}
 
 export default async function ChatSessionPage({
   params,

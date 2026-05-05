@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { createSseParser } from "./sse";
@@ -20,6 +21,7 @@ export function ChatWindow({
   title?: string | null;
   initialMessages: Array<{ id: number; role: "user" | "assistant"; content: string }>;
 }) {
+  const router = useRouter();
   const [messages, setMessages] = useState<UiMessage[]>(() =>
     initialMessages.map((m) => ({ id: String(m.id), role: m.role, content: m.content })),
   );
@@ -27,7 +29,11 @@ export function ChatWindow({
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingConsumedRef = useRef(false);
 
-  const headerTitle = useMemo(() => title || "Чат", [title]);
+  const [headerTitle, setHeaderTitle] = useState<string>(() => title || "Чат");
+
+  useEffect(() => {
+    setHeaderTitle(title || "Чат");
+  }, [title]);
 
   const lastMessageFingerprint = useMemo(() => {
     const last = messages.at(-1);
@@ -65,6 +71,9 @@ export function ChatWindow({
         if (ev.type === "data") {
           const t = (ev.data as StreamChunk | null)?.t;
           if (typeof t === "string" && t.length) {
+            // Older server versions could send a placeholder token to signal stream start.
+            // Never render it to the user.
+            if (t === "…") return;
             if (isDev && firstUsefulTokenAt === null && t !== "…") {
               const now = typeof performance !== "undefined" ? performance.now() : Date.now();
               firstUsefulTokenAt = now;
@@ -87,6 +96,24 @@ export function ChatWindow({
           setStreaming(false);
         } else if (ev.type === "done") {
           setStreaming(false);
+          // After the first exchange we may auto-update the session title/subject on the server.
+          // Pull fresh session data so UI reflects it immediately (and refresh metadata/sidebar).
+          void (async () => {
+            try {
+              const r = await fetch(`/api/chat/sessions/${sessionId}`, { cache: "no-store" });
+              const data = (await r.json().catch(() => null)) as
+                | { ok: true; session?: { title?: string | null } }
+                | { ok?: false }
+                | null;
+              const nextTitle = data && (data as { session?: { title?: unknown } }).session?.title;
+              if (typeof nextTitle === "string" && nextTitle.trim()) {
+                setHeaderTitle(nextTitle.trim());
+                router.refresh();
+              }
+            } catch {
+              // ignore
+            }
+          })();
           if (isDev) {
             const now = typeof performance !== "undefined" ? performance.now() : Date.now();
             console.debug("[chat] done ms:", Math.round(now - t0), {
@@ -113,7 +140,7 @@ export function ChatWindow({
       );
       setStreaming(false);
     }
-  }, [sessionId]);
+  }, [router, sessionId]);
 
   useEffect(() => {
     if (pendingConsumedRef.current) return;
@@ -138,9 +165,9 @@ export function ChatWindow({
         <BearTotem variant={streaming ? "thinking" : "standard"} size="sm" />
         <div className="flex flex-col">
           <div className="font-semibold">{headerTitle}</div>
-          <div className="text-xs text-zinc-900 dark:text-zinc-50">
-            {streaming ? "Мишка думает и печатает…" : "Спросите что угодно по теме"}
-          </div>
+          {streaming ? (
+            <div className="text-xs text-zinc-900 dark:text-zinc-50">Мишка думает и печатает…</div>
+          ) : null}
         </div>
       </div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden">

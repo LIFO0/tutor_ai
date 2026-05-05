@@ -23,6 +23,10 @@ function normalizeAvatar(avatar: string): AvatarId {
   return AVATARS.includes(avatar as AvatarId) ? (avatar as AvatarId) : "bear1";
 }
 
+function isImageAvatar(avatar: string) {
+  return avatar.startsWith("/uploads/avatars/") || avatar.startsWith("http://") || avatar.startsWith("https://");
+}
+
 export function UserAvatar({
   avatar,
   size = "md",
@@ -35,7 +39,6 @@ export function UserAvatar({
   /** Подсветка выбранного варианта (сетка настроек) */
   selected?: boolean;
 }) {
-  const id = normalizeAvatar(avatar);
   const dim =
     size === "sm"
       ? "h-8 w-8 min-h-8 min-w-8 text-[10px]"
@@ -43,6 +46,27 @@ export function UserAvatar({
         ? "h-14 w-14 min-h-14 min-w-14 text-lg"
         : "h-9 w-9 min-h-9 min-w-9 text-xs";
 
+  if (isImageAvatar(avatar)) {
+    return (
+      <div
+        className={[
+          "inline-flex shrink-0 overflow-hidden rounded-full bg-zinc-200 shadow-sm ring-2 ring-transparent transition-[box-shadow,ring-color] dark:bg-zinc-800",
+          dim,
+          selected
+            ? "ring-[color:var(--color-accent)] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
+            : "",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        aria-hidden
+      >
+        <img src={avatar} alt="" className="h-full w-full object-cover" />
+      </div>
+    );
+  }
+
+  const id = normalizeAvatar(avatar);
   return (
     <div
       className={[

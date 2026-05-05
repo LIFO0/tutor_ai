@@ -11,17 +11,21 @@ export function TaskRunner({
   checked,
   initialAnswer,
   initialFeedback,
+  initialCorrect,
 }: {
   taskId: number;
   taskText: string;
   checked: boolean;
   initialAnswer?: string | null;
   initialFeedback?: string | null;
+  initialCorrect?: boolean | null;
 }) {
   const [answer, setAnswer] = useState(initialAnswer ?? "");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<null | { correct: boolean; aiFeedback: string }>(
-    checked && initialFeedback ? { correct: false, aiFeedback: initialFeedback } : null,
+    checked && initialFeedback
+      ? { correct: Boolean(initialCorrect), aiFeedback: initialFeedback }
+      : null,
   );
 
   const canCheck = useMemo(() => answer.trim().length > 0 && !loading, [answer, loading]);
@@ -75,7 +79,7 @@ export function TaskRunner({
       {result ? (
         <Card>
           <CardHeader className="font-semibold">
-            {result.correct ? "✅ Верно!" : "❌ Не совсем…"}
+            {result.correct ? "✅ Верно!" : "❌ Неверно"}
           </CardHeader>
           <CardContent>
             <MessageBubble role="assistant" content={result.aiFeedback} />

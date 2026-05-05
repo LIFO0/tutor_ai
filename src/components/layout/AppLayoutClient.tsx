@@ -11,7 +11,7 @@ function MobileSettingsBar({ user }: { user: CurrentUser }) {
     <header className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950 md:hidden">
       <div className="flex min-w-0 items-center gap-3">
         <Image
-          src="/avatars/av_test.png"
+          src="/avatars/av_main.png"
           alt="Мишка знает"
           width={36}
           height={36}
@@ -26,7 +26,7 @@ function MobileSettingsBar({ user }: { user: CurrentUser }) {
         </div>
       </div>
       <AccountProfileMenu user={user} placement="bottom">
-        <span className="flex min-w-0 max-w-[55%] cursor-pointer items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 py-1.5 pl-1.5 pr-3 text-left transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-900">
+        <span className="flex min-w-0 max-w-[55%] cursor-pointer items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50/80 py-1.5 pl-1.5 pr-3 text-left transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-900">
           <UserAvatar avatar={user.avatar} size="sm" />
           <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
             {user.name}

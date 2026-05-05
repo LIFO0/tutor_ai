@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ListBox, Select } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
@@ -19,8 +19,10 @@ type Baseline = {
 export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [baseline, setBaseline] = useState<Baseline | null>(() => ({
     name: initialUser.name,
@@ -168,7 +170,7 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Аватар</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-xl">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {AVATAR_IDS.map((id) => (
             <button
               key={id}
@@ -185,6 +187,63 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
               <span className="text-xs text-zinc-500 dark:text-zinc-400">Мишка {id.slice(-1)}</span>
             </button>
           ))}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0] ?? null;
+              e.target.value = "";
+              if (!file) return;
+              setError(null);
+              setOk(null);
+              setAvatarUploading(true);
+              try {
+                const fd = new FormData();
+                fd.append("file", file);
+                const res = await fetch("/api/profile/avatar", { method: "POST", body: fd });
+                const data = (await res.json().catch(() => null)) as
+                  | { ok: true; avatar: string }
+                  | { ok: false; error?: string }
+                  | null;
+                if (!res.ok || !data || data.ok !== true || typeof data.avatar !== "string") {
+                  throw new Error((data as { error?: string } | null)?.error || "Не удалось загрузить аватар");
+                }
+                setAvatar(data.avatar);
+                setOk("Аватар загружен. Нажмите «Сохранить изменения».");
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Ошибка");
+              } finally {
+                setAvatarUploading(false);
+              }
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={avatarUploading || saving}
+            className={[
+              "flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors",
+              "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900",
+              avatarUploading ? "opacity-70" : "",
+            ].join(" ")}
+          >
+            <div
+              className={[
+                "inline-flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-xl font-semibold text-zinc-600 ring-2 ring-transparent dark:bg-zinc-900 dark:text-zinc-300",
+                avatar.startsWith("/uploads/avatars/") ? "ring-[color:var(--color-accent)] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950" : "",
+              ].join(" ")}
+              aria-hidden
+            >
+              {avatarUploading ? "…" : "+"}
+            </div>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              {avatarUploading ? "Загрузка…" : "Загрузить"}
+            </span>
+          </button>
         </div>
       </section>
 

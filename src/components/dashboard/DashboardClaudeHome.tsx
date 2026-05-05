@@ -9,6 +9,13 @@ import type { Subject } from "@/lib/subjects";
 import { CHAT_SUBJECTS, DEFAULT_CHAT_SUBJECT } from "@/lib/subjects";
 
 const TOTEM_INTRO_SESSION_KEY = "totem_dashboard_welcome_done";
+const DASHBOARD_PLACEHOLDERS = [
+  "С чего начнём?",
+  "Чем могу помочь?",
+  "О чём хочешь узнать?",
+  "Что тебя интересует?",
+  "О чём поговорим сегодня?",
+] as const;
 
 export function DashboardClaudeHome({ userName }: { userName: string }) {
   const router = useRouter();
@@ -16,6 +23,9 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
   const [bearVariant, setBearVariant] = useState<BearTotemVariant>("standard");
   const [submitting, setSubmitting] = useState(false);
   const [openHint, setOpenHint] = useState<string | null>(null);
+  const [dashboardPlaceholder, setDashboardPlaceholder] = useState<(typeof DASHBOARD_PLACEHOLDERS)[number]>(
+    DASHBOARD_PLACEHOLDERS[0],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -29,6 +39,12 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
       sessionStorage.setItem(TOTEM_INTRO_SESSION_KEY, "1");
     }, 2200);
     return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    setDashboardPlaceholder(
+      DASHBOARD_PLACEHOLDERS[Math.floor(Math.random() * DASHBOARD_PLACEHOLDERS.length)],
+    );
   }, []);
 
   async function handleSend(text: string) {
@@ -75,7 +91,7 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
         </div>
 
         <div className="w-full rounded-2xl border border-zinc-200/90 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-950/60">
-          <ChatInput onSend={handleSend} disabled={submitting} />
+          <ChatInput onSend={handleSend} disabled={submitting} placeholder={dashboardPlaceholder} />
           {openHint ? (
             <div className="mt-2 px-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
               {openHint}

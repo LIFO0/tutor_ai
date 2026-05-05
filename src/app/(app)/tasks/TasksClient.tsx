@@ -10,9 +10,11 @@ import { SUBJECTS } from "@/lib/subjects";
 export function TasksClient({
   solvedToday,
   solvedTotal,
+  history,
 }: {
   solvedToday: number;
   solvedTotal: number;
+  history: Array<{ id: number; subject: string; topic: string; correct: boolean | null; createdAt: string }>;
 }) {
   const router = useRouter();
   const [subject, setSubject] = useState<Subject>("math");
@@ -140,11 +142,47 @@ export function TasksClient({
       <Card>
         <CardHeader className="font-semibold">История</CardHeader>
         <CardContent className="text-sm text-zinc-900 dark:text-zinc-50">
-          История появится после первого задания. Пока можно перейти в{" "}
-          <Link href="/chat" className="underline">
-            чат
-          </Link>
-          .
+          {history.length === 0 ? (
+            <div>
+              История появится после первого задания. Пока можно перейти в{" "}
+              <Link href="/chat" className="underline">
+                чат
+              </Link>
+              .
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {history.map((h) => {
+                const subj = SUBJECTS.find((s) => s.key === (h.subject as Subject))?.title ?? h.subject;
+                const status =
+                  h.correct === null
+                    ? { label: "Не проверено", cls: "text-zinc-500 dark:text-zinc-400" }
+                    : h.correct
+                      ? { label: "Верно", cls: "text-emerald-700 dark:text-emerald-400" }
+                      : { label: "Неверно", cls: "text-amber-700 dark:text-amber-400" };
+                return (
+                  <li key={h.id}>
+                    <Link
+                      href={`/tasks/${h.id}`}
+                      className="block rounded-2xl border border-zinc-200 bg-white px-3 py-3 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900/40"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{h.topic}</div>
+                          <div className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                            {subj}
+                            <span className="text-zinc-300 dark:text-zinc-700"> · </span>
+                            #{h.id}
+                          </div>
+                        </div>
+                        <div className={`shrink-0 text-xs font-semibold ${status.cls}`}>{status.label}</div>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -48,7 +48,7 @@ const KEYS: Record<TabKey, KeyDef[]> = {
     { label: "log", insertLatex: "log()", displayLatex: "\\log x" },
     {
       label: "logₙ",
-      insertLatex: "$\\log_{n}{}$",
+      insertLatex: "$\\log_{\\placeholder[base]{}}\\placeholder[arg]{}$",
       displayLatex: "\\log_{n}x",
       caretBackoff: 2,
     },
@@ -59,23 +59,28 @@ const KEYS: Record<TabKey, KeyDef[]> = {
     { label: "xⁿ", insertLatex: "^n", displayLatex: "x^{n}" },
     {
       label: "√x",
-      insertLatex: "$\\sqrt{}$",
+      insertLatex: "$\\sqrt{\\placeholder[arg]{}}$",
       displayLatex: "\\sqrt{x}",
       caretBackoff: 2,
     },
     {
       label: "∛x",
-      insertLatex: "$\\sqrt[3]{}$",
+      insertLatex: "$\\sqrt[3]{\\placeholder[arg]{}}$",
       displayLatex: "\\sqrt[3]{x}",
       caretBackoff: 2,
     },
     {
       label: "ⁿ√",
-      insertLatex: "$\\sqrt[n]{}$",
+      insertLatex: "$\\sqrt[\\placeholder[n]{}]{\\placeholder[arg]{}}$",
       displayLatex: "\\sqrt[n]{x}",
       caretBackoff: 2,
     },
-    { label: "x/y", insertLatex: "()/()", displayLatex: "\\frac{a}{b}" },
+    {
+      label: "x/y",
+      insertLatex: "$\\frac{\\placeholder[num]{}}{\\placeholder[den]{}}$",
+      displayLatex: "\\frac{a}{b}",
+      caretBackoff: 2,
+    },
   ],
   spec: [
     { label: "∫", insertLatex: "∫", displayLatex: "\\int" },

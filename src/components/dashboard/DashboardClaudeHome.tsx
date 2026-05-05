@@ -15,6 +15,7 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
   const [subject, setSubject] = useState<Subject>(DEFAULT_CHAT_SUBJECT);
   const [bearVariant, setBearVariant] = useState<BearTotemVariant>("standard");
   const [submitting, setSubmitting] = useState(false);
+  const [openHint, setOpenHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -34,6 +35,8 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
     const message = text.trim();
     if (!message || submitting) return;
     setSubmitting(true);
+    setBearVariant("thinking");
+    setOpenHint("Открываем чат…");
     try {
       const res = await fetch("/api/chat/sessions", {
         method: "POST",
@@ -49,11 +52,14 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
         return;
       }
       sessionStorage.setItem(PENDING_CHAT_MESSAGE_KEY, message);
+      setOpenHint("Переходим в чат…");
       router.push(`/chat/${data.sessionId}`);
     } catch {
       alert("Не удалось создать чат");
     } finally {
       setSubmitting(false);
+      setOpenHint(null);
+      setBearVariant("standard");
     }
   }
 
@@ -70,6 +76,11 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
 
         <div className="w-full rounded-2xl border border-zinc-200/90 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-950/60">
           <ChatInput onSend={handleSend} disabled={submitting} />
+          {openHint ? (
+            <div className="mt-2 px-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
+              {openHint}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex w-full flex-wrap justify-center gap-2">

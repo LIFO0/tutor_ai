@@ -1,5 +1,6 @@
 export type SseEvent =
   | { type: "data"; data: unknown }
+  | { type: "event"; event: string; data: unknown }
   | { type: "done" }
   | { type: "error"; error: string };
 
@@ -38,6 +39,14 @@ export function createSseParser(onEvent: (ev: SseEvent) => void) {
       }
 
       if (dataText) {
+        if (eventName !== "message") {
+          try {
+            onEvent({ type: "event", event: eventName, data: JSON.parse(dataText) });
+          } catch {
+            onEvent({ type: "event", event: eventName, data: dataText });
+          }
+          continue;
+        }
         try {
           onEvent({ type: "data", data: JSON.parse(dataText) });
         } catch {

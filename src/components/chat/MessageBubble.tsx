@@ -1,10 +1,17 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import { mathLiveLatexToKatexDisplay } from "@/lib/mathlive-katex";
 
-export function MessageBubble({
+function normalizeMathlivePlaceholdersInMarkdown(input: string) {
+  // Inline math is `$...$` in markdown; we only normalize placeholder scaffolding inside those segments.
+  return input.replace(/\$([^$]+)\$/g, (_m, inner) => `$${mathLiveLatexToKatexDisplay(String(inner))}$`);
+}
+
+export const MessageBubble = memo(function MessageBubble({
   role,
   content,
 }: {
@@ -12,6 +19,7 @@ export function MessageBubble({
   content: string;
 }) {
   const isUser = role === "user";
+  const normalized = useMemo(() => normalizeMathlivePlaceholdersInMarkdown(content), [content]);
   return (
     <div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
       <div
@@ -24,11 +32,11 @@ export function MessageBubble({
       >
         <div className="prose prose-zinc max-w-none dark:prose-invert prose-p:my-2 prose-pre:my-2">
           <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-            {content}
+            {normalized}
           </ReactMarkdown>
         </div>
       </div>
     </div>
   );
-}
+}, (prev, next) => prev.role === next.role && prev.content === next.content);
 

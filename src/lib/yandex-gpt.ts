@@ -6,10 +6,12 @@ const API_URL =
   "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
 
 async function* fakeStream(text: string) {
-  const chunkSize = 12;
+  // This is a server-side fallback "stream": keep it fast to avoid UX where
+  // the UI looks frozen for long answers.
+  const chunkSize = 80;
   for (let i = 0; i < text.length; i += chunkSize) {
     yield text.slice(i, i + chunkSize);
-    await new Promise((r) => setTimeout(r, 20));
+    // No artificial delay: the real latency is the model generation time.
   }
 }
 
@@ -20,29 +22,34 @@ async function fetchCompletionText(params: {
   maxTokens?: number;
   temperature?: number;
 }) {
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Api-Key ${params.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      modelUri: `gpt://${params.folderId}/yandexgpt`,
-      completionOptions: {
-        stream: false,
-        temperature: params.temperature ?? 0.3,
-        maxTokens: String(params.maxTokens ?? 1200),
+  const ac = new AbortController();
+  const timeoutMs = 120_000;
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      signal: ac.signal,
+      headers: {
+        Authorization: `Api-Key ${params.apiKey}`,
+        "Content-Type": "application/json",
       },
-      messages: params.messages,
-    }),
-  });
+      body: JSON.stringify({
+        modelUri: `gpt://${params.folderId}/yandexgpt`,
+        completionOptions: {
+          stream: false,
+          temperature: params.temperature ?? 0.3,
+          maxTokens: String(params.maxTokens ?? 1200),
+        },
+        messages: params.messages,
+      }),
+    });
 
-  if (!response.ok) {
-    const err = await response.text().catch(() => "");
-    throw new Error(`YandexGPT error: ${response.status} ${err}`);
-  }
+    if (!response.ok) {
+      const err = await response.text().catch(() => "");
+      throw new Error(`YandexGPT error: ${response.status} ${err}`);
+    }
 
-  const payload = (await response.json().catch(() => null)) as unknown;
+    const payload = (await response.json().catch(() => null)) as unknown;
 
   const alternatives =
     typeof payload === "object" &&
@@ -66,14 +73,25 @@ async function fetchCompletionText(params: {
       ? (alt as { message?: { text?: unknown } }).message?.text
       : undefined;
 
-  if (typeof textCandidate === "string" && textCandidate.trim().length > 0) {
-    return textCandidate;
-  }
+    if (typeof textCandidate === "string" && textCandidate.trim().length > 0) {
+      return textCandidate;
+    }
 
-  // If API shape changed, fail loudly so UI shows a useful error.
-  throw new Error(
-    `YandexGPT returned no text. Payload: ${JSON.stringify(payload).slice(0, 2000)}`,
-  );
+    // If API shape changed, fail loudly so UI shows a useful error.
+    throw new Error(
+      `YandexGPT returned no text. Payload: ${JSON.stringify(payload).slice(0, 2000)}`,
+    );
+  } catch (e) {
+    // Make timeouts user-friendly.
+    const name = e instanceof Error ? e.name : "";
+    const msg = e instanceof Error ? e.message : "";
+    if (name === "AbortError" || /aborted/i.test(msg)) {
+      throw new Error("Ответ модели слишком долго генерируется. Попробуйте отправить вопрос ещё раз.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function* streamYandexCompletion(params: {
@@ -100,7 +118,7 @@ export async function* streamYandexCompletion(params: {
     apiKey,
     folderId,
     messages: params.messages,
-    maxTokens: params.maxTokens,
+    maxTokens: params.maxTokens ?? 1200,
     temperature: params.temperature,
   });
   yield* fakeStream(fullText);

@@ -6,6 +6,7 @@ import { ChatInput } from "./ChatInput";
 import { createSseParser } from "./sse";
 import { BearTotem } from "@/components/ui/BearTotem";
 import { PENDING_CHAT_MESSAGE_KEY } from "@/lib/pending-chat-message";
+import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 
 export type UiMessage = { id: string; role: "user" | "assistant"; content: string };
 type StreamChunk = { t: string };
@@ -35,7 +36,12 @@ export function ChatWindow({
   }, [messages]);
 
   const send = useCallback(async (text: string) => {
-    const userMsg: UiMessage = { id: crypto.randomUUID(), role: "user", content: text };
+    const isDev = process.env.NODE_ENV !== "production";
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
+    let firstUsefulTokenAt: number | null = null;
+
+    const normalized = normalizeMathMessageForModel(text);
+    const userMsg: UiMessage = { id: crypto.randomUUID(), role: "user", content: normalized };
     const assistantMsg: UiMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
@@ -49,7 +55,7 @@ export function ChatWindow({
       const res = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message: text }),
+        body: JSON.stringify({ sessionId, message: normalized }),
       });
       if (!res.ok || !res.body) throw new Error("Не удалось начать стриминг");
 
@@ -59,10 +65,17 @@ export function ChatWindow({
         if (ev.type === "data") {
           const t = (ev.data as StreamChunk | null)?.t;
           if (typeof t === "string" && t.length) {
+            if (isDev && firstUsefulTokenAt === null && t !== "…") {
+              const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+              firstUsefulTokenAt = now;
+              console.debug("[chat] first token ms:", Math.round(now - t0), { len: normalized.length });
+            }
             setMessages((prev) =>
               prev.map((m) => (m.id === assistantMsg.id ? { ...m, content: m.content + t } : m)),
             );
           }
+        } else if (ev.type === "event" && ev.event === "metrics") {
+          if (isDev) console.debug("[chat] server metrics:", ev.data);
         } else if (ev.type === "error") {
           setMessages((prev) =>
             prev.map((m) =>
@@ -74,6 +87,13 @@ export function ChatWindow({
           setStreaming(false);
         } else if (ev.type === "done") {
           setStreaming(false);
+          if (isDev) {
+            const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+            console.debug("[chat] done ms:", Math.round(now - t0), {
+              len: normalized.length,
+              firstTokenMs: firstUsefulTokenAt ? Math.round(firstUsefulTokenAt - t0) : null,
+            });
+          }
         }
       });
 

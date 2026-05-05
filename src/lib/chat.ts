@@ -4,18 +4,22 @@ import { getDb, schema } from "@/lib/db";
 
 export async function listChatSessions(userId: number) {
   const db = getDb();
+  // Avoid JOIN + GROUP BY over potentially large `messages` table.
+  // Use an indexed correlated subquery instead.
   return await db
     .select({
       id: schema.chatSessions.id,
       subject: schema.chatSessions.subject,
       title: schema.chatSessions.title,
       createdAt: schema.chatSessions.createdAt,
-      lastMessageAt: sql<string | null>`max(${schema.messages.createdAt})`,
+      lastMessageAt: sql<string | null>`(
+        select max(m.created_at)
+        from messages as m
+        where m.session_id = ${schema.chatSessions.id}
+      )`,
     })
     .from(schema.chatSessions)
-    .leftJoin(schema.messages, eq(schema.messages.sessionId, schema.chatSessions.id))
     .where(eq(schema.chatSessions.userId, userId))
-    .groupBy(schema.chatSessions.id)
     .orderBy(desc(schema.chatSessions.id))
     .limit(50);
 }

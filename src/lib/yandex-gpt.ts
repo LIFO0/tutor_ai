@@ -94,6 +94,172 @@ async function fetchCompletionText(params: {
   }
 }
 
+function extractYandexTextCandidate(payload: unknown): string | null {
+  const alternatives =
+    typeof payload === "object" &&
+    payload !== null &&
+    "result" in payload &&
+    typeof (payload as { result?: unknown }).result === "object" &&
+    (payload as { result?: { alternatives?: unknown } }).result !== null &&
+    Array.isArray((payload as { result: { alternatives?: unknown } }).result.alternatives)
+      ? ((payload as { result: { alternatives: unknown[] } }).result.alternatives as unknown[])
+      : typeof payload === "object" &&
+          payload !== null &&
+          "alternatives" in payload &&
+          Array.isArray((payload as { alternatives?: unknown }).alternatives)
+        ? ((payload as { alternatives: unknown[] }).alternatives as unknown[])
+        : null;
+
+  const alt = alternatives ? alternatives[0] : null;
+  const textCandidate =
+    typeof alt === "object" && alt !== null && "message" in alt
+      ? (alt as { message?: { text?: unknown } }).message?.text
+      : undefined;
+
+  return typeof textCandidate === "string" ? textCandidate : null;
+}
+
+async function* fetchCompletionStreamPieces(params: {
+  apiKey: string;
+  folderId: string;
+  messages: LlmMessage[];
+  maxTokens?: number;
+  temperature?: number;
+}) {
+  const ac = new AbortController();
+  const timeoutMs = 120_000;
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      signal: ac.signal,
+      headers: {
+        Authorization: `Api-Key ${params.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        modelUri: `gpt://${params.folderId}/yandexgpt`,
+        completionOptions: {
+          stream: true,
+          temperature: params.temperature ?? 0.3,
+          maxTokens: String(params.maxTokens ?? 1200),
+        },
+        messages: params.messages,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text().catch(() => "");
+      throw new Error(`YandexGPT error: ${response.status} ${err}`);
+    }
+    if (!response.body) throw new Error("YandexGPT stream: empty response body");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    let lastFullText = "";
+    let yielded = false;
+
+    const handlePayload = (payload: unknown) => {
+      const textCandidate = extractYandexTextCandidate(payload);
+      if (!textCandidate) return null;
+
+      // Yandex can send either a full accumulated text or a delta. Handle both.
+      let piece = textCandidate;
+      if (textCandidate.startsWith(lastFullText)) {
+        piece = textCandidate.slice(lastFullText.length);
+        lastFullText = textCandidate;
+      } else {
+        lastFullText += textCandidate;
+      }
+      return piece || null;
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+
+      while (true) {
+        // Prefer SSE framing when present.
+        const sseIdx = buf.indexOf("\n\n");
+        if (sseIdx !== -1) {
+          const block = buf.slice(0, sseIdx);
+          buf = buf.slice(sseIdx + 2);
+
+          const lines = block.split("\n");
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const data = trimmed.slice("data:".length).trim();
+            if (!data || data === "[DONE]") continue;
+
+            let payload: unknown;
+            try {
+              payload = JSON.parse(data);
+            } catch {
+              continue;
+            }
+            const piece = handlePayload(payload);
+            if (piece) {
+              yielded = true;
+              yield piece;
+            }
+          }
+          continue;
+        }
+
+        // Fallback: some environments may return plain JSON per line.
+        const nlIdx = buf.indexOf("\n");
+        if (nlIdx === -1) break;
+        const line = buf.slice(0, nlIdx).trim();
+        buf = buf.slice(nlIdx + 1);
+        if (!line) continue;
+        if (line.startsWith("data:")) {
+          // If server sends single-line `data:` without blank line, handle it.
+          const data = line.slice("data:".length).trim();
+          if (!data || data === "[DONE]") continue;
+          try {
+            const payload = JSON.parse(data) as unknown;
+            const piece = handlePayload(payload);
+            if (piece) {
+              yielded = true;
+              yield piece;
+            }
+          } catch {
+            continue;
+          }
+          continue;
+        }
+        if (!line.startsWith("{") && !line.startsWith("[")) continue;
+        try {
+          const payload = JSON.parse(line) as unknown;
+          const piece = handlePayload(payload);
+          if (piece) {
+            yielded = true;
+            yield piece;
+          }
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    if (!yielded) {
+      throw new Error("YandexGPT streaming produced no text pieces (parser mismatch)");
+    }
+  } catch (e) {
+    const name = e instanceof Error ? e.name : "";
+    const msg = e instanceof Error ? e.message : "";
+    if (name === "AbortError" || /aborted/i.test(msg)) {
+      throw new Error("Ответ модели слишком долго генерируется. Попробуйте отправить вопрос ещё раз.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function completeYandexText(params: {
   messages: LlmMessage[];
   maxTokens?: number;
@@ -131,15 +297,24 @@ export async function* streamYandexCompletion(params: {
     return;
   }
 
-  // Yandex streaming format can vary; to be robust we request a full completion
-  // and then stream it ourselves as small chunks.
-  const fullText = await fetchCompletionText({
-    apiKey,
-    folderId,
-    messages: params.messages,
-    maxTokens: params.maxTokens ?? 1200,
-    temperature: params.temperature,
-  });
-  yield* fakeStream(fullText);
+  try {
+    yield* fetchCompletionStreamPieces({
+      apiKey,
+      folderId,
+      messages: params.messages,
+      maxTokens: params.maxTokens ?? 1200,
+      temperature: params.temperature,
+    });
+  } catch {
+    // Fallback: request full completion and stream it ourselves.
+    const fullText = await fetchCompletionText({
+      apiKey,
+      folderId,
+      messages: params.messages,
+      maxTokens: params.maxTokens ?? 1200,
+      temperature: params.temperature,
+    });
+    yield* fakeStream(fullText);
+  }
 }
 

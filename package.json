@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack --disable-source-maps",
+    "dev": "next dev --turbopack",
     "dev:turbo": "next dev --turbopack",
+    "dev:webpack": "next dev --webpack --disable-source-maps",
+    "dev:mem": "cmd /c \"set \\\"NODE_OPTIONS=--heapsnapshot-near-heap-limit=3 --trace-gc\\\" && next dev --turbopack\"",
+    "dev:inspect": "next dev --turbopack --inspect 9229",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "migrate:normalize-messages": "tsx scripts/migrate-normalize-messages.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
@@ -43,6 +47,7 @@
     "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^3.2.0"
   }

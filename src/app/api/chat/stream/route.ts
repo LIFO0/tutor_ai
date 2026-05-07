@@ -8,6 +8,7 @@ import {
   maybeUpdateChatSubjectInitialWindow,
   maybeUpdateChatTitleInitialWindow,
 } from "@/lib/chat";
+import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 import { systemPrompt } from "@/lib/prompts";
 import { streamYandexCompletion } from "@/lib/yandex-gpt";
 import { normalizeChatSubject } from "@/lib/subjects";
@@ -21,7 +22,8 @@ export async function POST(req: Request) {
     | { sessionId?: number; message?: string }
     | null;
   const sessionId = Number(body?.sessionId);
-  const message = body?.message?.trim() ?? "";
+  const rawMessage = body?.message?.trim() ?? "";
+  const message = normalizeMathMessageForModel(rawMessage);
 
   if (!Number.isInteger(sessionId)) return jsonError("Invalid sessionId", 400);
   if (!message) return jsonError("Empty message", 400);
@@ -51,15 +53,31 @@ export async function POST(req: Request) {
         const ctx = await listRecentMessagesForSession({
           userId: user.id,
           sessionId,
-          // Keep context smaller to reduce latency/cost for typical short questions.
-          limit: 18,
+          // Load a wider window; we'll trim by token budget below.
+          limit: 50,
         });
         const afterCtxMs = Date.now();
-        const history =
+        const estimateTokens = (s: string) => Math.ceil(s.length / 4);
+        const maxContextTokens = 7600;
+        const reserved = estimateTokens(sys) + estimateTokens(message) + 200;
+        const maxHistoryTokens = Math.max(0, maxContextTokens - reserved);
+
+        const rawHistory =
           ctx?.messages.map((m) => ({
             role: m.role,
             text: m.content,
           })) ?? [{ role: "user" as const, text: message }];
+
+        // Build from the tail until we hit the token budget.
+        const history: Array<{ role: "user" | "assistant"; text: string }> = [];
+        let total = 0;
+        for (let i = rawHistory.length - 1; i >= 0; i -= 1) {
+          const m = rawHistory[i];
+          const t = estimateTokens(m.text);
+          if (history.length > 0 && total + t > maxHistoryTokens) break;
+          history.unshift(m);
+          total += t;
+        }
 
         const isDev = process.env.NODE_ENV !== "production";
 
@@ -84,7 +102,7 @@ export async function POST(req: Request) {
             { role: "system", text: sys },
             ...history,
           ],
-          maxTokens: 1200,
+          maxTokens: 2200,
         })) {
           if (isDev && full.length === 0) {
             controller.enqueue(

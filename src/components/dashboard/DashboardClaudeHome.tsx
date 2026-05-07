@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { BearTotem, type BearTotemVariant } from "@/components/ui/BearTotem";
@@ -20,64 +20,114 @@ const DASHBOARD_PLACEHOLDERS = [
 export function DashboardClaudeHome({ userName }: { userName: string }) {
   const router = useRouter();
   const [subject, setSubject] = useState<Subject>(DEFAULT_CHAT_SUBJECT);
+  // IMPORTANT: keep SSR + first client render deterministic to avoid hydration mismatch.
   const [bearVariant, setBearVariant] = useState<BearTotemVariant>("standard");
   const [submitting, setSubmitting] = useState(false);
   const [openHint, setOpenHint] = useState<string | null>(null);
+  const [prefetchedSessionId, setPrefetchedSessionId] = useState<number | null>(null);
+  const prefetchStartedRef = useRef(false);
   const [dashboardPlaceholder, setDashboardPlaceholder] = useState<(typeof DASHBOARD_PLACEHOLDERS)[number]>(
     DASHBOARD_PLACEHOLDERS[0],
   );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(TOTEM_INTRO_SESSION_KEY)) {
-      setBearVariant("standard");
-      return;
-    }
-    setBearVariant("welcoming");
+    if (sessionStorage.getItem(TOTEM_INTRO_SESSION_KEY)) return;
+    // Avoid setState synchronously in effect; schedule after paint.
+    const welcomeId = window.setTimeout(() => setBearVariant("welcoming"), 0);
     const id = window.setTimeout(() => {
       setBearVariant("standard");
       sessionStorage.setItem(TOTEM_INTRO_SESSION_KEY, "1");
     }, 2200);
-    return () => window.clearTimeout(id);
+    return () => {
+      window.clearTimeout(welcomeId);
+      window.clearTimeout(id);
+    };
   }, []);
 
   useEffect(() => {
-    setDashboardPlaceholder(
-      DASHBOARD_PLACEHOLDERS[Math.floor(Math.random() * DASHBOARD_PLACEHOLDERS.length)],
-    );
+    // Avoid hydration mismatch: pick random placeholder only after mount.
+    const id = window.setTimeout(() => {
+      const idx = Math.floor(Math.random() * DASHBOARD_PLACEHOLDERS.length);
+      setDashboardPlaceholder(DASHBOARD_PLACEHOLDERS[idx] ?? DASHBOARD_PLACEHOLDERS[0]);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   async function handleSend(text: string) {
     const message = text.trim();
     if (!message || submitting) return;
+    const isDev = process.env.NODE_ENV !== "production";
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     setSubmitting(true);
     setBearVariant("thinking");
-    setOpenHint("Открываем чат…");
+    setOpenHint("Создаём чат…");
+    if (isDev) console.time("[dashboard] total handleSend");
     try {
-      const res = await fetch("/api/chat/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject }),
-      });
-      const data = (await res.json().catch(() => null)) as
-        | { ok: true; sessionId: number }
-        | { ok: false; error?: string }
-        | null;
-      if (!res.ok || !data || data.ok !== true || typeof data.sessionId !== "number") {
-        alert((data as { error?: string } | null)?.error || "Не удалось создать чат");
-        return;
+      let sessionId = prefetchedSessionId;
+      if (!sessionId) {
+        if (isDev) console.time("[dashboard] POST /api/chat/sessions");
+        const res = await fetch("/api/chat/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject }),
+        });
+        if (isDev) console.timeEnd("[dashboard] POST /api/chat/sessions");
+        const data = (await res.json().catch(() => null)) as
+          | { ok: true; sessionId: number }
+          | { ok: false; error?: string }
+          | null;
+        if (!res.ok || !data || data.ok !== true || typeof data.sessionId !== "number") {
+          alert((data as { error?: string } | null)?.error || "Не удалось создать чат");
+          return;
+        }
+        sessionId = data.sessionId;
       }
+      if (isDev) console.time("[dashboard] sessionStorage + push");
       sessionStorage.setItem(PENDING_CHAT_MESSAGE_KEY, message);
-      setOpenHint("Переходим в чат…");
-      router.push(`/chat/${data.sessionId}`);
+      setOpenHint("Открываем чат…");
+      router.push(`/chat/${sessionId}`);
+      if (isDev) console.timeEnd("[dashboard] sessionStorage + push");
     } catch {
       alert("Не удалось создать чат");
     } finally {
+      if (isDev) {
+        console.timeEnd("[dashboard] total handleSend");
+        const t1 = typeof performance !== "undefined" ? performance.now() : Date.now();
+        console.debug("[dashboard] total ms:", Math.round(t1 - t0));
+      }
       setSubmitting(false);
       setOpenHint(null);
       setBearVariant("standard");
     }
   }
+
+  function prefetchSession() {
+    if (prefetchStartedRef.current) return;
+    prefetchStartedRef.current = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/chat/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject }),
+        });
+        const data = (await res.json().catch(() => null)) as { ok: true; sessionId: number } | null;
+        if (res.ok && data?.ok === true && typeof data.sessionId === "number") {
+          setPrefetchedSessionId(data.sessionId);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+  }
+
+  useEffect(() => {
+    // If subject changes, invalidate prefetched session.
+    const id = window.setTimeout(() => setPrefetchedSessionId(null), 0);
+    prefetchStartedRef.current = false;
+    return () => window.clearTimeout(id);
+  }, [subject]);
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 py-10">
@@ -91,7 +141,13 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
         </div>
 
         <div className="w-full rounded-2xl border border-zinc-200/90 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-950/60">
-          <ChatInput onSend={handleSend} disabled={submitting} placeholder={dashboardPlaceholder} />
+          <ChatInput
+            onSend={handleSend}
+            disabled={submitting}
+            placeholder={dashboardPlaceholder}
+            onFocus={prefetchSession}
+            mixedMathInputProps={{ inlineEditActivation: "doubleClick" }}
+          />
           {openHint ? (
             <div className="mt-2 px-1 text-center text-xs text-zinc-500 dark:text-zinc-400">
               {openHint}

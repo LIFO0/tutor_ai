@@ -8,17 +8,22 @@ describe("normalizeMathMessageForModel", () => {
 
   test("strips MathLive placeholders inside inline math", () => {
     const s = "Solve $\\log_{\\placeholder[base]{}}\\placeholder[arg]{}$ please";
-    expect(normalizeMathMessageForModel(s)).toBe("Solve $\\log_{}{}$ please");
+    expect(normalizeMathMessageForModel(s)).toBe("Solve $\\log_{\\square}$ please");
   });
 
   test("strips MathLive placeholders inside display math", () => {
     const s = "Eq: $$\\frac{\\placeholder[num]{}}{\\placeholder[den]{}}$$ end";
-    expect(normalizeMathMessageForModel(s)).toBe("Eq: $$\\frac{}{}$$ end");
+    expect(normalizeMathMessageForModel(s)).toBe("Eq: $$\\frac{\\square}{\\square}$$ end");
   });
 
   test("does not touch text outside math blocks", () => {
     const s = "\\placeholder[outside] should stay, but $\\placeholder[in]{}$ should not";
-    expect(normalizeMathMessageForModel(s)).toBe("\\placeholder[outside] should stay, but ${}$ should not");
+    expect(normalizeMathMessageForModel(s)).toBe("\\placeholder[outside] should stay, but $\\square$ should not");
+  });
+
+  test("keeps invalid delimiter sequences as-is (best-effort)", () => {
+    const s = "bad $$x$ end";
+    expect(normalizeMathMessageForModel(s)).toBe(s);
   });
 });
 

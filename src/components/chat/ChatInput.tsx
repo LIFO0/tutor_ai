@@ -10,10 +10,14 @@ export function ChatInput({
   onSend,
   disabled,
   placeholder,
+  onFocus,
+  mixedMathInputProps,
 }: {
   onSend: (text: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  onFocus?: () => void;
+  mixedMathInputProps?: Partial<React.ComponentProps<typeof MixedMathInput>>;
 }) {
   const [value, setValue] = useState("");
   const [showMath, setShowMath] = useState(false);
@@ -38,6 +42,8 @@ export function ChatInput({
           disabled={disabled}
           className="min-w-0 flex-1"
           inputClassName="min-h-11"
+          onFocus={onFocus}
+          {...mixedMathInputProps}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();

@@ -3,10 +3,7 @@
 import React, { forwardRef, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import { mathLiveLatexToKatexDisplay } from "@/lib/mathlive-katex";
-
-type Segment =
-  | { type: "text"; text: string }
-  | { type: "math"; latex: string; display: "$" | "$$" };
+import { parseMixedLatex } from "@/lib/mixed-math";
 
 export type MixedMathInputHandle = {
   focus: () => void;
@@ -30,73 +27,6 @@ function renderLatexToHtml(latex: string) {
   }
 }
 
-function parseMixedLatex(input: string): Segment[] {
-  const segs: Segment[] = [];
-  let i = 0;
-  let buf = "";
-
-  const flushText = () => {
-    if (buf) segs.push({ type: "text", text: buf });
-    buf = "";
-  };
-
-  while (i < input.length) {
-    const ch = input[i];
-    if (ch !== "$") {
-      buf += ch;
-      i += 1;
-      continue;
-    }
-
-    const isDouble = input[i + 1] === "$";
-    const delim = isDouble ? "$$" : "$";
-    const display = (isDouble ? "$$" : "$") as "$" | "$$";
-
-    const start = i + delim.length;
-    let j = start;
-    let found = -1;
-    while (j < input.length) {
-      if (input[j] === "$") {
-        if (isDouble) {
-          if (input[j + 1] === "$") {
-            found = j;
-            break;
-          }
-        } else {
-          found = j;
-          break;
-        }
-      }
-      j += 1;
-    }
-
-    if (found === -1) {
-      // Unclosed delimiter: keep as text
-      buf += "$";
-      i += 1;
-      continue;
-    }
-
-    const latex = input.slice(start, found);
-    flushText();
-    segs.push({ type: "math", latex, display });
-    i = found + delim.length;
-  }
-
-  flushText();
-  return segs.length ? segs : [{ type: "text", text: "" }];
-}
-
-function segmentsToValue(segs: Segment[]): string {
-  return segs
-    .map((s) => {
-      if (s.type === "text") return s.text;
-      const d = s.display;
-      return `${d}${s.latex}${d}`;
-    })
-    .join("");
-}
-
 function renderValueToDom(root: HTMLElement, value: string) {
   // Imperative render to avoid React <-> contentEditable DOM conflicts.
   root.replaceChildren();
@@ -118,31 +48,34 @@ function renderValueToDom(root: HTMLElement, value: string) {
 }
 
 function serializeFromDom(root: HTMLElement): string {
-  let out = "";
-  for (const child of Array.from(root.childNodes)) {
-    if (child.nodeType === Node.TEXT_NODE) {
-      out += child.textContent ?? "";
-      continue;
+  const parts: string[] = [];
+
+  const walk = (node: ChildNode) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      parts.push(node.textContent ?? "");
+      return;
     }
-    if (child.nodeType !== Node.ELEMENT_NODE) continue;
-    const el = child as HTMLElement;
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node as HTMLElement;
 
     if (el.dataset.math === "1") {
       const latex = el.dataset.latex ?? "";
       const display = (el.dataset.display === "$$" ? "$$" : "$") as "$" | "$$";
-      out += `${display}${latex}${display}`;
-      continue;
+      parts.push(`${display}${latex}${display}`);
+      return;
     }
 
     if (el.tagName.toLowerCase() === "math-field") {
       const latex = String((el as unknown as { value?: string }).value ?? "");
-      out += `$${latex}$`;
-      continue;
+      parts.push(`$${latex}$`);
+      return;
     }
 
-    out += el.textContent ?? "";
-  }
-  return out;
+    for (const child of el.childNodes) walk(child);
+  };
+
+  for (const child of root.childNodes) walk(child);
+  return parts.join("");
 }
 
 function isMathField(el: Element | null): el is HTMLElement {
@@ -151,18 +84,32 @@ function isMathField(el: Element | null): el is HTMLElement {
 
 async function ensureMathLiveLoaded() {
   await import("mathlive");
-  await import("mathlive/static.css");
 }
 
-function insertTextAtSelection(text: string) {
-  // Works inside contentEditable
-  document.execCommand("insertText", false, text);
+function insertTextAtSelection(root: HTMLElement, text: string) {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) {
+    // Fallback: append at end of editor.
+    root.appendChild(document.createTextNode(text));
+    const range = document.createRange();
+    range.selectNodeContents(root);
+    range.collapse(false);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    return;
+  }
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  range.insertNode(document.createTextNode(text));
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 function insertMathNodeAtSelection(params: { latex: string; display: "$" | "$$" }) {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) {
-    insertTextAtSelection(`${params.display}${params.latex}${params.display}`);
+    // No selection: let caller handle fallback insertion.
     return;
   }
   const range = sel.getRangeAt(0);
@@ -193,8 +140,27 @@ export const MixedMathInput = forwardRef<
     className?: string;
     inputClassName?: string;
     onKeyDown?: (e: React.KeyboardEvent<HTMLElement>) => void;
+    onFocus?: () => void;
+    /** Disable inline MathLive editor (no <math-field>, no dynamic import). */
+    disableInlineEdit?: boolean;
+    /** How to open inline editor for a math chip. Default: click. */
+    inlineEditActivation?: "click" | "doubleClick";
   }
->(function MixedMathInput({ value, onChange, disabled, placeholder, className, inputClassName, onKeyDown }, ref) {
+>(function MixedMathInput(
+  {
+    value,
+    onChange,
+    disabled,
+    placeholder,
+    className,
+    inputClassName,
+    onKeyDown,
+    onFocus,
+    disableInlineEdit,
+    inlineEditActivation = "click",
+  },
+  ref,
+) {
   const inputId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const internalValueRef = useRef(value);
@@ -211,7 +177,12 @@ export const MixedMathInput = forwardRef<
     const root = rootRef.current;
     if (!root) return;
     const active = document.activeElement;
-    if (active && root.contains(active)) return;
+    if (active && root.contains(active)) {
+      // If parent forcibly clears the value (e.g. on submit), we must also clear the DOM
+      // even while focused; otherwise the placeholder overlays stale DOM text.
+      if (!value) renderValueToDom(root, "");
+      return;
+    }
     renderValueToDom(root, value);
   }, [value]);
 
@@ -228,6 +199,15 @@ export const MixedMathInput = forwardRef<
 
         const active = document.activeElement;
         if (isMathField(active) && root.contains(active)) {
+          if (disableInlineEdit) {
+            // If inline edit is disabled, treat insertion as plain text at editor level.
+            root.focus();
+            insertTextAtSelection(root, latexOrText);
+            const next = serializeFromDom(root);
+            internalValueRef.current = next;
+            onChange(next);
+            return;
+          }
           // Insert into active MathLive field
           const mf = active as unknown as { insert?: (s: string) => void; executeCommand?: (c: unknown) => void };
           if (typeof mf.insert === "function") {
@@ -248,11 +228,21 @@ export const MixedMathInput = forwardRef<
         const m = latexOrText.match(/^\$\$([\s\S]*)\$\$$/);
         const m2 = latexOrText.match(/^\$([\s\S]*)\$$/);
         if (m) {
-          insertMathNodeAtSelection({ latex: m[1], display: "$$" });
+          const sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) {
+            insertTextAtSelection(root, `$$${m[1]}$$`);
+          } else {
+            insertMathNodeAtSelection({ latex: m[1], display: "$$" });
+          }
         } else if (m2) {
-          insertMathNodeAtSelection({ latex: m2[1], display: "$" });
+          const sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) {
+            insertTextAtSelection(root, `$${m2[1]}$`);
+          } else {
+            insertMathNodeAtSelection({ latex: m2[1], display: "$" });
+          }
         } else {
-          insertTextAtSelection(latexOrText);
+          insertTextAtSelection(root, latexOrText);
         }
 
         const next = serializeFromDom(root);
@@ -262,10 +252,11 @@ export const MixedMathInput = forwardRef<
         // We already inserted the correct nodes (text or a KaTeX preview span).
       },
     }),
-    [disabled, onChange],
+    [disabled, disableInlineEdit, onChange],
   );
 
   async function enterEditMode(targetSpan: HTMLElement) {
+    if (disableInlineEdit) return;
     if (disabled) return;
     const latex = targetSpan.dataset.latex ?? "";
 
@@ -274,6 +265,8 @@ export const MixedMathInput = forwardRef<
       await mathlivePromiseRef.current;
       setMathliveReady(true);
     }
+    // Load CSS only when the user actually opens the editor.
+    await import("mathlive/static.css");
 
     const mf = document.createElement("math-field");
     // Slightly larger hit area in edit mode; keep glyph scale close to KaTeX to avoid "stretched" radicals
@@ -363,6 +356,7 @@ export const MixedMathInput = forwardRef<
           tabIndex={disabled ? -1 : 0}
           contentEditable={!disabled}
           suppressContentEditableWarning
+          onFocus={onFocus}
           onKeyDown={onKeyDown}
           onInput={() => {
             const root = rootRef.current;
@@ -376,6 +370,17 @@ export const MixedMathInput = forwardRef<
             syncLockRef.current = false;
           }}
           onClick={(e) => {
+            if (disableInlineEdit) return;
+            if (inlineEditActivation !== "click") return;
+            const t = e.target as HTMLElement | null;
+            if (!t) return;
+            const span = t.closest?.('span[data-math="1"]') as HTMLElement | null;
+            if (!span) return;
+            void enterEditMode(span);
+          }}
+          onDoubleClick={(e) => {
+            if (disableInlineEdit) return;
+            if (inlineEditActivation !== "doubleClick") return;
             const t = e.target as HTMLElement | null;
             if (!t) return;
             const span = t.closest?.('span[data-math="1"]') as HTMLElement | null;

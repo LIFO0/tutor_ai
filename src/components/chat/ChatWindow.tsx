@@ -28,6 +28,10 @@ export function ChatWindow({
   const [streaming, setStreaming] = useState(false);
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingConsumedRef = useRef(false);
+  const sendInFlightRef = useRef(false);
+  const lastSendRef = useRef<{ text: string; at: number } | null>(null);
+  const [pendingText, setPendingText] = useState<string | null>(null);
+  const [pendingError, setPendingError] = useState<string | null>(null);
 
   const [headerTitle, setHeaderTitle] = useState<string>(() => title || "Чат");
 
@@ -35,18 +39,60 @@ export function ChatWindow({
     setHeaderTitle(title || "Чат");
   }, [title]);
 
+  useEffect(() => {
+    // Best-effort prewarm: compile/load MathLive while user reads the chat.
+    const schedule: (cb: () => void) => number =
+      typeof window !== "undefined" && "requestIdleCallback" in window
+        ? ((cb) => (window as unknown as { requestIdleCallback: (c: () => void) => number }).requestIdleCallback(cb))
+        : (cb) => window.setTimeout(cb, 200);
+
+    const cancel: (id: number) => void =
+      typeof window !== "undefined" && "cancelIdleCallback" in window
+        ? (id) => (window as unknown as { cancelIdleCallback: (i: number) => void }).cancelIdleCallback(id)
+        : (id) => window.clearTimeout(id);
+
+    const id = schedule(() => {
+      // Prewarm only the JS chunk. CSS/fonts are loaded on-demand when user opens the editor.
+      void import("mathlive").catch(() => {
+        // ignore
+      });
+    });
+
+    return () => cancel(id);
+  }, []);
+
   const lastMessageFingerprint = useMemo(() => {
     const last = messages.at(-1);
     if (!last) return 0;
     return last.content.length + (last.role === "assistant" ? 1 : 0);
   }, [messages]);
 
-  const send = useCallback(async (text: string) => {
+  const send = useCallback(async (text: string): Promise<boolean> => {
+    // Guard against accidental double-submits (e.g. Enter + button, or rapid re-entrancy
+    // before `streaming` state propagates).
+    if (sendInFlightRef.current) return false;
+
     const isDev = process.env.NODE_ENV !== "production";
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     let firstUsefulTokenAt: number | null = null;
 
     const normalized = normalizeMathMessageForModel(text);
+    if (!normalized.trim()) return false;
+
+    // Extra dedupe: ignore identical sends within a short window.
+    // This covers rare cases like navigation pending-message auto-send racing with user submit.
+    const now0 = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const last = lastSendRef.current;
+    if (last && last.text === normalized && now0 - last.at < 1500) return false;
+    lastSendRef.current = { text: normalized, at: now0 };
+
+    if (isDev && normalized.includes("\\placeholder")) {
+      console.error("[chat] normalizeMathMessageForModel left placeholder scaffolding:", {
+        beforeLen: text.length,
+        afterLen: normalized.length,
+      });
+    }
+    sendInFlightRef.current = true;
     const userMsg: UiMessage = { id: crypto.randomUUID(), role: "user", content: normalized };
     const assistantMsg: UiMessage = {
       id: crypto.randomUUID(),
@@ -58,6 +104,7 @@ export function ChatWindow({
     setStreaming(true);
 
     try {
+      setPendingError(null);
       const res = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,6 +114,14 @@ export function ChatWindow({
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let hadStreamError = false;
+      const chunks: string[] = [];
+      let rafId: number | null = null;
+      const flush = () => {
+        rafId = null;
+        const content = chunks.join("");
+        setMessages((prev) => prev.map((m) => (m.id === assistantMsg.id ? { ...m, content } : m)));
+      };
       const parser = createSseParser((ev) => {
         if (ev.type === "data") {
           const t = (ev.data as StreamChunk | null)?.t;
@@ -79,13 +134,19 @@ export function ChatWindow({
               firstUsefulTokenAt = now;
               console.debug("[chat] first token ms:", Math.round(now - t0), { len: normalized.length });
             }
-            setMessages((prev) =>
-              prev.map((m) => (m.id === assistantMsg.id ? { ...m, content: m.content + t } : m)),
-            );
+            chunks.push(t);
+            if (rafId !== null) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(flush);
           }
         } else if (ev.type === "event" && ev.event === "metrics") {
           if (isDev) console.debug("[chat] server metrics:", ev.data);
         } else if (ev.type === "error") {
+          hadStreamError = true;
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+          }
+          flush();
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsg.id
@@ -95,6 +156,11 @@ export function ChatWindow({
           );
           setStreaming(false);
         } else if (ev.type === "done") {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+          }
+          flush();
           setStreaming(false);
           // After the first exchange we may auto-update the session title/subject on the server.
           // Pull fresh session data so UI reflects it immediately (and refresh metadata/sidebar).
@@ -108,7 +174,6 @@ export function ChatWindow({
               const nextTitle = data && (data as { session?: { title?: unknown } }).session?.title;
               if (typeof nextTitle === "string" && nextTitle.trim()) {
                 setHeaderTitle(nextTitle.trim());
-                router.refresh();
               }
             } catch {
               // ignore
@@ -130,6 +195,7 @@ export function ChatWindow({
         parser.feed(decoder.decode(value, { stream: true }));
       }
       setStreaming(false);
+      return !hadStreamError;
     } catch (e) {
       setMessages((prev) =>
         prev.map((m) =>
@@ -139,6 +205,9 @@ export function ChatWindow({
         ),
       );
       setStreaming(false);
+      return false;
+    } finally {
+      sendInFlightRef.current = false;
     }
   }, [router, sessionId]);
 
@@ -148,9 +217,24 @@ export function ChatWindow({
     const trimmed = raw?.trim() ?? "";
     if (!trimmed) return;
     pendingConsumedRef.current = true;
-    sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
-    void send(trimmed);
+    setPendingText(trimmed);
   }, [send]);
+
+  useEffect(() => {
+    const t = pendingText?.trim() ?? "";
+    if (!t) return;
+    if (streaming) return;
+    if (pendingError) return;
+    void (async () => {
+      const ok = await send(t);
+      if (ok) {
+        sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
+        setPendingText(null);
+      } else {
+        setPendingError("Не удалось отправить сообщение. Проверьте интернет и попробуйте ещё раз.");
+      }
+    })();
+  }, [pendingError, pendingText, send, streaming]);
 
   useEffect(() => {
     const el = messagesScrollRef.current;
@@ -180,6 +264,23 @@ export function ChatWindow({
           ))}
         </div>
         <div className="shrink-0 bg-zinc-50/95 px-3 pt-2 pb-2 backdrop-blur dark:bg-black/85">
+          {pendingError && pendingText ? (
+            <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
+              <div className="min-w-0">
+                <div className="font-medium">Сообщение не отправлено</div>
+                <div className="truncate opacity-90">{pendingError}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingError(null);
+                }}
+                className="shrink-0 rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+              >
+                Повторить
+              </button>
+            </div>
+          ) : null}
           <ChatInput onSend={send} disabled={streaming} />
           <p className="mt-2 px-1 text-center text-xs leading-snug text-zinc-500 dark:text-zinc-400">
             Мишка знает — это искусственный интеллект, и он может ошибаться. Пожалуйста,

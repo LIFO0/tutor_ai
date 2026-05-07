@@ -12,24 +12,38 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const isDev = process.env.NODE_ENV !== "production";
+  const t0 = Date.now();
+  const userStart = Date.now();
   const user = await getCurrentUser();
+  const userMs = Date.now() - userStart;
   if (!user) return jsonError("Unauthorized", 401);
 
+  const jsonStart = Date.now();
   const body = (await req.json().catch(() => null)) as
     | { subject?: Subject; title?: string }
     | null;
+  const jsonMs = Date.now() - jsonStart;
   const subject = body?.subject;
   if (!isValidChatSubject(subject)) {
     return jsonError("Invalid subject", 400);
   }
 
+  const dbStart = Date.now();
   const sessionId = await createChatSession({
     userId: user.id,
     subject,
     title: body?.title,
   });
+  const dbMs = Date.now() - dbStart;
   if (!sessionId) return jsonError("Failed to create session", 500);
 
-  return NextResponse.json({ ok: true, sessionId });
+  const totalMs = Date.now() - t0;
+  const res = NextResponse.json({ ok: true, sessionId });
+  res.headers.set("Server-Timing", `auth;dur=${userMs},json;dur=${jsonMs},db;dur=${dbMs},total;dur=${totalMs}`);
+  if (isDev) {
+    console.debug("[api/chat/sessions] timing", { userMs, jsonMs, dbMs, totalMs });
+  }
+  return res;
 }
 

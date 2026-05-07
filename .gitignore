@@ -49,6 +49,7 @@ database.db-*
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+/.data/
 
 # vercel
 .vercel

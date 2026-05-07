@@ -5,7 +5,18 @@ export function stripMathlivePlaceholdersForKatex(latex: string) {
   // - \placeholder[id]body  (body may be digits / simple atoms)
   //
   // We strip ONLY the placeholder scaffolding and keep the user's body so numbers don't "disappear".
-  return latex.replace(/\\placeholder(?:\[[^\]]+\])?(?:\[[^\]]*\])?/g, "");
+  // Note: keeping the body can leave extra grouping braces (e.g. `{{3}}`). That's harmless LaTeX and
+  // the model-path normalizer may further collapse empty artifacts like `{{}}` -> `{}`.
+  // If the placeholder has a simple braced body (no nested braces), replace the whole placeholder+body
+  // with the body content. This avoids artifacts like `{{3}}` inside surrounding template braces.
+  let s = latex.replace(
+    /\\placeholder(?:\[[^\]]+\])?(?:\[[^\]]*\])?\{([^{}]*)\}/g,
+    "$1",
+  );
+  // Then strip any remaining placeholder scaffolding, keeping whatever body follows (including the
+  // documented `\placeholder[id]body` form).
+  s = s.replace(/\\placeholder(?:\[[^\]]+\])?(?:\[[^\]]*\])?/g, "");
+  return s;
 }
 
 function emptyPlaceholderBodiesToSquareForKatex(latex: string) {
@@ -22,6 +33,14 @@ function patchEmptyCommonTemplates(s: string) {
     .replace(/\\sqrt\[\s*\]/g, "\\sqrt[\\square]")
     .replace(/\\sqrt\[([^\]]*)\]\{\s*\}/g, "\\sqrt[$1]{\\square}")
     .replace(/\\frac\{\s*\}\{\s*\}/g, "\\frac{\\square}{\\square}");
+}
+
+/**
+ * Patch empty common templates for the model path too.
+ * We keep the function shared so preview and prompt normalization stay consistent.
+ */
+export function patchEmptyCommonTemplatesForModel(latex: string) {
+  return patchEmptyCommonTemplates(latex);
 }
 
 /** Convert MathLive-oriented LaTeX to something KaTeX can render (preview / message bubble). */

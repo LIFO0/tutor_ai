@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
+import { AVATAR_IDS, UserAvatar } from "@/components/ui/UserAvatar";
+import { YandexSignInButton } from "@/components/ui/YandexSignInButton";
 
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
-const avatars = ["bear1", "bear2", "bear3", "bear4"];
 
 const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
   <div className="auth-input-wrap rounded-2xl border border-zinc-200/80 bg-white/70 backdrop-blur-sm shadow-sm transition-colors">
@@ -90,6 +91,9 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="bg-transparent p-0 shadow-none backdrop-blur-0">
+                  <div className="animate-element animate-delay-150">
+                    <YandexSignInButton />
+                  </div>
                   <form className="space-y-5" onSubmit={onSubmit}>
                     <div className="animate-element animate-delay-200">
                       <label className="text-sm font-medium text-zinc-700">Имя</label>
@@ -169,20 +173,26 @@ export default function RegisterPage() {
 
                       <div className="animate-element animate-delay-500">
                         <label className="text-sm font-medium text-zinc-700">Аватар</label>
-                        <GlassInputWrapper>
-                          <select
-                            name="avatar"
-                            value={avatar}
-                            onChange={(e) => setAvatar(e.target.value)}
-                            className="w-full appearance-none rounded-2xl bg-transparent p-4 text-sm text-zinc-900 focus:outline-none"
-                          >
-                            {avatars.map((a) => (
-                              <option key={a} value={a}>
-                                {a}
-                              </option>
-                            ))}
-                          </select>
-                        </GlassInputWrapper>
+                        <input type="hidden" name="avatar" value={avatar} />
+                        <div className="grid grid-cols-4 gap-3">
+                          {AVATAR_IDS.map((id) => (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => setAvatar(id)}
+                              className={[
+                                "flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors",
+                                avatar === id
+                                  ? "border-[color:var(--color-accent)] bg-[color:var(--color-accent)]/10"
+                                  : "border-zinc-200 bg-white/70 hover:bg-zinc-50",
+                              ].join(" ")}
+                              aria-pressed={avatar === id}
+                            >
+                              <UserAvatar avatar={id} size="lg" selected={avatar === id} />
+                              <span className="text-[11px] text-zinc-500">Мишка {id.slice(-1)}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 

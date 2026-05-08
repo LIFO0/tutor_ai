@@ -12,6 +12,7 @@ export interface SignInPageProps {
   onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
   onTestSignIn?: () => void;
   onCreateAccount?: () => void;
+  extraActions?: React.ReactNode;
   error?: React.ReactNode;
   loading?: boolean;
   defaultEmail?: string;
@@ -31,6 +32,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   onSignIn,
   onTestSignIn,
   onCreateAccount,
+  extraActions,
   error,
   loading = false,
   defaultEmail,
@@ -104,6 +106,10 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                     {loading ? "Входим…" : "Войти"}
                   </button>
                 </form>
+
+                {extraActions ? (
+                  <div className="animate-element animate-delay-450 mt-3">{extraActions}</div>
+                ) : null}
 
                 <button
                   type="button"

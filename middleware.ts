@@ -8,6 +8,8 @@ const PUBLIC_PATHS = new Set([
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",
+  "/api/auth/yandex/start",
+  "/api/auth/yandex/callback",
 ]);
 
 function isApi(pathname: string) {

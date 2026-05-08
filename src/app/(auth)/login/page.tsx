@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SignInPage } from "@/components/ui/sign-in";
+import { YandexSignInButton } from "@/components/ui/YandexSignInButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -72,6 +73,9 @@ export default function LoginPage() {
         onSignIn={onSubmit}
         onTestSignIn={loginTest}
         onCreateAccount={() => router.push("/register")}
+        extraActions={
+          <YandexSignInButton />
+        }
         error={error}
         loading={loading}
         defaultEmail={email}

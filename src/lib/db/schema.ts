@@ -4,10 +4,11 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(), // bcrypt hash
+  password: text("password"), // bcrypt hash; nullable for OAuth-only accounts
   name: text("name").notNull(),
   grade: integer("grade").notNull(), // 5..11
   avatar: text("avatar").notNull().default("bear1"),
+  yandexId: text("yandex_id").unique(),
   /** Как обращаться к ученику в чате с ИИ; если пусто — используется name */
   chatName: text("chat_name"),
   createdAt: text("created_at")

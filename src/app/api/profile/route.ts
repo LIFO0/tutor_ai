@@ -47,7 +47,11 @@ export async function PUT(req: Request) {
     // Allow built-in avatars (bear1..bear4) and uploaded avatars under /uploads/avatars/.
     if (
       !/^bear[1-4]$/.test(avatar) &&
-      !/^\/uploads\/avatars\/user-\d+\.png(\?v=\d+)?$/.test(avatar)
+      !/^\/uploads\/avatars\/user-\d+\.png(\?v=\d+)?$/.test(avatar) &&
+      !/^https:\/\/avatars\.yandex\.net\/get-yapic\/.+\/islands-(small|34|middle|50|retina-small|68|75|retina-middle|retina-50|200)$/.test(
+        avatar,
+      ) &&
+      !/^https:\/\/.+/.test(avatar)
     ) {
       return jsonError("Некорректный аватар.", 400);
     }

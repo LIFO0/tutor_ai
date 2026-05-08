@@ -28,6 +28,9 @@ export async function POST(req: Request) {
 
   const found = user[0];
   if (!found) return jsonError("Неверный email или пароль.", 401);
+  if (!found.password) {
+    return jsonError("Этот аккаунт создан через Яндекс. Войдите через Яндекс.", 400);
+  }
 
   const ok = await verifyPassword(password, found.password);
   if (!ok) return jsonError("Неверный email или пароль.", 401);

@@ -6,6 +6,10 @@ function ensureUserColumns(sqlite: Database.Database) {
   if (!has("chat_name")) {
     sqlite.exec("ALTER TABLE users ADD COLUMN chat_name TEXT");
   }
+  if (!has("yandex_id")) {
+    sqlite.exec("ALTER TABLE users ADD COLUMN yandex_id TEXT");
+    sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_yandex_id_unique ON users(yandex_id)");
+  }
 }
 
 export function ensureTables(sqlite: Database.Database) {

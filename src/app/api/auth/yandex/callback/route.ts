@@ -57,6 +57,15 @@ function buildAvatarUrl(info: YandexUserInfo) {
   return `https://avatars.yandex.net/get-yapic/${encodeURIComponent(id)}/islands-200`;
 }
 
+function getPublicOrigin(req: Request) {
+  const proto = req.headers.get("x-forwarded-proto") || "http";
+  const host =
+    req.headers.get("x-forwarded-host") ||
+    req.headers.get("host") ||
+    "localhost:3000";
+  return `${proto}://${host}`;
+}
+
 export async function GET(req: Request) {
   const db = getDb();
   const url = new URL(req.url);
@@ -155,7 +164,9 @@ export async function GET(req: Request) {
       .insert(schema.users)
       .values({
         email,
-        password: null,
+        // DB bootstrap schema historically had password NOT NULL, so for OAuth-only
+        // accounts we store an empty string (login flow treats it as "use Yandex").
+        password: "",
         name,
         grade: 7,
         avatar: avatarUrl || "bear1",
@@ -172,7 +183,7 @@ export async function GET(req: Request) {
   const token = await signAuthToken({ userId, grade });
   await setAuthCookie(token);
 
-  const redirectTo = new URL("/dashboard", url);
+  const redirectTo = new URL("/dashboard", getPublicOrigin(req));
   if (created) redirectTo.searchParams.set("onboarding", "grade");
   return NextResponse.redirect(redirectTo);
 }

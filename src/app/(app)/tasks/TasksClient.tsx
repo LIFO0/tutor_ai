@@ -143,13 +143,7 @@ export function TasksClient({
         <CardHeader className="font-semibold">История</CardHeader>
         <CardContent className="text-sm text-zinc-900 dark:text-zinc-50">
           {history.length === 0 ? (
-            <div>
-              История появится после первого задания. Пока можно перейти в{" "}
-              <Link href="/chat" className="underline">
-                чат
-              </Link>
-              .
-            </div>
+            <div>История появится после первого задания.</div>
           ) : (
             <ul className="flex flex-col gap-2">
               {history.map((h) => {

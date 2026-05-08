@@ -3,18 +3,17 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-} from "@heroui/react";
 import Image from "next/image";
-
-import authImage from "../../../../9er6u.jpg";
+import { Eye, EyeOff } from "lucide-react";
 
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
 const avatars = ["bear1", "bear2", "bear3", "bear4"];
+
+const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
+  <div className="auth-input-wrap rounded-2xl border border-zinc-200/80 bg-white/70 backdrop-blur-sm shadow-sm transition-colors">
+    {children}
+  </div>
+);
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,20 +24,41 @@ export default function RegisterPage() {
   const [avatar, setAvatar] = useState<string>("bear1");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const canSubmit = useMemo(() => {
     return name.trim() && email.trim() && password.length >= 6;
   }, [name, email, password]);
 
-  async function onSubmit() {
-    if (!canSubmit) return;
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const nextName = String(formData.get("name") || "");
+    const nextEmail = String(formData.get("email") || "");
+    const nextPassword = String(formData.get("password") || "");
+    const nextGrade = Number(formData.get("grade") || grade);
+    const nextAvatar = String(formData.get("avatar") || avatar);
+
+    setName(nextName);
+    setEmail(nextEmail);
+    setPassword(nextPassword);
+    setGrade(nextGrade);
+    setAvatar(nextAvatar);
+
+    if (!nextName.trim() || !nextEmail.trim() || nextPassword.length < 6) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, grade, avatar }),
+        body: JSON.stringify({
+          name: nextName,
+          email: nextEmail,
+          password: nextPassword,
+          grade: nextGrade,
+          avatar: nextAvatar,
+        }),
       });
       const data = (await res.json().catch(() => null)) as
         | { ok: boolean; error?: string }
@@ -53,123 +73,166 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-white dark:bg-zinc-950">
-      <div className="grid min-h-screen grid-cols-1 md:grid-cols-2">
-        <div className="flex items-center px-6 py-10 sm:px-10">
-          <div className="w-full max-w-xl">
-            <Card className="shadow-none ring-0 bg-transparent">
-              <CardHeader className="flex flex-col items-start gap-2 px-0">
-                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  🐻 Мишка знает
-                </div>
-                <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-                  Sign up
-                </h1>
-                <p className="text-sm text-zinc-900 dark:text-zinc-50">
-                  Расскажите немного о себе — класс нужен, чтобы объяснения были “по программе”.
-                </p>
-              </CardHeader>
-
-              <CardContent className="flex flex-col gap-4 px-0 pt-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Имя</label>
-                  <input
-                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
+    <>
+      <div className="min-h-[100dvh] w-full bg-white">
+        <div className="grid min-h-[100dvh] grid-cols-1 md:grid-cols-2">
+          <section className="flex items-center justify-center px-6 py-12">
+            <div className="w-full max-w-md">
+              <div className="flex flex-col gap-8">
+                <div className="animate-element animate-delay-100">
+                  <div className="text-sm font-medium text-zinc-900/80">🐻 Мишка знает</div>
+                  <h1 className="mt-2 text-4xl font-semibold leading-tight text-zinc-900">
+                    Регистрация
+                  </h1>
+                  <p className="mt-3 text-sm leading-relaxed text-zinc-600">
+                    Расскажите немного о себе — класс нужен, чтобы объяснения были “по программе”.
+                  </p>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Email</label>
-                  <input
-                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    type="email"
-                    autoComplete="email"
-                  />
-                </div>
+                <div className="bg-transparent p-0 shadow-none backdrop-blur-0">
+                  <form className="space-y-5" onSubmit={onSubmit}>
+                    <div className="animate-element animate-delay-200">
+                      <label className="text-sm font-medium text-zinc-700">Имя</label>
+                      <GlassInputWrapper>
+                        <input
+                          name="name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Как вас зовут?"
+                          className="w-full rounded-2xl bg-transparent p-4 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
+                        />
+                      </GlassInputWrapper>
+                    </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Пароль</label>
-                  <input
-                    className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    type="password"
-                    autoComplete="new-password"
-                  />
-                  <div className="text-xs text-zinc-900 dark:text-zinc-50">Минимум 6 символов</div>
-                </div>
+                    <div className="animate-element animate-delay-300">
+                      <label className="text-sm font-medium text-zinc-700">Email</label>
+                      <GlassInputWrapper>
+                        <input
+                          name="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          type="email"
+                          autoComplete="email"
+                          placeholder="name@example.com"
+                          className="w-full rounded-2xl bg-transparent p-4 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
+                        />
+                      </GlassInputWrapper>
+                    </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1">
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Класс</div>
-                    <select
-                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                      value={grade}
-                      onChange={(e) => setGrade(Number(e.target.value))}
+                    <div className="animate-element animate-delay-400">
+                      <label className="text-sm font-medium text-zinc-700">Пароль</label>
+                      <GlassInputWrapper>
+                        <div className="relative">
+                          <input
+                            name="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            type={showPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            placeholder="Минимум 6 символов"
+                            className="w-full rounded-2xl bg-transparent p-4 pr-12 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((v) => !v)}
+                            className="absolute inset-y-0 right-3 flex items-center"
+                            aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5 text-zinc-500 transition-colors hover:text-zinc-900" />
+                            ) : (
+                              <Eye className="h-5 w-5 text-zinc-500 transition-colors hover:text-zinc-900" />
+                            )}
+                          </button>
+                        </div>
+                      </GlassInputWrapper>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="animate-element animate-delay-500">
+                        <label className="text-sm font-medium text-zinc-700">Класс</label>
+                        <GlassInputWrapper>
+                          <select
+                            name="grade"
+                            value={grade}
+                            onChange={(e) => setGrade(Number(e.target.value))}
+                            className="w-full appearance-none rounded-2xl bg-transparent p-4 text-sm text-zinc-900 focus:outline-none"
+                          >
+                            {grades.map((g) => (
+                              <option key={g} value={g}>
+                                {g}
+                              </option>
+                            ))}
+                          </select>
+                        </GlassInputWrapper>
+                      </div>
+
+                      <div className="animate-element animate-delay-500">
+                        <label className="text-sm font-medium text-zinc-700">Аватар</label>
+                        <GlassInputWrapper>
+                          <select
+                            name="avatar"
+                            value={avatar}
+                            onChange={(e) => setAvatar(e.target.value)}
+                            className="w-full appearance-none rounded-2xl bg-transparent p-4 text-sm text-zinc-900 focus:outline-none"
+                          >
+                            {avatars.map((a) => (
+                              <option key={a} value={a}>
+                                {a}
+                              </option>
+                            ))}
+                          </select>
+                        </GlassInputWrapper>
+                      </div>
+                    </div>
+
+                    {error ? <div className="text-sm text-red-600">{error}</div> : null}
+
+                    <button
+                      type="submit"
+                      disabled={!canSubmit || loading}
+                      className="animate-element animate-delay-600 w-full rounded-2xl bg-[color:var(--color-accent)] py-3 text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {grades.map((g) => (
-                        <option key={g} value={g}>
-                          {g}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      {loading ? "Создаём…" : "Создать аккаунт"}
+                    </button>
+                  </form>
 
-                  <div className="flex flex-col gap-1">
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Аватар</div>
-                    <select
-                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                      value={avatar}
-                      onChange={(e) => setAvatar(e.target.value)}
+                  <div className="animate-element animate-delay-700 mt-5 text-center text-sm text-zinc-600">
+                    Уже есть аккаунт?{" "}
+                    <Link
+                      className="text-[color:var(--color-accent)] transition-colors hover:brightness-95 hover:underline"
+                      href="/login"
                     >
-                      {avatars.map((a) => (
-                        <option key={a} value={a}>
-                          {a}
-                        </option>
-                      ))}
-                    </select>
+                      Войти
+                    </Link>
                   </div>
                 </div>
+              </div>
+            </div>
+          </section>
 
-                {error ? <div className="text-sm text-red-600">{error}</div> : null}
-
-                <Button
-                  variant="primary"
-                  className="font-semibold"
-                  isDisabled={!canSubmit || loading}
-                  onPress={onSubmit}
-                >
-                  {loading ? "Создаём…" : "Создать аккаунт"}
-                </Button>
-
-                <div className="text-sm text-zinc-900 dark:text-zinc-50">
-                  Уже есть аккаунт?{" "}
-                  <Link className="text-[color:var(--color-accent)]" href="/login">
-                    Войти
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        <div className="relative hidden md:block">
-          <Image
-            src={authImage}
-            alt="Forest"
-            fill
-            priority
-            className="object-cover"
-            sizes="(min-width: 768px) 50vw, 100vw"
-          />
-          <div className="absolute inset-0 bg-black/10" />
+          <section className="animate-element animate-delay-200 hidden p-4 md:block md:h-full md:min-h-0">
+            <div className="relative h-full w-full overflow-hidden rounded-3xl bg-[#F59E2F]">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-[31%] justify-center">
+                <Image
+                  src="/bears/bear_welcoming_update.png"
+                  alt="Bear illustration"
+                  width={720}
+                  height={960}
+                  priority
+                  className="h-auto w-[min(44vw,620px)] max-w-[calc(50vw-1.5rem)] translate-x-[1%] select-none object-contain md:w-[min(42vw,580px)]"
+                  sizes="(min-width: 768px) 44vw, 0px"
+                />
+              </div>
+            </div>
+          </section>
         </div>
       </div>
-    </div>
+
+      <div className="sr-only">
+        <Link href="/login">Войти</Link>
+      </div>
+    </>
   );
 }
 

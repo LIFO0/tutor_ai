@@ -15,7 +15,12 @@ const TEST_USER = {
 
 export async function POST() {
   const db = getDb();
-  if (process.env.NODE_ENV === "production") {
+  const allowInProd =
+    process.env.ALLOW_TEST_LOGIN === "true" ||
+    process.env.ALLOW_TEST_LOGIN === "1" ||
+    process.env.ALLOW_TEST_LOGIN === "yes";
+
+  if (process.env.NODE_ENV === "production" && !allowInProd) {
     return jsonError("Not available in production", 404);
   }
 
@@ -50,6 +55,6 @@ export async function POST() {
   const token = await signAuthToken({ userId, grade });
   await setAuthCookie(token);
 
-  return NextResponse.json({ ok: true, email: TEST_USER.email, password: TEST_USER.password });
+  return NextResponse.json({ ok: true });
 }
 

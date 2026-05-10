@@ -81,7 +81,19 @@ export default function RegisterPage() {
             <div className="w-full max-w-md">
               <div className="flex flex-col gap-8">
                 <div className="animate-element animate-delay-100">
-                  <div className="text-sm font-medium text-zinc-900/80">🐻 Мишка знает</div>
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src="/avatars/av_main.png"
+                      alt="Мишка знает"
+                      width={36}
+                      height={36}
+                      className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-zinc-200/80 dark:ring-zinc-700/80"
+                      sizes="36px"
+                    />
+                    <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                      Мишка знает
+                    </div>
+                  </div>
                   <h1 className="mt-2 text-4xl font-semibold leading-tight text-zinc-900">
                     Регистрация
                   </h1>

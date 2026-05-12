@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -22,14 +22,13 @@ export function GradeOnboardingModal({
   initialGrade?: number;
 }) {
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(show);
+  const [saved, setSaved] = useState(false);
   const [grade, setGrade] = useState<number>(initialGrade || 7);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => setIsOpen(show), [show]);
-
   const canSave = useMemo(() => Number.isInteger(grade) && grade >= 5 && grade <= 11, [grade]);
+  const isOpen = show && !saved;
 
   async function save() {
     if (!canSave || saving) return;
@@ -49,7 +48,7 @@ export function GradeOnboardingModal({
         throw new Error((data as { error?: string } | null)?.error || "Не удалось сохранить");
       }
 
-      setIsOpen(false);
+      setSaved(true);
       // Clean query param and refresh user-dependent UI.
       router.replace("/dashboard");
       router.refresh();
@@ -63,7 +62,6 @@ export function GradeOnboardingModal({
   function onOpenChange(open: boolean) {
     // Do not allow dismiss until saved — keep onboarding enforced.
     if (!open) return;
-    setIsOpen(open);
   }
 
   return (

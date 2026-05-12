@@ -1,10 +1,25 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { authCookieName } from "@/lib/auth";
+import CTA from "@/components/landing/cta";
+import FAQ from "@/components/landing/faq";
+import Features from "@/components/landing/features";
+import Footer from "@/components/landing/footer";
+import Header from "@/components/landing/header";
+import Hero from "@/components/landing/hero";
+import HowItWorks from "@/components/landing/how-it-works";
+import { SubjectsMarquee } from "@/components/landing/subjects-marquee";
+import Testimonials from "@/components/landing/testimonials";
 
-export default async function Home() {
-  const c = await cookies();
-  const token = c.get(authCookieName)?.value;
-  if (token) redirect("/dashboard");
-  redirect("/login");
+export default function Home() {
+  return (
+    <main className="landing-light-theme min-h-screen bg-background text-foreground">
+      <Header />
+      <Hero />
+      <SubjectsMarquee />
+      <HowItWorks />
+      <Features />
+      <Testimonials />
+      <FAQ />
+      <CTA />
+      <Footer />
+    </main>
+  );
 }

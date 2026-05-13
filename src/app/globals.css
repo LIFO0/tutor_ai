@@ -3,6 +3,9 @@
 
 @source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
 
+/* Force light theme everywhere: make `dark:` variant class-based, and never set `.dark`. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 html,
 body {
   height: 100%;
@@ -10,6 +13,7 @@ body {
 }
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
   --accent: #f59e0b;
@@ -52,26 +56,6 @@ body {
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --card: #18181b;
-    --card-foreground: #ededed;
-    --popover: #18181b;
-    --popover-foreground: #ededed;
-    --primary: oklch(0.75 0.17 55);
-    --primary-foreground: #171717;
-    --secondary: oklch(0.25 0.01 45);
-    --secondary-foreground: #ededed;
-    --muted: oklch(0.25 0.01 45);
-    --muted-foreground: oklch(0.7 0.01 80);
-    --border: oklch(0.28 0.01 45);
-    --input: oklch(0.28 0.01 45);
-    --ring: oklch(0.75 0.17 55);
-  }
-}
-
 .landing-light-theme {
   color-scheme: light;
   font-family: var(--font-geologica), Arial, Helvetica, sans-serif;
@@ -107,6 +91,7 @@ body {
 }
 
 html {
+  color-scheme: light;
   scroll-behavior: smooth;
 }
 

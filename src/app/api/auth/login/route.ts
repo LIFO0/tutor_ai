@@ -4,8 +4,17 @@ import { signAuthToken, setAuthCookie } from "@/lib/auth";
 import { jsonError } from "@/lib/api/auth";
 import { getDb, schema } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
+import { checkIpRateLimit } from "@/lib/rate-limit-ip";
 
 export async function POST(req: Request) {
+  const limited = checkIpRateLimit(req, "auth-login", 40, 10 * 60_000);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Слишком много попыток входа. Подождите немного." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+    );
+  }
+
   const db = getDb();
   const body = (await req.json().catch(() => null)) as
     | { email?: string; password?: string }

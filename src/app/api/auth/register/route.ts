@@ -4,8 +4,17 @@ import { signAuthToken, setAuthCookie } from "@/lib/auth";
 import { jsonError } from "@/lib/api/auth";
 import { getDb, schema } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { checkIpRateLimit } from "@/lib/rate-limit-ip";
 
 export async function POST(req: Request) {
+  const limited = checkIpRateLimit(req, "auth-register", 15, 60 * 60_000);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Слишком много регистраций с этого адреса. Попробуйте позже." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+    );
+  }
+
   const db = getDb();
   const body = (await req.json().catch(() => null)) as
     | {

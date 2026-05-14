@@ -4,6 +4,7 @@ import { jsonError } from "@/lib/api/auth";
 import { signAuthToken, setAuthCookie } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { checkIpRateLimit } from "@/lib/rate-limit-ip";
 
 const TEST_USER = {
   email: "test@medvejonok.local",
@@ -13,7 +14,15 @@ const TEST_USER = {
   avatar: "bear1",
 } as const;
 
-export async function POST() {
+export async function POST(req: Request) {
+  const limited = checkIpRateLimit(req, "auth-test", 40, 10 * 60_000);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Слишком много запросов. Подождите немного." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+    );
+  }
+
   const db = getDb();
   const allowInProd =
     process.env.ALLOW_TEST_LOGIN === "true" ||

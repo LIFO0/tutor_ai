@@ -59,13 +59,8 @@ export function GradeOnboardingModal({
     }
   }
 
-  function onOpenChange(open: boolean) {
-    // Do not allow dismiss until saved — keep onboarding enforced.
-    if (!open) return;
-  }
-
   return (
-    <Modal isOpen={show} onOpenChange={() => undefined}>
+    <Modal isOpen={isOpen} onOpenChange={() => undefined}>
       <Modal.Trigger>
         <button type="button" className="sr-only">
           Open

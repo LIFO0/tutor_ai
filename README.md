@@ -4,11 +4,11 @@
 
 ## Быстрый старт (Windows)
 
-1) Установите **Node.js LTS**.
+1) Установите **Node.js 22 LTS**.
 2) Запустите `start.bat` (он:
 - создаст `.env.local` из `.env.local.example`, если файла нет
 - установит зависимости, если нет `node_modules`
-- сделает `npm rebuild better-sqlite3` (нативный модуль для SQLite)
+- проверит и при необходимости пересоберёт `better-sqlite3` под текущую Node.js
 - запустит `npm run dev`)
 
 После старта откройте `http://localhost:3000`.
@@ -19,6 +19,18 @@
 npm install
 npm run dev
 ```
+
+Проект закреплён на **Node.js 22 LTS** (`.nvmrc`, `.node-version`, `package.json#engines`).
+Если вы переключали Node.js или видите ошибку `NODE_MODULE_VERSION` у `better-sqlite3`,
+запустите диагностику:
+
+```bash
+npm run doctor:native
+```
+
+Скрипт покажет текущие `node -v` и `NODE_MODULE_VERSION`, попробует загрузить
+`better-sqlite3` и автоматически выполнит `npm rebuild better-sqlite3`, если ABI
+нативного модуля не совпадает с текущей Node.js.
 
 ## Переменные окружения
 
@@ -43,6 +55,7 @@ npm run db:studio
 
 ## Скрипты
 
+- **`npm run doctor:native`**: проверить и починить native‑зависимости (`better-sqlite3`)
 - **`npm run dev`**: dev‑сервер
 - **`npm run build`**: сборка
 - **`npm run start`**: запуск собранного приложения

@@ -2,18 +2,31 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
+    "doctor:native": "node scripts/ensure-native-deps.mjs",
+    "predev": "npm run doctor:native",
     "dev": "next dev --turbopack",
+    "predev:turbo": "npm run doctor:native",
     "dev:turbo": "next dev --turbopack",
+    "predev:webpack": "npm run doctor:native",
     "dev:webpack": "next dev --webpack --disable-source-maps",
+    "predev:mem": "npm run doctor:native",
     "dev:mem": "cmd /c \"set \\\"NODE_OPTIONS=--heapsnapshot-near-heap-limit=3 --trace-gc\\\" && next dev --turbopack\"",
+    "predev:inspect": "npm run doctor:native",
     "dev:inspect": "next dev --turbopack --inspect 9229",
+    "prebuild": "npm run doctor:native",
     "build": "next build",
+    "prestart": "npm run doctor:native",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
     "migrate:normalize-messages": "tsx scripts/migrate-normalize-messages.ts",
+    "predb:push": "npm run doctor:native",
     "db:push": "drizzle-kit push",
+    "predb:studio": "npm run doctor:native",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

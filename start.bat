@@ -51,10 +51,12 @@ if not exist "node_modules" (
   )
 )
 
-echo [INFO] Rebuilding native deps (better-sqlite3)...
-call npm rebuild better-sqlite3
+echo [INFO] Checking native deps (better-sqlite3)...
+call npm run doctor:native
 if errorlevel 1 (
-  echo [WARN] npm rebuild better-sqlite3 failed. Try reinstall: rmdir /s /q node_modules ^& del package-lock.json ^& npm install
+  echo [ERROR] Native dependency check failed. Make sure Node.js 22 LTS is active, then run npm install.
+  pause
+  exit /b 1
 )
 
 echo [INFO] Starting dev server: http://localhost:3000

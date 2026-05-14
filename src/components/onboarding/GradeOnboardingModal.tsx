@@ -65,7 +65,7 @@ export function GradeOnboardingModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+    <Modal isOpen={show} onOpenChange={() => undefined}>
       <Modal.Trigger>
         <button type="button" className="sr-only">
           Open

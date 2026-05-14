@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "22.x"
+    "node": "22.x || 24.x"
   },
   "scripts": {
+    "postinstall": "node scripts/ensure-native-deps.mjs",
     "doctor:native": "node scripts/ensure-native-deps.mjs",
     "predev": "npm run doctor:native",
     "dev": "next dev --turbopack",
@@ -19,7 +20,9 @@
     "dev:inspect": "next dev --turbopack --inspect 9229",
     "prebuild": "npm run doctor:native",
     "build": "next build",
-    "prestart": "npm run doctor:native",
+    "prebuild:webpack": "npm run doctor:native",
+    "build:webpack": "next build --webpack",
+    "prestart": "npm run doctor:native && node scripts/ensure-prod-next.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -32,7 +35,7 @@
   "dependencies": {
     "@heroui/react": "^3.0.3",
     "@heroui/styles": "^3.0.3",
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.9.0",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.38.0",
@@ -40,7 +43,7 @@
     "katex": "^0.16.45",
     "lucide-react": "^1.14.0",
     "mathlive": "^0.109.2",
-    "next": "16.2.4",
+    "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
@@ -50,14 +53,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "16.2.6",
     "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",

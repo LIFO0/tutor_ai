@@ -54,7 +54,7 @@ if not exist "node_modules" (
 echo [INFO] Checking native deps (better-sqlite3)...
 call npm run doctor:native
 if errorlevel 1 (
-  echo [ERROR] Native dependency check failed. Make sure Node.js 22 LTS is active, then run npm install.
+  echo [ERROR] Native dependency check failed. Use Node 22 or 24 per package.json engines, then npm install or npm rebuild better-sqlite3.
   pause
   exit /b 1
 )

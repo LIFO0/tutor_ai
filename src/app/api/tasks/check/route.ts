@@ -4,21 +4,10 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getTask, setTaskCheckResult } from "@/lib/tasks";
 import { taskCheckPrompt } from "@/lib/prompts";
 import { completeOnce } from "@/lib/llm";
+import { parseTaskCheckModelOutput } from "@/lib/task-check-json";
 
 function normalize(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-function extractJsonObject(text: string) {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return null;
-  const candidate = text.slice(start, end + 1);
-  try {
-    return JSON.parse(candidate) as unknown;
-  } catch {
-    return null;
-  }
 }
 
 export async function POST(req: Request) {
@@ -63,21 +52,7 @@ export async function POST(req: Request) {
     maxTokens: 1000,
   });
 
-  const parsed = extractJsonObject(modelRaw);
-  const parsedCorrect =
-    typeof parsed === "object" &&
-    parsed !== null &&
-    "correct" in parsed &&
-    typeof (parsed as { correct?: unknown }).correct === "boolean"
-      ? (parsed as { correct: boolean }).correct
-      : null;
-  const parsedFeedback =
-    typeof parsed === "object" &&
-    parsed !== null &&
-    "feedback" in parsed &&
-    typeof (parsed as { feedback?: unknown }).feedback === "string"
-      ? (parsed as { feedback: string }).feedback
-      : null;
+  const { correct: parsedCorrect, feedback: parsedFeedback } = parseTaskCheckModelOutput(modelRaw);
 
   // Fallback if model didn't follow JSON format.
   const fallbackModelSaysCorrect =
@@ -85,7 +60,7 @@ export async function POST(req: Request) {
       modelRaw,
     );
   const modelSaysCorrect = parsedCorrect ?? fallbackModelSaysCorrect;
-  const feedback = (parsedFeedback ?? modelRaw).trim();
+  const feedback = (parsedFeedback?.trim() ? parsedFeedback.trim() : null) ?? modelRaw.trim();
 
   await setTaskCheckResult({
     userId: user.id,

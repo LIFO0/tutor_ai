@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Button, Card, CardContent, CardHeader } from "@heroui/react";
 import { MessageBubble } from "@/components/chat/MessageBubble";
+import { BearTotem, type BearTotemVariant } from "@/components/ui/BearTotem";
+import { normalizeStoredTaskFeedback } from "@/lib/task-check-json";
 import { AnswerInput } from "./AnswerInput";
 
 export function TaskRunner({
@@ -24,11 +26,24 @@ export function TaskRunner({
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<null | { correct: boolean; aiFeedback: string }>(
     checked && initialFeedback
-      ? { correct: Boolean(initialCorrect), aiFeedback: initialFeedback }
+      ? {
+          correct: Boolean(initialCorrect),
+          aiFeedback: normalizeStoredTaskFeedback(initialFeedback),
+        }
       : null,
   );
 
   const canCheck = useMemo(() => answer.trim().length > 0 && !loading, [answer, loading]);
+
+  const bearVariant: BearTotemVariant = useMemo(() => {
+    if (result == null) return "thinking";
+    return result.correct ? "happy" : "standard";
+  }, [result]);
+
+  const bearSlot = useMemo(
+    () => <BearTotem variant={bearVariant} size="sm" />,
+    [bearVariant],
+  );
 
   async function check() {
     if (!canCheck) return;
@@ -46,7 +61,7 @@ export function TaskRunner({
       if (!res.ok || !data || data.ok !== true) {
         throw new Error((data as { error?: string } | null)?.error || "Ошибка проверки");
       }
-      setResult({ correct: Boolean(data.correct), aiFeedback: String(data.aiFeedback || "") });
+      setResult({ correct: Boolean(data.correct), aiFeedback: normalizeStoredTaskFeedback(String(data.aiFeedback || "")) });
     } catch (e) {
       setResult({
         correct: false,
@@ -62,7 +77,12 @@ export function TaskRunner({
       <Card>
         <CardHeader className="font-semibold">Задание</CardHeader>
         <CardContent>
-          <MessageBubble role="assistant" content={taskText} />
+          <MessageBubble
+            role="assistant"
+            content={taskText}
+            assistantFullWidth
+            assistantEnd={bearSlot}
+          />
         </CardContent>
       </Card>
 
@@ -82,7 +102,7 @@ export function TaskRunner({
             {result.correct ? "✅ Верно!" : "❌ Неверно"}
           </CardHeader>
           <CardContent>
-            <MessageBubble role="assistant" content={result.aiFeedback} />
+            <MessageBubble role="assistant" content={normalizeStoredTaskFeedback(result.aiFeedback)} />
           </CardContent>
         </Card>
       ) : null}

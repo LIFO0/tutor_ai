@@ -1,8 +1,22 @@
+import fs from "node:fs";
+import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const MODULE_NAME = "better-sqlite3";
+
+/** Written so the Next server can skip `npm rebuild` when ABI already matches (see `src/lib/db/index.ts`). */
+const ABI_MARKER = ".tutor-node-modules-abi";
+
+function sqlitePackageDir() {
+  return path.dirname(require.resolve(`${MODULE_NAME}/package.json`));
+}
+
+function writeAbiMarker() {
+  const tagPath = path.join(sqlitePackageDir(), ABI_MARKER);
+  fs.writeFileSync(tagPath, String(process.versions.modules), "utf8");
+}
 
 function log(message) {
   console.log(`[native] ${message}`);
@@ -47,6 +61,7 @@ log(`Node ${process.version}; NODE_MODULE_VERSION ${process.versions.modules}`);
 
 let result = loadNativeModule();
 if (result.ok) {
+  writeAbiMarker();
   log(`${MODULE_NAME} is compatible with the current Node.js runtime.`);
   process.exit(0);
 }
@@ -62,7 +77,7 @@ warn(`${MODULE_NAME} ABI mismatch detected. Rebuilding for current Node.js...`);
 const rebuild = rebuildNativeModule();
 if (rebuild.status !== 0) {
   fail(
-    `npm rebuild ${MODULE_NAME} failed. Make sure Node 22 LTS is active, then run npm install.`,
+    `npm rebuild ${MODULE_NAME} failed. Use the same Node.js version for installs and for next dev (see .nvmrc), or run npm rebuild ${MODULE_NAME}.`,
   );
 }
 
@@ -73,4 +88,5 @@ if (!result.ok) {
   );
 }
 
+writeAbiMarker();
 log(`${MODULE_NAME} rebuilt and verified successfully.`);

@@ -186,25 +186,28 @@ export default function RegisterPage() {
                       <div className="animate-element animate-delay-500">
                         <label className="text-sm font-medium text-zinc-700">Аватар</label>
                         <input type="hidden" name="avatar" value={avatar} />
-                        <div className="grid grid-cols-4 gap-3">
-                          {AVATAR_IDS.map((id) => (
-                            <button
-                              key={id}
-                              type="button"
-                              onClick={() => setAvatar(id)}
-                              className={[
-                                "flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors",
-                                avatar === id
-                                  ? "border-[color:var(--color-accent)] bg-[color:var(--color-accent)]/10"
-                                  : "border-zinc-200 bg-white/70 hover:bg-zinc-50",
-                              ].join(" ")}
-                              aria-pressed={avatar === id}
-                            >
-                              <UserAvatar avatar={id} size="lg" selected={avatar === id} />
-                              <span className="text-[11px] text-zinc-500">Мишка {id.slice(-1)}</span>
-                            </button>
-                          ))}
-                        </div>
+                        <GlassInputWrapper>
+                          <div className="flex items-center justify-between gap-2 px-4 py-1.5">
+                            {AVATAR_IDS.map((id) => (
+                              <button
+                                key={id}
+                                type="button"
+                                onClick={() => setAvatar(id)}
+                                className={[
+                                  "flex size-10 shrink-0 items-center justify-center rounded-lg border-2 p-0.5 transition-colors",
+                                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-accent)]",
+                                  avatar === id
+                                    ? "border-[color:var(--color-accent)] bg-[color:var(--color-accent)]/10"
+                                    : "border-zinc-200/80 bg-white/60 hover:border-zinc-300 hover:bg-zinc-50/80",
+                                ].join(" ")}
+                                aria-label={`Аватар ${id.slice(-1)}`}
+                                aria-pressed={avatar === id}
+                              >
+                                <UserAvatar avatar={id} size="sm" selected={false} />
+                              </button>
+                            ))}
+                          </div>
+                        </GlassInputWrapper>
                       </div>
                     </div>
 

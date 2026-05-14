@@ -2,18 +2,20 @@
 
 import Image from "next/image";
 
-export type BearTotemVariant = "welcoming" | "standard" | "thinking";
+export type BearTotemVariant = "welcoming" | "standard" | "thinking" | "happy";
 
 const SRC: Record<BearTotemVariant, string> = {
   welcoming: "/bears/bear_welcoming.png",
   standard: "/bears/bear_main.png",
   thinking: "/bears/bear_thinking.png",
+  happy: "/bears/bear_happy.png",
 };
 
 const ALT: Record<BearTotemVariant, string> = {
   welcoming: "Мишка приветствует",
   standard: "Мишка",
   thinking: "Мишка думает",
+  happy: "Мишка радуется",
 };
 
 export function BearTotem({

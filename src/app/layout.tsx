@@ -49,6 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} ${geologica.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="flex h-full min-h-0 flex-col" suppressHydrationWarning>

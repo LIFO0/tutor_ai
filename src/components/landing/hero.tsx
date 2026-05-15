@@ -2,11 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Hero() {
+  const router = useRouter();
+  const [landingChatMessage, setLandingChatMessage] = useState("");
+
+  function handleLandingChatSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!landingChatMessage.trim()) return;
+    router.push("/login");
+  }
   return (
     <section className="relative overflow-hidden pb-16 pt-28 md:pb-24 md:pt-36">
       <div className="absolute inset-0 -z-10">
@@ -121,26 +131,35 @@ export default function Hero() {
               </div>
 
               <div className="px-6 pb-6">
-                <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
+                <form
+                  onSubmit={handleLandingChatSubmit}
+                  className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3"
+                >
                   <input
                     type="text"
+                    name="landing-chat"
+                    autoComplete="off"
+                    value={landingChatMessage}
+                    onChange={(e) => setLandingChatMessage(e.target.value)}
                     placeholder="С чего начнём?"
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    disabled
+                    className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
                   <button
                     type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-sm font-medium text-primary"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-medium text-primary"
+                    aria-label="Математические символы (скоро)"
                   >
                     Σ
                   </button>
                   <button
-                    type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-primary"
+                    type="submit"
+                    disabled={!landingChatMessage.trim()}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Отправить и перейти ко входу"
                   >
                     <ArrowUp className="h-4 w-4 text-primary-foreground" />
                   </button>
-                </div>
+                </form>
               </div>
             </div>
           </motion.div>

@@ -19,7 +19,7 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section className="bg-foreground py-20 lg:py-32">
+    <section className="bg-[#2c1810] py-20 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

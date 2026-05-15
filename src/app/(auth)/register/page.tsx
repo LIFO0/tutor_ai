@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
-import { AVATAR_IDS, UserAvatar } from "@/components/ui/UserAvatar";
+import { AVATAR_IDS, AvatarPickerTile } from "@/components/ui/UserAvatar";
 import { YandexSignInButton } from "@/components/ui/YandexSignInButton";
 
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
@@ -164,7 +164,7 @@ export default function RegisterPage() {
                       </GlassInputWrapper>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-stretch">
                       <div className="animate-element animate-delay-500">
                         <label className="text-sm font-medium text-zinc-700">Класс</label>
                         <GlassInputWrapper>
@@ -183,7 +183,7 @@ export default function RegisterPage() {
                         </GlassInputWrapper>
                       </div>
 
-                      <div className="animate-element animate-delay-500">
+                      <div className="animate-element animate-delay-500 flex min-h-0 flex-col">
                         <label className="text-sm font-medium text-zinc-700">Аватар</label>
                         <input type="hidden" name="avatar" value={avatar} />
                         <GlassInputWrapper>

@@ -244,11 +244,11 @@ export function ChatWindow({
   }, [messages.length, streaming, lastMessageFingerprint]);
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+    <div className="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden">
       <div className="flex shrink-0 items-center gap-3 pb-3">
         <BearTotem variant={streaming ? "thinking" : "standard"} size="sm" />
-        <div className="flex flex-col">
-          <div className="font-semibold">{headerTitle}</div>
+        <div className="flex min-w-0 flex-col">
+          <div className="truncate font-semibold">{headerTitle}</div>
           {streaming ? (
             <div className="text-xs text-zinc-900 dark:text-zinc-50">Мишка думает и печатает…</div>
           ) : null}
@@ -263,7 +263,7 @@ export function ChatWindow({
             <MessageBubble key={m.id} role={m.role} content={m.content} />
           ))}
         </div>
-        <div className="shrink-0 bg-zinc-50/95 px-3 pt-2 pb-2 backdrop-blur dark:bg-black/85">
+        <div className="shrink-0 bg-zinc-50/95 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur dark:bg-black/85">
           {pendingError && pendingText ? (
             <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
               <div className="min-w-0">

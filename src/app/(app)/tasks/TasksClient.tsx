@@ -50,7 +50,7 @@ export function TasksClient({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4 pb-2 max-md:pb-4">
       <Card>
         <CardHeader className="font-semibold">Статистика</CardHeader>
         <CardContent>

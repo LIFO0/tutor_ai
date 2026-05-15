@@ -19,9 +19,9 @@ export default async function DashboardPage({
   const showGrade = onboarding === "grade";
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       <DashboardClaudeHome userName={user.name} />
       <GradeOnboardingModal show={showGrade} initialGrade={user.grade} />
-    </>
+    </div>
   );
 }

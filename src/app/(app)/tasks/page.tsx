@@ -13,7 +13,7 @@ export default async function TasksPage() {
   const history = await listTaskHistory(user.id);
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-0">
       <TasksClient
         solvedToday={stats.solvedToday}
         solvedTotal={stats.solvedTotal}

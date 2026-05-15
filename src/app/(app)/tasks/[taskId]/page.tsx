@@ -17,7 +17,7 @@ export default async function TaskPage({ params }: { params: Promise<{ taskId: s
   if (!task) return notFound();
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-0">
       <TaskRunner
         taskId={id}
         taskText={task.taskText}

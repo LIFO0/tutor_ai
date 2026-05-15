@@ -105,7 +105,7 @@ export function ChatSessionsSidebar({
   }
 
   return (
-    <aside className="w-full">
+    <aside className="flex min-h-0 w-full flex-1 flex-col">
       <ConfirmDeleteChatModal
         isOpen={deleteModalOpen}
         onOpenChange={(open) => {
@@ -166,7 +166,7 @@ export function ChatSessionsSidebar({
         </div>
       </div>
 
-      <div className="max-h-[calc(100vh-3rem-200px)] overflow-y-auto px-1 pb-8 pt-2 sm:px-0">
+      <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-8 pt-2 sm:px-0 md:max-h-[calc(100vh-3rem-200px)]">
         {filtered.length === 0 ? (
           <div className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
             Ничего не найдено
@@ -221,7 +221,7 @@ export function ChatSessionsSidebar({
                       e.stopPropagation();
                       requestDelete(s.id);
                     }}
-                    className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-opacity hover:bg-zinc-200/80 hover:text-zinc-700 group-hover:opacity-100 dark:hover:bg-zinc-700/70 dark:hover:text-zinc-200 sm:right-2 sm:h-9 sm:w-9"
+                    className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-400 opacity-100 transition-opacity hover:bg-zinc-200/80 hover:text-zinc-700 md:opacity-0 md:group-hover:opacity-100 dark:hover:bg-zinc-700/70 dark:hover:text-zinc-200 sm:right-2 sm:h-9 sm:w-9"
                   >
                     <span className="text-lg leading-none">×</span>
                   </button>

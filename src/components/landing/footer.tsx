@@ -46,7 +46,7 @@ export default function Footer() {
           </nav>
         </div>
 
-        <div className="mt-10 border-t border-border pt-6 text-right">
+        <div className="mt-10 border-t border-border pt-6 text-center md:text-right">
           <p className="text-sm text-muted-foreground">
             © 2026 Мишка знает. Все права защищены.
           </p>

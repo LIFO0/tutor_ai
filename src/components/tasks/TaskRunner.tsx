@@ -73,7 +73,7 @@ export function TaskRunner({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <Card>
         <CardHeader className="font-semibold">Задание</CardHeader>
         <CardContent>

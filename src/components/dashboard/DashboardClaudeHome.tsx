@@ -130,7 +130,7 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
   }, [subject]);
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 py-10">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-3 py-6 sm:px-4 md:py-10">
       <div className="flex w-full max-w-3xl flex-col items-center gap-8">
         <BearTotem variant={bearVariant} size="lg" priority className="mx-auto" />
 
@@ -155,7 +155,7 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
           ) : null}
         </div>
 
-        <div className="flex w-full flex-wrap justify-center gap-2">
+        <div className="flex w-full flex-wrap justify-center gap-1.5 md:gap-2">
           {CHAT_SUBJECTS.map((s) => {
             const Icon = s.icon;
             const active = subject === s.key;
@@ -166,7 +166,7 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
                 onClick={() => setSubject(s.key)}
                 disabled={submitting}
                 className={[
-                  "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors md:px-4 md:py-2 md:text-sm",
                   active
                     ? "border-[color:var(--accent)]/40 bg-[color:var(--accent)]/10 text-zinc-900 dark:text-zinc-50"
                     : "border-zinc-200 bg-zinc-50/80 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-600",

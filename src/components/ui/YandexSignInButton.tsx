@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 
 function YandexLogoMark({ className = "" }: { className?: string }) {
@@ -25,23 +26,38 @@ function YandexLogoMark({ className = "" }: { className?: string }) {
 export function YandexSignInButton({
   href = "/api/auth/yandex/start",
   className = "",
+  showPrivacyNotice = true,
 }: {
   href?: string;
   className?: string;
+  showPrivacyNotice?: boolean;
 }) {
   return (
-    <a
-      href={href}
-      className={[
-        "inline-flex h-11 w-full items-center justify-center gap-3 rounded-2xl border border-zinc-200 bg-white/70 px-4 text-sm font-medium text-zinc-800 shadow-sm transition-colors hover:bg-zinc-50",
-        className,
-      ].join(" ")}
-    >
-      <span className="inline-flex h-9 w-9 items-center justify-center" aria-hidden>
-        <YandexLogoMark className="h-9 w-9" />
-      </span>
-      <span>Войти через Яндекс</span>
-    </a>
+    <div className="space-y-2">
+      <a
+        href={href}
+        className={[
+          "inline-flex h-11 w-full items-center justify-center gap-3 rounded-2xl border border-zinc-200 bg-white/70 px-4 text-sm font-medium text-zinc-800 shadow-sm transition-colors hover:bg-zinc-50",
+          className,
+        ].join(" ")}
+      >
+        <span className="inline-flex h-9 w-9 items-center justify-center" aria-hidden>
+          <YandexLogoMark className="h-9 w-9" />
+        </span>
+        <span>Войти через Яндекс</span>
+      </a>
+      {showPrivacyNotice ? (
+        <p className="text-center text-xs leading-relaxed text-zinc-500">
+          Входя через Яндекс, вы соглашаетесь с{" "}
+          <Link
+            href="/privacy"
+            className="text-[color:var(--color-accent)] underline-offset-2 hover:underline"
+          >
+            Политикой конфиденциальности
+          </Link>
+          .
+        </p>
+      ) : null}
+    </div>
   );
 }
-

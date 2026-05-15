@@ -4,6 +4,19 @@ import { eq } from "drizzle-orm";
 import { authCookieName, verifyAuthToken } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 
+/** Проверка сессии по JWT в cookie без запроса к БД (для публичной шапки). */
+export async function isUserAuthenticated(): Promise<boolean> {
+  const c = await cookies();
+  const token = c.get(authCookieName)?.value;
+  if (!token) return false;
+  try {
+    await verifyAuthToken(token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export type CurrentUser = {
   id: number;
   name: string;

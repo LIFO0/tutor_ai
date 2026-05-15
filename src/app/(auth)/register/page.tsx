@@ -26,10 +26,16 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   const canSubmit = useMemo(() => {
-    return name.trim() && email.trim() && password.length >= 6;
-  }, [name, email, password]);
+    return (
+      name.trim() &&
+      email.trim() &&
+      password.length >= 6 &&
+      acceptedPrivacy
+    );
+  }, [name, email, password, acceptedPrivacy]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -46,7 +52,14 @@ export default function RegisterPage() {
     setGrade(nextGrade);
     setAvatar(nextAvatar);
 
-    if (!nextName.trim() || !nextEmail.trim() || nextPassword.length < 6) return;
+    if (
+      !nextName.trim() ||
+      !nextEmail.trim() ||
+      nextPassword.length < 6 ||
+      !acceptedPrivacy
+    ) {
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -59,6 +72,7 @@ export default function RegisterPage() {
           password: nextPassword,
           grade: nextGrade,
           avatar: nextAvatar,
+          acceptedPrivacyPolicy: true,
         }),
       });
       const data = (await res.json().catch(() => null)) as
@@ -210,6 +224,32 @@ export default function RegisterPage() {
                         </GlassInputWrapper>
                       </div>
                     </div>
+
+                    
+                    <div className="animate-element animate-delay-550">
+                      <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-zinc-600">
+                        <input
+                          type="checkbox"
+                          name="acceptedPrivacy"
+                          checked={acceptedPrivacy}
+                          onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                          className="custom-checkbox mt-0.5 size-4 shrink-0"
+                        />
+                        <span>
+                          Я ознакомлен(а) с{" "}
+                          <Link
+                            href="/privacy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[color:var(--color-accent)] underline-offset-2 hover:underline"
+                          >
+                            Политикой конфиденциальности
+                          </Link>{" "}
+                          и даю согласие на обработку моих персональных данных.
+                        </span>
+                      </label>
+                    </div>
+
 
                     {error ? <div className="text-sm text-red-600">{error}</div> : null}
 

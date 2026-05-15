@@ -3,6 +3,8 @@ import { readAuthCookieFromRequest, verifyAuthToken } from "@/lib/auth";
 
 const PUBLIC_PATHS = new Set([
   "/",
+  "/privacy",
+  "/help",
   "/login",
   "/register",
   "/api/auth/login",
@@ -23,15 +25,46 @@ function isProtected(pathname: string) {
   if (pathname.startsWith("/tasks")) return true;
   if (pathname.startsWith("/profile")) return true;
   if (pathname.startsWith("/settings")) return true;
-  if (pathname.startsWith("/help")) return true;
   if (pathname.startsWith("/api/chat")) return true;
   if (pathname.startsWith("/api/tasks")) return true;
   if (pathname.startsWith("/api/profile")) return true;
   return false;
 }
 
+function isSafeInternalPath(path: string) {
+  return path.startsWith("/") && !path.startsWith("//");
+}
+
+async function redirectAuthenticatedFromAuthPages(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  if (pathname !== "/login" && pathname !== "/register") return null;
+
+  const token = readAuthCookieFromRequest(req);
+  if (!token) return null;
+
+  try {
+    await verifyAuthToken(token);
+  } catch {
+    return null;
+  }
+
+  const next = req.nextUrl.searchParams.get("next");
+  const url = req.nextUrl.clone();
+  url.search = "";
+  if (next && isSafeInternalPath(next) && isProtected(next)) {
+    url.pathname = next;
+  } else {
+    url.pathname = "/dashboard";
+  }
+  return NextResponse.redirect(url);
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  const authRedirect = await redirectAuthenticatedFromAuthPages(req);
+  if (authRedirect) return authRedirect;
+
   if (!isProtected(pathname)) return NextResponse.next();
 
   const token = readAuthCookieFromRequest(req);

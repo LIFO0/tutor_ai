@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ListBox, Select } from "@heroui/react";
@@ -263,6 +264,17 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
       <Button variant="primary" isDisabled={!changed || saving} onPress={save}>
         {saving ? "Сохраняем…" : "Сохранить изменения"}
       </Button>
+
+      <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
+        <Link
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-2 hover:text-zinc-700 hover:underline dark:hover:text-zinc-300"
+        >
+          Политика конфиденциальности
+        </Link>
+      </p>
     </div>
   );
 }

@@ -31,18 +31,18 @@ export default function Footer() {
             className="flex shrink-0 flex-col gap-1 sm:max-w-xs sm:self-start lg:max-w-none lg:items-end"
             aria-label="Дополнительно"
           >
-            <button
-              type="button"
+            <Link
+              href="/help"
               className="rounded-xl px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground lg:text-right"
             >
               Помощь
-            </button>
-            <button
-              type="button"
+            </Link>
+            <Link
+              href="/privacy"
               className="rounded-xl px-3 py-2.5 text-left text-sm leading-snug text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground lg:text-right"
             >
               Политика конфиденциальности
-            </button>
+            </Link>
           </nav>
         </div>
 

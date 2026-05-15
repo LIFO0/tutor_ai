@@ -23,8 +23,16 @@ export async function POST(req: Request) {
         password?: string;
         grade?: number;
         avatar?: string;
+        acceptedPrivacyPolicy?: boolean;
       }
     | null;
+
+  if (body?.acceptedPrivacyPolicy !== true) {
+    return jsonError(
+      "Необходимо согласие с Политикой конфиденциальности.",
+      400,
+    );
+  }
 
   const name = body?.name?.trim();
   const email = body?.email?.trim().toLowerCase();

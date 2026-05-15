@@ -17,16 +17,17 @@ function MobileSettingsBar({
   onMenuOpen: () => void;
 }) {
   return (
-    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950 md:hidden">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <button
-          type="button"
-          onClick={onMenuOpen}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
-          aria-label="Открыть меню"
-        >
-          <Menu className="h-5 w-5" strokeWidth={2} />
-        </button>
+    <header className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-zinc-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950 md:hidden">
+      <button
+        type="button"
+        onClick={onMenuOpen}
+        className="relative z-20 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
+        aria-label="Открыть меню"
+      >
+        <Menu className="h-5 w-5" strokeWidth={2} />
+      </button>
+
+      <div className="flex min-w-0 items-center justify-center gap-2 px-1">
         <Image
           src="/avatars/av_main.png"
           alt="Мишка знает"
@@ -35,15 +36,16 @@ function MobileSettingsBar({
           className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-zinc-200/80 dark:ring-zinc-700/80"
           sizes="36px"
         />
-        <div className="min-w-0">
+        <div className="hidden min-w-0 sm:block">
           <div className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Мишка знает
           </div>
           <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">ИИ-репетитор</div>
         </div>
       </div>
+
       <AccountProfileMenu user={user} placement="bottom">
-        <span className="flex min-w-0 max-w-[45%] cursor-pointer items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50/80 py-1.5 pl-1.5 pr-2.5 text-left transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-900 sm:max-w-[55%] sm:pr-3">
+        <span className="flex max-w-[9.5rem] cursor-pointer items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50/80 py-1.5 pl-1.5 pr-2.5 text-left transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:bg-zinc-900 sm:max-w-[11rem] sm:pr-3">
           <UserAvatar avatar={user.avatar} size="sm" />
           <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
             {user.name}

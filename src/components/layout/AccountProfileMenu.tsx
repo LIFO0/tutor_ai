@@ -13,10 +13,13 @@ const itemClass =
 export function AccountProfileMenu({
   user,
   placement,
+  fullWidth = false,
   children,
 }: {
   user: CurrentUser;
   placement: "top" | "bottom";
+  /** Растянуть триггер на всю ширину (сайдбар). В шапке mobile — false. */
+  fullWidth?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -30,7 +33,10 @@ export function AccountProfileMenu({
     <Popover.Root>
       <AriaButton
         type="button"
-        className="w-full cursor-pointer border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950"
+        className={[
+          "cursor-pointer border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950",
+          fullWidth ? "w-full" : "w-auto shrink-0",
+        ].join(" ")}
       >
         {children}
       </AriaButton>

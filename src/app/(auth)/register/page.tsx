@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
-import { AVATAR_IDS, AvatarPickerTile } from "@/components/ui/UserAvatar";
+import { AVATAR_IDS, UserAvatar } from "@/components/ui/UserAvatar";
 import { YandexSignInButton } from "@/components/ui/YandexSignInButton";
 
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);

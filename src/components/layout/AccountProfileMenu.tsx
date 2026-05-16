@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { CircleHelp, LogOut, Settings } from "lucide-react";
 import { Popover } from "@heroui/react";
 import { Button as AriaButton } from "react-aria-components/Button";
 import type { CurrentUser } from "@/lib/current-user";
+import { logoutAndRedirect } from "@/lib/logout-client";
 
 const itemClass =
   "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-zinc-800 outline-none transition-colors hover:bg-zinc-100 focus-visible:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800/90 dark:focus-visible:bg-zinc-800/90";
@@ -22,13 +22,6 @@ export function AccountProfileMenu({
   fullWidth?: boolean;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
-    router.replace("/login");
-  }
-
   return (
     <Popover.Root>
       <AriaButton
@@ -64,7 +57,7 @@ export function AccountProfileMenu({
 
             <button
               type="button"
-              onClick={() => void logout()}
+              onClick={() => void logoutAndRedirect()}
               className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-red-600 outline-none transition-colors hover:bg-red-50 focus-visible:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/35 dark:focus-visible:bg-red-950/35"
             >
               <LogOut className="size-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />

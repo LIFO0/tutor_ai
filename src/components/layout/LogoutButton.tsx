@@ -1,21 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
+import { logoutAndRedirect } from "@/lib/logout-client";
 
 export function LogoutButton() {
-  const router = useRouter();
   return (
-    <Button
-      size="sm"
-      variant="tertiary"
-      onPress={async () => {
-        await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
-        router.replace("/login");
-      }}
-    >
+    <Button size="sm" variant="tertiary" onPress={() => void logoutAndRedirect()}>
       Выйти
     </Button>
   );
 }
-

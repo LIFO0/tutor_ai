@@ -45,33 +45,12 @@ export default function LoginPage() {
     }
   }
 
-  async function loginTest() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/auth/test", { method: "POST" });
-      const data = (await res.json().catch(() => null)) as
-        | { ok: true }
-        | { ok: false; error: string }
-        | null;
-      if (!res.ok || !data || data.ok !== true) {
-        throw new Error((data as { error?: string } | null)?.error || "Не удалось войти тестовым");
-      }
-      router.replace("/dashboard");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <>
       <SignInPage
         title="Вход"
         description="Введите email и пароль, чтобы продолжить."
         onSignIn={onSubmit}
-        onTestSignIn={loginTest}
         onCreateAccount={() => router.push("/register")}
         extraActions={
           <YandexSignInButton />

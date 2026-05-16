@@ -12,11 +12,17 @@ import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 import { systemPrompt } from "@/lib/prompts";
 import { streamYandexCompletion } from "@/lib/yandex-gpt";
 import { normalizeChatSubject } from "@/lib/subjects";
+import { quotaErrorResponse } from "@/lib/api/quota-response";
+import { assertYandexLlmConfigured, validateChatMessageLength } from "@/lib/llm-config";
+import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 
 export async function POST(req: Request) {
   const requestStartMs = Date.now();
   const user = await getCurrentUser();
   if (!user) return jsonError("Unauthorized", 401);
+
+  const llmGuard = assertYandexLlmConfigured();
+  if (llmGuard) return llmGuard;
 
   const body = (await req.json().catch(() => null)) as
     | { sessionId?: number; message?: string }
@@ -27,6 +33,12 @@ export async function POST(req: Request) {
 
   if (!Number.isInteger(sessionId)) return jsonError("Invalid sessionId", 400);
   if (!message) return jsonError("Empty message", 400);
+
+  const lengthError = validateChatMessageLength(message);
+  if (lengthError) return jsonError(lengthError, 400);
+
+  const quota = await checkAndConsume(toQuotaUser(user), "chat_message");
+  if (!quota.ok) return quotaErrorResponse(quota);
 
   const session = await getChatSession(user.id, sessionId);
   if (!session) return jsonError("Not found", 404);
@@ -103,6 +115,7 @@ export async function POST(req: Request) {
             ...history,
           ],
           maxTokens: 2200,
+          signal: req.signal,
         })) {
           if (isDev && full.length === 0) {
             controller.enqueue(

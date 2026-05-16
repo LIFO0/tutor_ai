@@ -6,6 +6,9 @@ import { MessageBubble } from "@/components/chat/MessageBubble";
 import { BearTotem, type BearTotemVariant } from "@/components/ui/BearTotem";
 import { normalizeStoredTaskFeedback } from "@/lib/task-check-json";
 import { AnswerInput } from "./AnswerInput";
+import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
+import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
+import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
 
 export function TaskRunner({
   taskId,
@@ -33,7 +36,20 @@ export function TaskRunner({
       : null,
   );
 
-  const canCheck = useMemo(() => answer.trim().length > 0 && !loading, [answer, loading]);
+  const { usage, refresh: refreshUsage } = useUsage();
+
+  const checkBlocked = !usage?.exempt && (usage?.remaining.taskCheck ?? 1) === 0;
+  const checkWarning =
+    !usage?.exempt &&
+    !checkBlocked &&
+    usage != null &&
+    usage.remaining.taskCheck > 0 &&
+    usage.remaining.taskCheck <= 3;
+
+  const canCheck = useMemo(
+    () => answer.trim().length > 0 && !loading && !checkBlocked,
+    [answer, loading, checkBlocked],
+  );
 
   const bearVariant: BearTotemVariant = useMemo(() => {
     if (result == null) return "thinking";
@@ -56,11 +72,25 @@ export function TaskRunner({
       });
       const data = (await res.json().catch(() => null)) as
         | { ok: true; correct: boolean; aiFeedback: string }
-        | { ok: false; error: string }
+        | { ok: false; error: string; message?: string }
         | null;
-      if (!res.ok || !data || data.ok !== true) {
-        throw new Error((data as { error?: string } | null)?.error || "Ошибка проверки");
+      const quota = parseQuotaResponse(res, data);
+      if (quota) {
+        setResult({
+          correct: false,
+          aiFeedback: `⚠️ ${quota.message ?? quotaExceededMessage("task_check", quota.limit)}`,
+        });
+        void refreshUsage();
+        return;
       }
+      if (!res.ok || !data || data.ok !== true) {
+        const msg =
+          (data && "message" in data && typeof data.message === "string" ? data.message : null) ||
+          (data as { error?: string } | null)?.error ||
+          "Ошибка проверки";
+        throw new Error(msg);
+      }
+      void refreshUsage();
       setResult({ correct: Boolean(data.correct), aiFeedback: normalizeStoredTaskFeedback(String(data.aiFeedback || "")) });
     } catch (e) {
       setResult({
@@ -89,10 +119,24 @@ export function TaskRunner({
       <Card>
         <CardHeader className="font-semibold">Ваш ответ</CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <AnswerInput value={answer} onChange={setAnswer} disabled={loading} />
-          <Button variant="primary" isDisabled={!canCheck} onPress={check}>
-            {loading ? "Проверяем…" : "Проверить"}
-          </Button>
+          {checkBlocked && usage ? (
+            <QuotaExceededBanner
+              message={quotaExceededMessage("task_check", usage.limits.taskCheck)}
+              resetsAt={usage.resetsAt}
+            />
+          ) : (
+            <>
+              {checkWarning && usage ? (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  {quotaWarningMessage("task_check", usage.remaining.taskCheck)}
+                </p>
+              ) : null}
+              <AnswerInput value={answer} onChange={setAnswer} disabled={loading || checkBlocked} />
+              <Button variant="primary" isDisabled={!canCheck} onPress={check}>
+                {loading ? "Проверяем…" : "Проверить"}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 

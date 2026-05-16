@@ -6,6 +6,9 @@ import Link from "next/link";
 import { Button, Card, CardContent, CardHeader, ListBox, Select } from "@heroui/react";
 import type { Subject } from "@/lib/subjects";
 import { SUBJECTS } from "@/lib/subjects";
+import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
+import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
+import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
 
 export function TasksClient({
   solvedToday,
@@ -21,8 +24,20 @@ export function TasksClient({
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { usage, refresh: refreshUsage } = useUsage();
 
-  const can = useMemo(() => topic.trim().length > 0 && !loading, [topic, loading]);
+  const genBlocked = !usage?.exempt && (usage?.remaining.taskGenerate ?? 1) === 0;
+  const genWarning =
+    !usage?.exempt &&
+    !genBlocked &&
+    usage != null &&
+    usage.remaining.taskGenerate > 0 &&
+    usage.remaining.taskGenerate <= 3;
+
+  const can = useMemo(
+    () => topic.trim().length > 0 && !loading && !genBlocked,
+    [topic, loading, genBlocked],
+  );
 
   async function generate() {
     if (!can) return;
@@ -36,11 +51,22 @@ export function TasksClient({
       });
       const data = (await res.json().catch(() => null)) as
         | { ok: true; taskId: number }
-        | { ok: false; error: string }
+        | { ok: false; error: string; message?: string }
         | null;
-      if (!res.ok || !data || data.ok !== true) {
-        throw new Error((data as { error?: string } | null)?.error || "Ошибка генерации");
+      const quota = parseQuotaResponse(res, data);
+      if (quota) {
+        setError(quota.message ?? quotaExceededMessage("task_generate", quota.limit));
+        void refreshUsage();
+        return;
       }
+      if (!res.ok || !data || data.ok !== true) {
+        const msg =
+          (data && "message" in data && typeof data.message === "string" ? data.message : null) ||
+          (data as { error?: string } | null)?.error ||
+          "Ошибка генерации";
+        throw new Error(msg);
+      }
+      void refreshUsage();
       router.push(`/tasks/${data.taskId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
@@ -131,7 +157,20 @@ export function TasksClient({
             </div>
           </div>
 
-          {error ? <div className="text-sm text-red-600">{error}</div> : null}
+          {genBlocked && usage ? (
+            <QuotaExceededBanner
+              message={quotaExceededMessage("task_generate", usage.limits.taskGenerate)}
+              resetsAt={usage.resetsAt}
+            />
+          ) : null}
+
+          {genWarning && usage ? (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              {quotaWarningMessage("task_generate", usage.remaining.taskGenerate)}
+            </p>
+          ) : null}
+
+          {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
 
           <Button variant="primary" isDisabled={!can} onPress={generate}>
             {loading ? "Генерируем…" : "Получить задание"}

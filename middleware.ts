@@ -28,6 +28,7 @@ function isProtected(pathname: string) {
   if (pathname.startsWith("/api/chat")) return true;
   if (pathname.startsWith("/api/tasks")) return true;
   if (pathname.startsWith("/api/profile")) return true;
+  if (pathname.startsWith("/api/usage")) return true;
   return false;
 }
 

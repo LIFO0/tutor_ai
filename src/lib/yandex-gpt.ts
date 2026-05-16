@@ -1,6 +1,29 @@
+import { LLM_UNAVAILABLE_MESSAGE } from "@/lib/chat-limits";
 import { getOptionalEnv } from "@/lib/env";
 
 type LlmMessage = { role: "system" | "user" | "assistant"; text: string };
+
+function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+function mergeAbortSignals(external?: AbortSignal): { signal: AbortSignal; cleanup: () => void } {
+  const ac = new AbortController();
+  const timeoutMs = 120_000;
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  const onExternalAbort = () => ac.abort();
+  if (external) {
+    if (external.aborted) ac.abort();
+    else external.addEventListener("abort", onExternalAbort, { once: true });
+  }
+  return {
+    signal: ac.signal,
+    cleanup: () => {
+      clearTimeout(timer);
+      if (external) external.removeEventListener("abort", onExternalAbort);
+    },
+  };
+}
 
 const API_URL =
   "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
@@ -21,14 +44,13 @@ async function fetchCompletionText(params: {
   messages: LlmMessage[];
   maxTokens?: number;
   temperature?: number;
+  signal?: AbortSignal;
 }) {
-  const ac = new AbortController();
-  const timeoutMs = 120_000;
-  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  const { signal, cleanup } = mergeAbortSignals(params.signal);
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      signal: ac.signal,
+      signal,
       headers: {
         Authorization: `Api-Key ${params.apiKey}`,
         "Content-Type": "application/json",
@@ -86,11 +108,12 @@ async function fetchCompletionText(params: {
     const name = e instanceof Error ? e.name : "";
     const msg = e instanceof Error ? e.message : "";
     if (name === "AbortError" || /aborted/i.test(msg)) {
+      if (params.signal?.aborted) throw e;
       throw new Error("Ответ модели слишком долго генерируется. Попробуйте отправить вопрос ещё раз.");
     }
     throw e;
   } finally {
-    clearTimeout(timer);
+    cleanup();
   }
 }
 
@@ -125,14 +148,13 @@ async function* fetchCompletionStreamPieces(params: {
   messages: LlmMessage[];
   maxTokens?: number;
   temperature?: number;
+  signal?: AbortSignal;
 }) {
-  const ac = new AbortController();
-  const timeoutMs = 120_000;
-  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  const { signal, cleanup } = mergeAbortSignals(params.signal);
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      signal: ac.signal,
+      signal,
       headers: {
         Authorization: `Api-Key ${params.apiKey}`,
         "Content-Type": "application/json",
@@ -246,17 +268,19 @@ async function* fetchCompletionStreamPieces(params: {
     }
 
     if (!yielded) {
+      if (params.signal?.aborted) return;
       throw new Error("YandexGPT streaming produced no text pieces (parser mismatch)");
     }
   } catch (e) {
     const name = e instanceof Error ? e.name : "";
     const msg = e instanceof Error ? e.message : "";
     if (name === "AbortError" || /aborted/i.test(msg)) {
+      if (params.signal?.aborted) return;
       throw new Error("Ответ модели слишком долго генерируется. Попробуйте отправить вопрос ещё раз.");
     }
     throw e;
   } finally {
-    clearTimeout(timer);
+    cleanup();
   }
 }
 
@@ -283,11 +307,15 @@ export async function* streamYandexCompletion(params: {
   messages: LlmMessage[];
   maxTokens?: number;
   temperature?: number;
+  signal?: AbortSignal;
 }) {
   const apiKey = getOptionalEnv("YANDEX_GPT_API_KEY");
   const folderId = getOptionalEnv("YANDEX_FOLDER_ID");
 
   if (!apiKey || !folderId) {
+    if (isProductionRuntime()) {
+      throw new Error(LLM_UNAVAILABLE_MESSAGE);
+    }
     const lastUser = [...params.messages].reverse().find((m) => m.role === "user")?.text;
     const text =
       "Сейчас я работаю в демо-режиме (не задан YANDEX_GPT_API_KEY / YANDEX_FOLDER_ID).\n\n" +
@@ -304,8 +332,10 @@ export async function* streamYandexCompletion(params: {
       messages: params.messages,
       maxTokens: params.maxTokens ?? 1200,
       temperature: params.temperature,
+      signal: params.signal,
     });
-  } catch {
+  } catch (e) {
+    if (params.signal?.aborted) return;
     // Fallback: request full completion and stream it ourselves.
     const fullText = await fetchCompletionText({
       apiKey,
@@ -313,7 +343,9 @@ export async function* streamYandexCompletion(params: {
       messages: params.messages,
       maxTokens: params.maxTokens ?? 1200,
       temperature: params.temperature,
+      signal: params.signal,
     });
+    if (params.signal?.aborted) return;
     yield* fakeStream(fullText);
   }
 }

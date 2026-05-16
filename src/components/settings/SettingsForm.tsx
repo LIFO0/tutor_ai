@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Button, ListBox, Select } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
 import { UserAvatar, AVATAR_IDS } from "@/components/ui/UserAvatar";
-
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
 
 type Baseline = {

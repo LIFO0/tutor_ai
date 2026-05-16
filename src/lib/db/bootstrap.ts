@@ -10,6 +10,29 @@ function ensureUserColumns(sqlite: Database.Database) {
     sqlite.exec("ALTER TABLE users ADD COLUMN yandex_id TEXT");
     sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_yandex_id_unique ON users(yandex_id)");
   }
+  if (!has("plan")) {
+    sqlite.exec("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'");
+  }
+  if (!has("plan_expires_at")) {
+    sqlite.exec("ALTER TABLE users ADD COLUMN plan_expires_at TEXT");
+  }
+}
+
+function ensureUsageDailyTable(sqlite: Database.Database) {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS usage_daily (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      date TEXT NOT NULL,
+      chat_messages INTEGER NOT NULL DEFAULT 0,
+      task_generate INTEGER NOT NULL DEFAULT 0,
+      task_check INTEGER NOT NULL DEFAULT 0,
+      chat_sessions INTEGER NOT NULL DEFAULT 0,
+      estimated_tokens INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_usage_daily_user_date ON usage_daily(user_id, date);
+  `);
 }
 
 export function ensureTables(sqlite: Database.Database) {
@@ -54,6 +77,7 @@ export function ensureTables(sqlite: Database.Database) {
     );
   `);
   ensureUserColumns(sqlite);
+  ensureUsageDailyTable(sqlite);
 
   // Performance indexes
   sqlite.exec(`

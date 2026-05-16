@@ -3,6 +3,8 @@ import { jsonError } from "@/lib/api/auth";
 import { getCurrentUser } from "@/lib/current-user";
 import { createChatSession, listChatSessions } from "@/lib/chat";
 import { isValidChatSubject, type Subject } from "@/lib/subjects";
+import { quotaErrorResponse } from "@/lib/api/quota-response";
+import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -28,6 +30,9 @@ export async function POST(req: Request) {
   if (!isValidChatSubject(subject)) {
     return jsonError("Invalid subject", 400);
   }
+
+  const quota = await checkAndConsume(toQuotaUser(user), "chat_session");
+  if (!quota.ok) return quotaErrorResponse(quota);
 
   const dbStart = Date.now();
   const sessionId = await createChatSession({

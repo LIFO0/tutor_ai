@@ -10,7 +10,6 @@ export interface SignInPageProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
   onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
-  onTestSignIn?: () => void;
   onCreateAccount?: () => void;
   extraActions?: React.ReactNode;
   error?: React.ReactNode;
@@ -30,7 +29,6 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   title = <span className="font-light tracking-tighter text-zinc-900">С возвращением</span>,
   description = "Войдите в аккаунт и продолжайте учиться.",
   onSignIn,
-  onTestSignIn,
   onCreateAccount,
   extraActions,
   error,
@@ -123,16 +121,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                   <div className="animate-element animate-delay-450 mt-3">{extraActions}</div>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={onTestSignIn}
-                  disabled={loading}
-                  className="animate-element animate-delay-500 mt-3 w-full rounded-2xl border border-zinc-200 bg-white/70 py-3 text-sm font-medium text-zinc-800 shadow-sm transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Войти как тестовый ученик
-                </button>
-
-                <div className="animate-element animate-delay-600 mt-5 text-center text-sm text-zinc-600">
+                <div className="animate-element animate-delay-500 mt-5 text-center text-sm text-zinc-600">
                   Нет аккаунта?{" "}
                   <button
                     type="button"

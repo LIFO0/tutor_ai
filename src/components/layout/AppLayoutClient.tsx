@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import type { CurrentUser } from "@/lib/current-user";
+import { LLM_UNAVAILABLE_MESSAGE } from "@/lib/chat-limits";
 import { Sidebar } from "./Sidebar";
 import { MobileNavDrawer } from "./MobileNavDrawer";
 
@@ -42,9 +43,11 @@ function MobileSettingsBar({ onMenuOpen }: { onMenuOpen: () => void }) {
 
 export function AppLayoutClient({
   user,
+  llmConfigured,
   children,
 }: {
   user: CurrentUser;
+  llmConfigured: boolean;
   children: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -56,6 +59,15 @@ export function AppLayoutClient({
       <Sidebar user={user} />
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50 dark:bg-black">
         <div className="mx-auto flex min-h-0 w-full max-w-full flex-1 flex-col overflow-y-auto px-4 pt-4 pb-0 md:pt-6">
+          {!llmConfigured ? (
+            <div
+              className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-200"
+              role="status"
+            >
+              <p className="font-semibold text-zinc-900 dark:text-zinc-50">Сервис ИИ временно недоступен</p>
+              <p className="mt-1 text-zinc-700 dark:text-zinc-300">{LLM_UNAVAILABLE_MESSAGE}</p>
+            </div>
+          ) : null}
           {children}
         </div>
       </main>

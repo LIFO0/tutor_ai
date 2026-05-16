@@ -1,19 +1,24 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 import { Button } from "@heroui/react";
+import { MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat-limits";
 import { MathKeyboard } from "./MathKeyboard";
 import { MixedMathInput, type MixedMathInputHandle } from "@/components/math/MixedMathInput";
 
 export function ChatInput({
   onSend,
+  onStop,
+  streaming = false,
   disabled,
   placeholder,
   onFocus,
   mixedMathInputProps,
 }: {
   onSend: (text: string) => void;
+  onStop?: () => void;
+  streaming?: boolean;
   disabled?: boolean;
   placeholder?: string;
   onFocus?: () => void;
@@ -22,11 +27,16 @@ export function ChatInput({
   const [value, setValue] = useState("");
   const [showMath, setShowMath] = useState(false);
   const inputRef = useRef<MixedMathInputHandle | null>(null);
-  const canSend = useMemo(() => value.trim().length > 0 && !disabled, [value, disabled]);
+  const inputDisabled = Boolean(disabled || streaming);
+  const canSend = useMemo(
+    () => value.trim().length > 0 && !inputDisabled,
+    [value, inputDisabled],
+  );
 
   function submit() {
     if (!canSend) return;
     const text = value.trim();
+    if (text.length > MAX_CHAT_MESSAGE_CHARS) return;
     setValue("");
     onSend(text);
   }
@@ -39,13 +49,13 @@ export function ChatInput({
           value={value}
           onChange={setValue}
           placeholder={placeholder ?? "С чего начнём?"}
-          disabled={disabled}
+          disabled={inputDisabled}
           className="min-w-0 flex-1"
           inputClassName="min-h-11"
           onFocus={onFocus}
           {...mixedMathInputProps}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !streaming) {
               e.preventDefault();
               submit();
             }
@@ -55,7 +65,7 @@ export function ChatInput({
           <Button
             variant="secondary"
             isIconOnly
-            isDisabled={disabled}
+            isDisabled={inputDisabled}
             onPress={() => setShowMath((v) => !v)}
             className="h-11 w-11 min-h-11 min-w-11 shrink-0"
             aria-label={showMath ? "Скрыть математическую клавиатуру" : "Математическая клавиатура"}
@@ -65,16 +75,28 @@ export function ChatInput({
               ∑
             </span>
           </Button>
-          <Button
-            variant="primary"
-            isIconOnly
-            isDisabled={!canSend}
-            onPress={submit}
-            className="h-11 w-11 min-h-11 min-w-11 shrink-0"
-            aria-label="Отправить сообщение"
-          >
-            <ArrowUp className="size-5" strokeWidth={2.25} aria-hidden />
-          </Button>
+          {streaming ? (
+            <Button
+              variant="secondary"
+              isIconOnly
+              onPress={onStop}
+              className="h-11 w-11 min-h-11 min-w-11 shrink-0"
+              aria-label="Остановить генерацию"
+            >
+              <Square className="size-4 fill-current" strokeWidth={0} aria-hidden />
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              isIconOnly
+              isDisabled={!canSend}
+              onPress={submit}
+              className="h-11 w-11 min-h-11 min-w-11 shrink-0"
+              aria-label="Отправить сообщение"
+            >
+              <ArrowUp className="size-5" strokeWidth={2.25} aria-hidden />
+            </Button>
+          )}
         </div>
       </div>
 

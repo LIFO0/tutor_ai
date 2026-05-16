@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { authCookieName, verifyAuthToken } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
+import { assertProductionEnv } from "@/lib/llm-config";
 
 /** Проверка сессии по JWT в cookie без запроса к БД (для публичной шапки). */
 export async function isUserAuthenticated(): Promise<boolean> {
@@ -24,9 +25,12 @@ export type CurrentUser = {
   grade: number;
   avatar: string;
   chatName: string | null;
+  plan: string;
+  planExpiresAt: string | null;
 };
 
 async function readCurrentUser(): Promise<CurrentUser | null> {
+  assertProductionEnv();
   const db = getDb();
   const c = await cookies();
   const token = c.get(authCookieName)?.value;
@@ -42,6 +46,8 @@ async function readCurrentUser(): Promise<CurrentUser | null> {
         grade: schema.users.grade,
         avatar: schema.users.avatar,
         chatName: schema.users.chatName,
+        plan: schema.users.plan,
+        planExpiresAt: schema.users.planExpiresAt,
       })
       .from(schema.users)
       .where(eq(schema.users.id, payload.userId))

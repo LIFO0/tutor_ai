@@ -5,6 +5,9 @@ import { getTask, setTaskCheckResult } from "@/lib/tasks";
 import { taskCheckPrompt } from "@/lib/prompts";
 import { completeOnce } from "@/lib/llm";
 import { parseTaskCheckModelOutput } from "@/lib/task-check-json";
+import { quotaErrorResponse } from "@/lib/api/quota-response";
+import { assertYandexLlmConfigured } from "@/lib/llm-config";
+import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 
 function normalize(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
@@ -24,6 +27,12 @@ export async function POST(req: Request) {
 
   const task = await getTask(user.id, taskId);
   if (!task) return jsonError("Not found", 404);
+
+  const llmGuard = assertYandexLlmConfigured();
+  if (llmGuard) return llmGuard;
+
+  const quota = await checkAndConsume(toQuotaUser(user), "task_check");
+  if (!quota.ok) return quotaErrorResponse(quota);
 
   const correctAnswer = task.correctAnswer ?? "";
   const naiveCorrect =

@@ -5,6 +5,9 @@ import { getCurrentUser } from "@/lib/current-user";
 import { taskGeneratePrompt } from "@/lib/prompts";
 import { completeOnce } from "@/lib/llm";
 import { createTaskSession } from "@/lib/tasks";
+import { quotaErrorResponse } from "@/lib/api/quota-response";
+import { assertYandexLlmConfigured } from "@/lib/llm-config";
+import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 
 function parseTask(text: string) {
   const mTask = text.match(/ЗАДАЧА:\s*([\s\S]*?)\n\s*ОТВЕТ:/i);
@@ -28,6 +31,12 @@ export async function POST(req: Request) {
     return jsonError("Invalid subject", 400);
   }
   if (!topic) return jsonError("Введите тему.", 400);
+
+  const llmGuard = assertYandexLlmConfigured();
+  if (llmGuard) return llmGuard;
+
+  const quota = await checkAndConsume(toQuotaUser(user), "task_generate");
+  if (!quota.ok) return quotaErrorResponse(quota);
 
   const prompt = taskGeneratePrompt({ subject, grade: user.grade, topic });
   const raw = await completeOnce({

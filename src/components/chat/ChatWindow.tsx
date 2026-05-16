@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { createSseParser } from "./sse";
 import { BearTotem } from "@/components/ui/BearTotem";
 import { PENDING_CHAT_MESSAGE_KEY } from "@/lib/pending-chat-message";
 import { normalizeMathMessageForModel } from "@/lib/math-prompt";
+import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
+import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
+import { LLM_UNAVAILABLE_MESSAGE, MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat-limits";
+import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
 
 export type UiMessage = { id: string; role: "user" | "assistant"; content: string };
 type StreamChunk = { t: string };
@@ -21,7 +24,6 @@ export function ChatWindow({
   title?: string | null;
   initialMessages: Array<{ id: number; role: "user" | "assistant"; content: string }>;
 }) {
-  const router = useRouter();
   const [messages, setMessages] = useState<UiMessage[]>(() =>
     initialMessages.map((m) => ({ id: String(m.id), role: m.role, content: m.content })),
   );
@@ -29,9 +31,24 @@ export function ChatWindow({
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingConsumedRef = useRef(false);
   const sendInFlightRef = useRef(false);
+  const streamAbortRef = useRef<AbortController | null>(null);
   const lastSendRef = useRef<{ text: string; at: number } | null>(null);
   const [pendingText, setPendingText] = useState<string | null>(null);
   const [pendingError, setPendingError] = useState<string | null>(null);
+  const [quotaBlock, setQuotaBlock] = useState<{ message: string; resetsAt?: string } | null>(
+    null,
+  );
+
+  const { usage, refresh: refreshUsage } = useUsage();
+
+  const chatBlocked =
+    !usage?.exempt && (quotaBlock !== null || (usage?.remaining.chatMessages ?? 1) === 0);
+  const chatWarning =
+    !usage?.exempt &&
+    !chatBlocked &&
+    usage != null &&
+    usage.remaining.chatMessages > 0 &&
+    usage.remaining.chatMessages <= 3;
 
   const [headerTitle, setHeaderTitle] = useState<string>(() => title || "Чат");
 
@@ -78,6 +95,13 @@ export function ChatWindow({
 
     const normalized = normalizeMathMessageForModel(text);
     if (!normalized.trim()) return false;
+    if (normalized.length > MAX_CHAT_MESSAGE_CHARS) {
+      setPendingError(
+        `Сообщение слишком длинное (максимум ${MAX_CHAT_MESSAGE_CHARS} символов).`,
+      );
+      setPendingText(normalized);
+      return false;
+    }
 
     // Extra dedupe: ignore identical sends within a short window.
     // This covers rare cases like navigation pending-message auto-send racing with user submit.
@@ -105,11 +129,44 @@ export function ChatWindow({
 
     try {
       setPendingError(null);
+      streamAbortRef.current?.abort();
+      const ac = new AbortController();
+      streamAbortRef.current = ac;
+
       const res = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, message: normalized }),
+        signal: ac.signal,
       });
+
+      if (res.status === 503) {
+        const errJson = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        setMessages((prev) =>
+          prev.filter((m) => m.id !== userMsg.id && m.id !== assistantMsg.id),
+        );
+        const message =
+          typeof errJson?.error === "string" ? errJson.error : LLM_UNAVAILABLE_MESSAGE;
+        setQuotaBlock({ message });
+        setStreaming(false);
+        return false;
+      }
+
+      if (res.status === 429) {
+        const errJson = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        const quota = parseQuotaResponse(res, errJson);
+        setMessages((prev) =>
+          prev.filter((m) => m.id !== userMsg.id && m.id !== assistantMsg.id),
+        );
+        const message =
+          quota?.message ??
+          (typeof errJson?.message === "string" ? errJson.message : quotaExceededMessage("chat_message", 16));
+        setQuotaBlock({ message, resetsAt: quota?.resetsAt });
+        setStreaming(false);
+        void refreshUsage();
+        return false;
+      }
+
       if (!res.ok || !res.body) throw new Error("Не удалось начать стриминг");
 
       const reader = res.body.getReader();
@@ -155,6 +212,7 @@ export function ChatWindow({
             ),
           );
           setStreaming(false);
+          void refreshUsage();
         } else if (ev.type === "done") {
           if (rafId !== null) {
             cancelAnimationFrame(rafId);
@@ -179,6 +237,7 @@ export function ChatWindow({
               // ignore
             }
           })();
+          void refreshUsage();
           if (isDev) {
             const now = typeof performance !== "undefined" ? performance.now() : Date.now();
             console.debug("[chat] done ms:", Math.round(now - t0), {
@@ -197,6 +256,10 @@ export function ChatWindow({
       setStreaming(false);
       return !hadStreamError;
     } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") {
+        setStreaming(false);
+        return false;
+      }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantMsg.id
@@ -208,8 +271,16 @@ export function ChatWindow({
       return false;
     } finally {
       sendInFlightRef.current = false;
+      if (streamAbortRef.current?.signal.aborted) {
+        streamAbortRef.current = null;
+      }
     }
-  }, [router, sessionId]);
+  }, [refreshUsage, sessionId]);
+
+  const stopStreaming = useCallback(() => {
+    streamAbortRef.current?.abort();
+    setStreaming(false);
+  }, []);
 
   useEffect(() => {
     if (pendingConsumedRef.current) return;
@@ -281,7 +352,29 @@ export function ChatWindow({
               </button>
             </div>
           ) : null}
-          <ChatInput onSend={send} disabled={streaming} />
+          {chatBlocked ? (
+            <QuotaExceededBanner
+              message={
+                quotaBlock?.message ??
+                quotaExceededMessage("chat_message", usage?.limits.chatMessages ?? 16)
+              }
+              resetsAt={quotaBlock?.resetsAt ?? usage?.resetsAt}
+            />
+          ) : (
+            <>
+              {chatWarning && usage ? (
+                <p className="mb-2 text-sm text-amber-600 dark:text-amber-400">
+                  {quotaWarningMessage("chat_message", usage.remaining.chatMessages)}
+                </p>
+              ) : null}
+              <ChatInput
+                onSend={send}
+                onStop={stopStreaming}
+                streaming={streaming}
+                disabled={chatBlocked}
+              />
+            </>
+          )}
           <p className="mt-2 px-1 text-center text-xs leading-snug text-zinc-500 dark:text-zinc-400">
             Мишка знает — это искусственный интеллект, и он может ошибаться. Пожалуйста,
             перепроверяйте ответы.

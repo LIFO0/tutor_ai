@@ -43,8 +43,41 @@ export type ParsedTaskCheck = {
   feedback: string | null;
 };
 
+/** Убирает markdown-ограждение ```json ... ``` вокруг ответа модели. */
+export function stripMarkdownJsonFence(text: string): string {
+  let s = text.trim();
+  const fullFence = s.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/i);
+  if (fullFence) return fullFence[1]!.trim();
+  if (s.startsWith("```")) {
+    s = s.replace(/^```(?:json)?\s*\n?/i, "");
+    s = s.replace(/\n?```\s*$/i, "");
+  }
+  return s.trim();
+}
+
+const CORRECT_RE = /"correct"\s*:\s*(true|false)/i;
+const FEEDBACK_RE = /"feedback"\s*:\s*"((?:\\.|[^"\\])*)(?:"|$)/;
+
+/** Мягкое извлечение полей, если JSON.parse не сработал (обрезанный ответ и т.п.). */
+export function extractPartialTaskCheck(text: string): ParsedTaskCheck {
+  const correctMatch = text.match(CORRECT_RE);
+  const correct = correctMatch
+    ? correctMatch[1]!.toLowerCase() === "true"
+    : null;
+  const feedbackMatch = text.match(FEEDBACK_RE);
+  let feedback: string | null = null;
+  if (feedbackMatch?.[1] != null) {
+    try {
+      feedback = JSON.parse(`"${feedbackMatch[1]}"`) as string;
+    } catch {
+      feedback = feedbackMatch[1]!.replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+    }
+  }
+  return { correct, feedback };
+}
+
 export function parseTaskCheckModelOutput(modelRaw: string): ParsedTaskCheck {
-  const trimmed = modelRaw.trim();
+  const trimmed = stripMarkdownJsonFence(modelRaw);
   const candidates: string[] = [];
   if (trimmed.startsWith("{")) candidates.push(trimmed);
   const extracted = extractBalancedJsonObject(trimmed);
@@ -67,11 +100,63 @@ export function parseTaskCheckModelOutput(modelRaw: string): ParsedTaskCheck {
       continue;
     }
   }
-  return { correct: null, feedback: null };
+  return extractPartialTaskCheck(trimmed);
+}
+
+function looksLikeTaskCheckJson(text: string): boolean {
+  const t = text.trim();
+  return t.startsWith("{") && /"feedback"\s*:/.test(t);
+}
+
+export const TASK_CHECK_PARSE_FALLBACK =
+  "Не удалось сформировать разбор. Попробуйте проверить ещё раз.";
+
+export type ResolvedTaskCheck = {
+  correct: boolean | null;
+  feedbackText: string;
+  parseOk: boolean;
+};
+
+/** Превращает сырой ответ модели в безопасный для UI текст и флаг correct. */
+export function resolveTaskCheckResult(modelRaw: string): ResolvedTaskCheck {
+  const stripped = stripMarkdownJsonFence(modelRaw);
+  const parsed = parseTaskCheckModelOutput(stripped);
+
+  if (parsed.feedback?.trim()) {
+    return {
+      correct: parsed.correct,
+      feedbackText: parsed.feedback.trim(),
+      parseOk: true,
+    };
+  }
+
+  if (looksLikeTaskCheckJson(stripped)) {
+    return {
+      correct: parsed.correct,
+      feedbackText: TASK_CHECK_PARSE_FALLBACK,
+      parseOk: false,
+    };
+  }
+
+  const plain = stripped.trim();
+  if (plain.length > 0) {
+    return {
+      correct: parsed.correct,
+      feedbackText: plain,
+      parseOk: parsed.correct !== null,
+    };
+  }
+
+  return {
+    correct: parsed.correct,
+    feedbackText: TASK_CHECK_PARSE_FALLBACK,
+    parseOk: false,
+  };
 }
 
 /** Если в БД/UI попал целиком JSON проверки — показываем только текст feedback. */
 export function normalizeStoredTaskFeedback(text: string): string {
-  const { feedback } = parseTaskCheckModelOutput(text);
-  return feedback?.trim() ? feedback.trim() : text;
+  if (!text.trim()) return text;
+  const { feedbackText } = resolveTaskCheckResult(text);
+  return feedbackText;
 }

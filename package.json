@@ -27,6 +27,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "migrate:normalize-messages": "tsx scripts/migrate-normalize-messages.ts",
+    "migrate:normalize-task-feedback": "tsx scripts/migrate-normalize-task-feedback.ts",
     "predb:push": "npm run doctor:native",
     "db:push": "drizzle-kit push",
     "predb:studio": "npm run doctor:native",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ListBox, Select } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
@@ -35,6 +35,12 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
   const [grade, setGrade] = useState(initialUser.grade);
   const [avatar, setAvatar] = useState(initialUser.avatar);
   const [chatName, setChatName] = useState(initialUser.chatName?.trim() ?? "");
+
+  useEffect(() => {
+    if (!ok) return;
+    const id = window.setTimeout(() => setOk(null), 4000);
+    return () => clearTimeout(id);
+  }, [ok]);
 
   const changed = useMemo(() => {
     if (!baseline) return false;
@@ -83,7 +89,7 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
             }
           : b,
       );
-      setOk("Сохранено. Класс и обращение в чате применятся к новым ответам.");
+      setOk("Сохранено");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");

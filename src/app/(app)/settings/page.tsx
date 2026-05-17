@@ -17,10 +17,7 @@ export default async function SettingsPage() {
           </h1>
         </div>
         <div className="w-full">
-          <SettingsForm
-            key={[user.name, user.grade, user.avatar, user.chatName ?? ""].join("|")}
-            initialUser={user}
-          />
+          <SettingsForm key={user.id} initialUser={user} />
         </div>
       </div>
     </div>

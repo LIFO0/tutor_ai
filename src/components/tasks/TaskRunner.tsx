@@ -146,7 +146,7 @@ export function TaskRunner({
             {result.correct ? "✅ Верно!" : "❌ Неверно"}
           </CardHeader>
           <CardContent>
-            <MessageBubble role="assistant" content={normalizeStoredTaskFeedback(result.aiFeedback)} />
+            <MessageBubble role="assistant" content={result.aiFeedback} />
           </CardContent>
         </Card>
       ) : null}

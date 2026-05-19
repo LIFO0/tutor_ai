@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import type { Subject } from "@/lib/subjects";
 import { CHAT_SUBJECTS } from "@/lib/subjects";
+import { formatRelativeTimeRu, parseSqliteUtcDate } from "@/lib/sqlite-datetime";
 import { ConfirmDeleteChatModal } from "./ConfirmDeleteChatModal";
 
 type ChatSessionRow = {
@@ -20,23 +21,16 @@ function subjectLabel(subject: string) {
   return found?.title ?? subject;
 }
 
-function parseSqliteDate(value: string | null | undefined) {
-  if (!value) return null;
-  const isoLike = value.includes("T") ? value : value.replace(" ", "T");
-  const withZone = /z$/i.test(isoLike) ? isoLike : `${isoLike}Z`;
-  const d = new Date(withZone);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
+function sessionCreatedLabel(createdAt: string, lastMessageAt: string | null): string {
+  const created = parseSqliteUtcDate(createdAt);
+  if (!created) return "—";
 
-function relativeTime(from: Date, to = new Date()) {
-  const diffMs = Math.max(0, to.getTime() - from.getTime());
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return "только что";
-  if (minutes < 60) return `${minutes} мин назад`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ч назад`;
-  const days = Math.floor(hours / 24);
-  return `${days} дн назад`;
+  const createdText = `Создан ${formatRelativeTimeRu(created)}`;
+
+  const last = parseSqliteUtcDate(lastMessageAt);
+  if (!last || last.getTime() <= created.getTime() + 60_000) return createdText;
+
+  return `${createdText} · активен ${formatRelativeTimeRu(last)}`;
 }
 
 export function ChatSessionsSidebar({
@@ -179,8 +173,7 @@ export function ChatSessionsSidebar({
                   ? s.id === activeSessionId
                   : pathname === `/chat/${s.id}`;
 
-              const last = parseSqliteDate(s.lastMessageAt) ?? parseSqliteDate(s.createdAt);
-              const lastText = last ? relativeTime(last) : "—";
+              const metaText = sessionCreatedLabel(s.createdAt, s.lastMessageAt);
               const subj = subjectLabel(String(s.subject));
 
               return (
@@ -210,7 +203,7 @@ export function ChatSessionsSidebar({
                     <div className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
                       {subj}
                       <span className="text-zinc-300 dark:text-zinc-600"> · </span>
-                      {lastText}
+                      {metaText}
                     </div>
                   </button>
                   <button

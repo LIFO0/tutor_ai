@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, max, sql } from "drizzle-orm";
 import { isValidChatSubject, normalizeChatSubject, type Subject } from "@/lib/subjects";
 import { getDb, schema } from "@/lib/db";
+import { utcNowIso } from "@/lib/sqlite-datetime";
 import { completeYandexText } from "@/lib/yandex-gpt";
 
 const AUTO_TITLE_INITIAL_WINDOW_MESSAGES = 8;
@@ -83,23 +84,28 @@ function heuristicSubjectFromMessages(messages: { role: string; content: string 
 
 export async function listChatSessions(userId: number) {
   const db = getDb();
-  // Avoid JOIN + GROUP BY over potentially large `messages` table.
-  // Use an indexed correlated subquery instead.
+
+  const lastMsgSubq = db
+    .select({
+      sessionId: schema.messages.sessionId,
+      lastMessageAt: max(schema.messages.createdAt).as("last_message_at"),
+    })
+    .from(schema.messages)
+    .groupBy(schema.messages.sessionId)
+    .as("last_msg");
+
   return await db
     .select({
       id: schema.chatSessions.id,
       subject: schema.chatSessions.subject,
       title: schema.chatSessions.title,
       createdAt: schema.chatSessions.createdAt,
-      lastMessageAt: sql<string | null>`(
-        select max(m.created_at)
-        from messages as m
-        where m.session_id = ${schema.chatSessions.id}
-      )`,
+      lastMessageAt: lastMsgSubq.lastMessageAt,
     })
     .from(schema.chatSessions)
+    .leftJoin(lastMsgSubq, eq(schema.chatSessions.id, lastMsgSubq.sessionId))
     .where(eq(schema.chatSessions.userId, userId))
-    .orderBy(desc(schema.chatSessions.id))
+    .orderBy(desc(sql`coalesce(${lastMsgSubq.lastMessageAt}, ${schema.chatSessions.createdAt})`))
     .limit(50);
 }
 
@@ -111,7 +117,12 @@ export async function createChatSession(params: {
   const db = getDb();
   const rows = await db
     .insert(schema.chatSessions)
-    .values({ userId: params.userId, subject: params.subject, title: params.title })
+    .values({
+      userId: params.userId,
+      subject: params.subject,
+      title: params.title,
+      createdAt: utcNowIso(),
+    })
     .returning({ id: schema.chatSessions.id });
   return rows[0]?.id as number | undefined;
 }
@@ -184,7 +195,12 @@ export async function addMessage(params: {
   const db = getDb();
   const rows = await db
     .insert(schema.messages)
-    .values({ sessionId: params.sessionId, role: params.role, content: params.content })
+    .values({
+      sessionId: params.sessionId,
+      role: params.role,
+      content: params.content,
+      createdAt: utcNowIso(),
+    })
     .returning({ id: schema.messages.id });
   return rows[0]?.id as number | undefined;
 }

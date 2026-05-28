@@ -38,6 +38,9 @@ yarn-error.log*
 .env*
 !.env*.example
 
+# user uploads (created at runtime)
+/public/uploads/avatars/
+
 # sqlite
 database.db
 database.db-*

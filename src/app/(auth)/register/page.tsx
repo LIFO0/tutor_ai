@@ -32,7 +32,7 @@ export default function RegisterPage() {
     return (
       name.trim() &&
       email.trim() &&
-      password.length >= 6 &&
+      password.length >= 8 &&
       acceptedPrivacy
     );
   }, [name, email, password, acceptedPrivacy]);
@@ -159,7 +159,7 @@ export default function RegisterPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             type={showPassword ? "text" : "password"}
                             autoComplete="new-password"
-                            placeholder="Минимум 6 символов"
+                            placeholder="Минимум 8 символов"
                             className="w-full rounded-2xl bg-transparent p-4 pr-12 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
                           />
                           <button

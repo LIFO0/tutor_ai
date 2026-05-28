@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import fs from "node:fs/promises";
 import sharp from "sharp";
+import { NextResponse } from "next/server";
+import { uploadedAvatarPathFromUrl } from "@/lib/avatar-validation";
 import { jsonError } from "@/lib/api/auth";
 import { getCurrentUser } from "@/lib/current-user";
+import { getDb, schema } from "@/lib/db";
 
 const MAX_BYTES = 2 * 1024 * 1024; // 2MB
 
@@ -23,21 +27,28 @@ export async function POST(req: Request) {
 
   const buf = Buffer.from(await file.arrayBuffer());
 
-  // Store in public/ so it can be served statically.
   const outDir = path.join(process.cwd(), "public", "uploads", "avatars");
   await fs.mkdir(outDir, { recursive: true });
-  const filename = `user-${user.id}.png`;
+
+  const previousPath = uploadedAvatarPathFromUrl(user.avatar);
+  if (previousPath) {
+    const previousFile = path.join(process.cwd(), "public", previousPath.slice(1));
+    await fs.unlink(previousFile).catch(() => undefined);
+  }
+
+  const filename = `${randomUUID()}.png`;
   const outPath = path.join(outDir, filename);
 
-  // Normalize to a square PNG; UI clips to circle.
   const png = await sharp(buf)
     .resize(256, 256, { fit: "cover" })
     .png()
     .toBuffer();
   await fs.writeFile(outPath, png);
 
-  // Bust browser cache when user re-uploads.
   const url = `/uploads/avatars/${filename}?v=${Date.now()}`;
+
+  const db = getDb();
+  await db.update(schema.users).set({ avatar: url }).where(eq(schema.users.id, user.id));
+
   return NextResponse.json({ ok: true, avatar: url });
 }
-

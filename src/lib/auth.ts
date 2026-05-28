@@ -12,8 +12,8 @@ export type AuthTokenPayload = {
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
-  if (!secret || secret.length < 16) {
-    throw new Error("JWT_SECRET is missing or too short (min ~16 chars).");
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET is missing or too short (min 32 chars).");
   }
   return new TextEncoder().encode(secret);
 }

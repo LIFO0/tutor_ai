@@ -52,7 +52,8 @@ export default function Testimonials() {
   const [viewportWidth, setViewportWidth] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const visibleCount = useVisibleCount();
-  const maxIndex = testimonials.length - visibleCount;
+  const maxIndex = Math.max(0, testimonials.length - visibleCount);
+  const displayIndex = Math.min(index, maxIndex);
 
   useEffect(() => {
     const node = viewportRef.current;
@@ -71,12 +72,11 @@ export default function Testimonials() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    setIndex((prev) => Math.min(prev, maxIndex));
-  }, [maxIndex]);
-
   const handleNext = useCallback(() => {
-    setIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    setIndex((prev) => {
+      const current = Math.min(prev, maxIndex);
+      return current >= maxIndex ? 0 : current + 1;
+    });
   }, [maxIndex]);
 
   const slideWidth =
@@ -87,7 +87,7 @@ export default function Testimonials() {
       : 0;
 
   const trackTransform =
-    slideWidth > 0 ? `translateX(-${index * (slideWidth + GAP_PX)}px)` : undefined;
+    slideWidth > 0 ? `translateX(-${displayIndex * (slideWidth + GAP_PX)}px)` : undefined;
 
   return (
     <section className="bg-[#2c1810] py-20 lg:py-32">

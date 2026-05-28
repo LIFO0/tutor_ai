@@ -71,7 +71,10 @@ function normalizeAvatar(avatar: string): AvatarId {
 }
 
 function isImageAvatar(avatar: string) {
-  return avatar.startsWith("/uploads/avatars/") || avatar.startsWith("http://") || avatar.startsWith("https://");
+  return (
+    avatar.startsWith("/uploads/avatars/") ||
+    avatar.startsWith("https://avatars.yandex.net/")
+  );
 }
 
 export function UserAvatar({

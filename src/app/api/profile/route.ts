@@ -4,6 +4,7 @@ import { jsonError } from "@/lib/api/auth";
 import { getCurrentUser } from "@/lib/current-user";
 import { getDb, schema } from "@/lib/db";
 import { signAuthToken, setAuthCookie } from "@/lib/auth";
+import { isValidAvatar } from "@/lib/avatar-validation";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -44,15 +45,7 @@ export async function PUT(req: Request) {
   }
   if (avatar !== undefined) {
     if (!avatar) return jsonError("Аватар не может быть пустым.", 400);
-    // Allow built-in avatars (bear1..bear4) and uploaded avatars under /uploads/avatars/.
-    if (
-      !/^bear[1-4]$/.test(avatar) &&
-      !/^\/uploads\/avatars\/user-\d+\.png(\?v=\d+)?$/.test(avatar) &&
-      !/^https:\/\/avatars\.yandex\.net\/get-yapic\/.+\/islands-(small|34|middle|50|retina-small|68|75|retina-middle|retina-50|200)$/.test(
-        avatar,
-      ) &&
-      !/^https:\/\/.+/.test(avatar)
-    ) {
+    if (!isValidAvatar(avatar)) {
       return jsonError("Некорректный аватар.", 400);
     }
     patch.avatar = avatar;

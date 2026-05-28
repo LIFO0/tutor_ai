@@ -36,7 +36,9 @@
 
 ## Переменные окружения
 
-Файл `.env.local` не коммитится. Полный перечень и комментарии — в [`.env.local.example`](./.env.local.example): ключи YandexGPT, `JWT_SECRET`, OAuth Яндекса, опционально `DATABASE_PATH`.
+Файл `.env.local` не коммитится. Полный перечень и комментарии — в [`.env.local.example`](./.env.local.example): ключи YandexGPT, `JWT_SECRET`, `NEXT_PUBLIC_APP_URL`, OAuth Яндекса, опционально `DATABASE_PATH`.
+
+При компрометации ключей см. [SECURITY.md](./SECURITY.md) (ротация секретов, проверка git).
 
 ---
 

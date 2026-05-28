@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { signAuthToken, setAuthCookie } from "@/lib/auth";
 import { jsonError } from "@/lib/api/auth";
 import { getDb, schema } from "@/lib/db";
+import { isValidAvatar } from "@/lib/avatar-validation";
 import { hashPassword } from "@/lib/password";
 import { checkIpRateLimit } from "@/lib/rate-limit-ip";
 
@@ -38,11 +39,15 @@ export async function POST(req: Request) {
   const email = body?.email?.trim().toLowerCase();
   const password = body?.password ?? "";
   const grade = Number(body?.grade);
-  const avatar = body?.avatar?.trim() || "bear1";
+  const avatarRaw = body?.avatar?.trim() || "bear1";
+  const avatar = isValidAvatar(avatarRaw) ? avatarRaw : "bear1";
 
   if (!name || !email || !password) return jsonError("Заполните все поля.", 400);
   if (!email.includes("@")) return jsonError("Некорректный email.", 400);
-  if (password.length < 6) return jsonError("Пароль слишком короткий.", 400);
+  if (password.length < 8) {
+    return jsonError("Пароль слишком короткий (минимум 8 символов).", 400);
+  }
+  if (password.length > 128) return jsonError("Пароль слишком длинный.", 400);
   if (!Number.isInteger(grade) || grade < 5 || grade > 11) {
     return jsonError("Класс должен быть от 5 до 11.", 400);
   }

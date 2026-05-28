@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/auth";
 import { signAuthToken, setAuthCookie } from "@/lib/auth";
+import { buildAppUrl } from "@/lib/app-url";
 import { getDb, schema } from "@/lib/db";
 
 const OAUTH_STATE_COOKIE = "yandex_oauth_state";
@@ -55,15 +56,6 @@ function buildAvatarUrl(info: YandexUserInfo) {
   if (!id) return null;
   if (info.is_avatar_empty === true) return null;
   return `https://avatars.yandex.net/get-yapic/${encodeURIComponent(id)}/islands-200`;
-}
-
-function getPublicOrigin(req: Request) {
-  const proto = req.headers.get("x-forwarded-proto") || "http";
-  const host =
-    req.headers.get("x-forwarded-host") ||
-    req.headers.get("host") ||
-    "localhost:3000";
-  return `${proto}://${host}`;
 }
 
 export async function GET(req: Request) {
@@ -183,8 +175,10 @@ export async function GET(req: Request) {
   const token = await signAuthToken({ userId, grade });
   await setAuthCookie(token);
 
-  const redirectTo = new URL("/dashboard", getPublicOrigin(req));
-  if (created) redirectTo.searchParams.set("onboarding", "grade");
+  const redirectTo = buildAppUrl(
+    "/dashboard",
+    created ? "onboarding=grade" : "",
+  );
   return NextResponse.redirect(redirectTo);
 }
 

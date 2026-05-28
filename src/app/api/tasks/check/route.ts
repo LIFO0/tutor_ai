@@ -57,6 +57,9 @@ export async function POST(req: Request) {
   const userAnswer = body?.userAnswer?.trim() ?? "";
   if (!Number.isInteger(taskId)) return jsonError("Invalid taskId", 400);
   if (!userAnswer) return jsonError("Введите ответ.", 400);
+  if (userAnswer.length > 500) {
+    return jsonError("Ответ слишком длинный (макс. 500 символов).", 400);
+  }
 
   const task = await getTask(user.id, taskId);
   if (!task) return jsonError("Not found", 404);

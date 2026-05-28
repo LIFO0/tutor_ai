@@ -186,7 +186,7 @@ export function HelpContent() {
           <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
             <li>
               <strong className="text-foreground">Email и пароль</strong> — на странице регистрации
-              укажите имя, email, пароль (не менее 6 символов), класс и аватар. Отметьте согласие с
+              укажите имя, email, пароль (не менее 8 символов), класс и аватар. Отметьте согласие с
               политикой конфиденциальности.
             </li>
             <li>

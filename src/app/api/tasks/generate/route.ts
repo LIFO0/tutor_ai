@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     return jsonError("Invalid subject", 400);
   }
   if (!topic) return jsonError("Введите тему.", 400);
+  if (topic.length > 200) return jsonError("Тема слишком длинная (макс. 200 символов).", 400);
 
   const llmGuard = assertYandexLlmConfigured();
   if (llmGuard) return llmGuard;

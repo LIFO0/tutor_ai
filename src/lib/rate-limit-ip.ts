@@ -3,15 +3,32 @@ import "server-only";
 /** In-memory sliding window; подходит для одного Node-процесса (типичный VPS). */
 const hits = new Map<string, number[]>();
 
+const MAX_RATE_LIMIT_WINDOW_MS = 60 * 60_000;
+const CLEANUP_INTERVAL_MS = 5 * 60_000;
+
 function clientIp(req: Request): string {
+  const cfIp = req.headers.get("cf-connecting-ip")?.trim();
+  if (cfIp) return cfIp;
+
   const forwarded = req.headers.get("x-forwarded-for");
-  const fromForwarded = forwarded?.split(",")[0]?.trim();
-  return (
-    fromForwarded ||
-    req.headers.get("x-real-ip")?.trim() ||
-    req.headers.get("cf-connecting-ip")?.trim() ||
-    "unknown"
-  );
+  if (forwarded) {
+    const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    const last = ips[ips.length - 1];
+    if (last) return last;
+  }
+
+  return req.headers.get("x-real-ip")?.trim() ?? "unknown";
+}
+
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, arr] of hits) {
+      if (arr.every((t) => now - t > MAX_RATE_LIMIT_WINDOW_MS)) {
+        hits.delete(key);
+      }
+    }
+  }, CLEANUP_INTERVAL_MS).unref();
 }
 
 export function checkIpRateLimit(

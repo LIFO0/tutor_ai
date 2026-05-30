@@ -74,6 +74,12 @@ export function SidebarPanel({
     return () => window.removeEventListener("focus", onFocus);
   }, [loadRecents]);
 
+  useEffect(() => {
+    const onSessionUpdated = () => void loadRecents();
+    window.addEventListener("chat-session-updated", onSessionUpdated);
+    return () => window.removeEventListener("chat-session-updated", onSessionUpdated);
+  }, [loadRecents]);
+
   function go(href: string) {
     onNavigate?.();
     router.push(href);

@@ -140,9 +140,42 @@ export async function POST(req: Request) {
             ),
           );
         }
+
         controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));
+
+        if (full.trim()) {
+          await addMessage({ sessionId, role: "assistant", content: full });
+        }
+
+        let newTitle: string | null = null;
+        try {
+          newTitle = await maybeUpdateChatTitleInitialWindow({ userId: user.id, sessionId });
+        } catch {
+          // ignore
+        }
+        try {
+          await maybeUpdateChatSubjectInitialWindow({ userId: user.id, sessionId });
+        } catch {
+          // ignore
+        }
+
+        if (newTitle) {
+          controller.enqueue(
+            encoder.encode(
+              `event: session\ndata: ${JSON.stringify({ title: newTitle })}\n\n`,
+            ),
+          );
+        }
+
         controller.close();
       } catch (e) {
+        if (full.trim()) {
+          try {
+            await addMessage({ sessionId, role: "assistant", content: full });
+          } catch {
+            // ignore
+          }
+        }
         controller.enqueue(
           encoder.encode(
             `event: error\ndata: ${JSON.stringify({
@@ -151,23 +184,6 @@ export async function POST(req: Request) {
           ),
         );
         controller.close();
-      } finally {
-        if (full.trim()) {
-          await addMessage({ sessionId, role: "assistant", content: full });
-        }
-        // Auto-title in the initial window, based on the dialog context.
-        // Best-effort: ignore failures so chat streaming never breaks.
-        try {
-          await maybeUpdateChatTitleInitialWindow({ userId: user.id, sessionId });
-        } catch {
-          // ignore
-        }
-        // Auto-subject in the initial window (free -> math/russian/physics).
-        try {
-          await maybeUpdateChatSubjectInitialWindow({ userId: user.id, sessionId });
-        } catch {
-          // ignore
-        }
       }
     },
   });
@@ -177,6 +193,7 @@ export async function POST(req: Request) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
     },
   });
 }

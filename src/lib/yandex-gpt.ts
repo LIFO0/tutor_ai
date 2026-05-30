@@ -29,12 +29,11 @@ const API_URL =
   "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
 
 async function* fakeStream(text: string) {
-  // This is a server-side fallback "stream": keep it fast to avoid UX where
-  // the UI looks frozen for long answers.
+  // Fallback stream: yield event loop between chunks so SSE flushes progressively.
   const chunkSize = 80;
   for (let i = 0; i < text.length; i += chunkSize) {
     yield text.slice(i, i + chunkSize);
-    // No artificial delay: the real latency is the model generation time.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
 }
 

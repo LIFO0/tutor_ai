@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { createSseParser } from "./sse";
@@ -39,6 +40,7 @@ export function ChatWindow({
     null,
   );
 
+  const router = useRouter();
   const { usage, refresh: refreshUsage } = useUsage();
 
   const chatBlocked =
@@ -197,6 +199,18 @@ export function ChatWindow({
           }
         } else if (ev.type === "event" && ev.event === "metrics") {
           if (isDev) console.debug("[chat] server metrics:", ev.data);
+        } else if (ev.type === "event" && ev.event === "session") {
+          const newTitle = (ev.data as { title?: string } | null)?.title;
+          if (typeof newTitle === "string" && newTitle.trim()) {
+            const trimmed = newTitle.trim();
+            setHeaderTitle(trimmed);
+            router.refresh();
+            window.dispatchEvent(
+              new CustomEvent("chat-session-updated", {
+                detail: { sessionId, title: trimmed },
+              }),
+            );
+          }
         } else if (ev.type === "error") {
           hadStreamError = true;
           if (rafId !== null) {
@@ -275,7 +289,7 @@ export function ChatWindow({
         streamAbortRef.current = null;
       }
     }
-  }, [refreshUsage, sessionId]);
+  }, [refreshUsage, router, sessionId]);
 
   const stopStreaming = useCallback(() => {
     streamAbortRef.current?.abort();

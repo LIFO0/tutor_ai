@@ -230,14 +230,14 @@ export async function countMessagesForSession(sessionId: number) {
 export async function maybeUpdateChatTitleInitialWindow(params: {
   userId: number;
   sessionId: number;
-}) {
+}): Promise<string | null> {
   const db = getDb();
   const session = await getChatSession(params.userId, params.sessionId);
-  if (!session) return;
+  if (!session) return null;
 
   const messagesCount = await countMessagesForSession(params.sessionId);
-  if (messagesCount > AUTO_TITLE_INITIAL_WINDOW_MESSAGES) return;
-  if (!isBadAutoTitle(session.title)) return;
+  if (messagesCount > AUTO_TITLE_INITIAL_WINDOW_MESSAGES) return null;
+  if (!isBadAutoTitle(session.title)) return null;
 
   const ctx = await listRecentMessagesForSession({
     userId: params.userId,
@@ -271,13 +271,15 @@ export async function maybeUpdateChatTitleInitialWindow(params: {
     nextTitle = heuristicTitleFromMessages(history);
   }
 
-  if (!nextTitle || isBadAutoTitle(nextTitle)) return;
-  if (session.title?.trim() === nextTitle) return;
+  if (!nextTitle || isBadAutoTitle(nextTitle)) return null;
+  if (session.title?.trim() === nextTitle) return null;
 
   await db
     .update(schema.chatSessions)
     .set({ title: nextTitle })
     .where(and(eq(schema.chatSessions.id, params.sessionId), eq(schema.chatSessions.userId, params.userId)));
+
+  return nextTitle;
 }
 
 export async function updateChatSubject(sessionId: number, subject: Subject) {

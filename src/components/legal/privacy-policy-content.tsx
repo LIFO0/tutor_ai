@@ -9,7 +9,7 @@ export function PrivacyPolicyContent() {
     <article className="mx-auto w-full max-w-3xl">
       <header className="pt-4">
         <p className="text-sm text-muted-foreground">
-          Редакция от 16 мая 2026 г. · Версия 1.1
+          Редакция от 31 мая 2026 г. · Версия 1.3
         </p>
         <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Политика конфиденциальности
@@ -159,6 +159,10 @@ export function PrivacyPolicyContent() {
             обеспечение технической работоспособности, безопасности и стабильности Сервиса,
             в том числе равномерного доступа к функциям ИИ‑репетитора;
           </li>
+          <li>
+            веб‑аналитика — анализ посещаемости, поведения пользователей и улучшение
+            функциональности Сервиса;
+          </li>
           <li>рассмотрение обращений Пользователей по вопросам персональных данных.</li>
         </ul>
       </section>
@@ -258,9 +262,64 @@ export function PrivacyPolicyContent() {
             </ul>
           </li>
           <li>
-            Сервис не использует cookie для таргетированной рекламы, веб‑аналитики
-            (Google Analytics, Яндекс.Метрика и аналоги) и не применяет технологию
-            localStorage для хранения персональных данных.
+            <strong className="text-foreground">Яндекс.Метрика.</strong> Сервис использует
+            счётчик Яндекс.Метрики для анализа посещаемости и поведения пользователей.
+            Обрабатываются сведения о просмотрах страниц, кликах, переходах по ссылкам,
+            записях сессий (Вебвизор), источниках трафика. Для указанных целей в браузере
+            Пользователя могут устанавливаться cookie‑файлы доменов{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">
+              mc.yandex.ru
+            </code>{" "}
+            и{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">
+              yandex.ru
+            </code>
+            . Данные обрабатываются ООО «Яндекс» в соответствии с политикой
+            конфиденциальности Яндекса:{" "}
+            <a
+              href="https://yandex.ru/legal/confidential/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[color:var(--color-accent)] underline-offset-2 hover:underline"
+            >
+              https://yandex.ru/legal/confidential/
+            </a>
+            . Пользователь вправе ограничить сбор данных посредством настроек cookie в
+            браузере, расширений блокировки, а также с помощью инструмента отказа от
+            учёта Яндекс.Метрики:{" "}
+            <a
+              href="https://yandex.ru/support/metrica/general/opt-out.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[color:var(--color-accent)] underline-offset-2 hover:underline"
+            >
+              https://yandex.ru/support/metrica/general/opt-out.html
+            </a>
+            .
+          </li>
+          <li>
+            <strong className="text-foreground">
+              Яндекс.Вебмастер и Google Search Console.
+            </strong>{" "}
+            Сервис подтверждён в Яндекс.Вебмастере (meta‑тег верификации) и Google Search
+            Console. Указанные сервисы не получают персональные данные отдельных
+            Пользователей Сервиса; Оператору предоставляется агрегированная статистика на
+            уровне сайта (индексация страниц, поисковые запросы и аналогичные сведения).
+          </li>
+          <li>
+            Сервис не использует cookie для таргетированной рекламы и не применяет
+            технологию localStorage для хранения персональных данных.
+          </li>
+          <li>
+            В localStorage браузера сохраняется выбор Пользователя относительно
+            аналитических cookie (значения{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">all</code>{" "}
+            или{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">
+              essential
+            </code>
+            ). Указанное сведение не является персональным данным и не передаётся на сервер
+            Сервиса.
           </li>
           <li>
             В sessionStorage браузера могут временно сохраняться: черновик первого
@@ -346,6 +405,23 @@ export function PrivacyPolicyContent() {
               https://yandex.ru/legal/cloud_termsofuse/
             </a>
             .
+          </li>
+          <li>
+            <strong className="text-foreground">ООО «Яндекс» (Яндекс.Метрика).</strong>{" "}
+            Данные о посещаемости и поведении пользователей (в том числе обезличенный
+            IP‑адрес, события взаимодействия с интерфейсом, записи сессий Вебвизора)
+            передаются в сервис Яндекс.Метрики в соответствии с правилами обработки данных
+            Яндекса:{" "}
+            <a
+              href="https://yandex.ru/legal/confidential/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[color:var(--color-accent)] underline-offset-2 hover:underline"
+            >
+              https://yandex.ru/legal/confidential/
+            </a>
+            . Пользователь вправе отказаться от учёта в Яндекс.Метрике способами,
+            указанными в разделе 7 настоящей Политики.
           </li>
           <li>
             Иные третьи лица персональные данные Пользователей не получают, за исключением

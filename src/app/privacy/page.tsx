@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Footer from "@/components/landing/footer";
 import Header from "@/components/landing/header";
 import { PrivacyPolicyContent } from "@/components/legal/privacy-policy-content";
+import { SITE_ORIGIN } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Политика конфиденциальности | Мишка знает",
+  title: "Политика конфиденциальности",
   description:
     "Политика конфиденциальности сервиса «Мишка знает»: обработка персональных данных школьников, cookies, YandexGPT и права пользователей.",
+  alternates: { canonical: `${SITE_ORIGIN}/privacy` },
+  robots: { index: false, follow: true },
 };
 
 export default function PrivacyPage() {

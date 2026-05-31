@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Footer from "@/components/landing/footer";
 import Header from "@/components/landing/header";
 import { HelpContent } from "@/components/help/help-content";
+import { SITE_ORIGIN } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Помощь | Мишка знает",
+  title: "Помощь",
   description:
     "Инструкция по сервису «Мишка знает»: чат, задания, формулы, настройки и FAQ.",
+  alternates: { canonical: `${SITE_ORIGIN}/help` },
 };
 
 export default function HelpPage() {

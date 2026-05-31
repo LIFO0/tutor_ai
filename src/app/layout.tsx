@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
 import { Geologica, Geist, Geist_Mono, Manrope } from "next/font/google";
 import "katex/dist/katex.min.css";
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
+  OG_DESCRIPTION,
+  OG_TITLE,
+  SEO_KEYWORDS,
+  SITE_NAME,
+  SITE_ORIGIN,
+} from "@/lib/seo";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -25,9 +34,31 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Мишка знает",
-  description:
-    "Русскоязычный ИИ-репетитор для школьников 5–11 классов: чат, формулы, задания с проверкой.",
+  metadataBase: new URL(SITE_ORIGIN),
+  title: {
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  keywords: SEO_KEYWORDS,
+  robots: { index: true, follow: true },
+  alternates: { canonical: SITE_ORIGIN },
+  openGraph: {
+    title: OG_TITLE,
+    description: OG_DESCRIPTION,
+    url: SITE_ORIGIN,
+    siteName: SITE_NAME,
+    locale: "ru_RU",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: OG_TITLE,
+    description: OG_DESCRIPTION,
+  },
+  verification: {
+    yandex: "7b80a34f8bf1d1f8",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },

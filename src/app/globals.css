@@ -110,6 +110,32 @@ input[type="password"]::-ms-clear {
   font-size: 1.02em;
 }
 
+/* Chat/task message bubbles: contain wide formulas on narrow viewports */
+.message-bubble-prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.message-bubble-prose p > .katex,
+.message-bubble-prose li > .katex {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.message-bubble-prose pre {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+
+.message-bubble-prose--streaming .katex-error {
+  display: none;
+}
+
 /* MathLive: hide built-in menu + keyboard toggles */
 math-field::part(menu-toggle),
 math-field::part(virtual-keyboard-toggle) {

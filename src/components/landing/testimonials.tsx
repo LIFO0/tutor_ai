@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const GAP_PX = 24;
@@ -73,11 +73,21 @@ export default function Testimonials() {
   }, []);
 
   const handleNext = useCallback(() => {
+    setIndex((prev) => Math.min(Math.min(prev, maxIndex) + 1, maxIndex));
+  }, [maxIndex]);
+
+  const handlePrev = useCallback(() => {
     setIndex((prev) => {
       const current = Math.min(prev, maxIndex);
-      return current >= maxIndex ? 0 : current + 1;
+      return current >= maxIndex ? 0 : current - 1;
     });
   }, [maxIndex]);
+
+  const canGoNext = displayIndex < maxIndex;
+  const canGoPrev = displayIndex > 0;
+
+  const navButtonClass =
+    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-background/35 bg-background/20 text-background shadow-lg backdrop-blur-sm transition-colors hover:border-background/50 hover:bg-background/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c1810] disabled:pointer-events-none disabled:opacity-0";
 
   const slideWidth =
     viewportWidth > 0
@@ -110,53 +120,70 @@ export default function Testimonials() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="relative mx-auto max-w-4xl"
+          className="mx-auto max-w-4xl"
         >
-          <div
-            ref={viewportRef}
-            className="w-full overflow-hidden pr-12 md:pr-14"
-            role="region"
-            aria-label="Отзывы учеников"
-            aria-live="polite"
-          >
-            <div
-              className="flex gap-6 transition-transform duration-300 ease-out"
-              style={{ transform: trackTransform }}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={!canGoPrev}
+              className={navButtonClass}
+              aria-label={
+                displayIndex >= maxIndex
+                  ? "Вернуться к первому отзыву"
+                  : "Предыдущий отзыв"
+              }
             >
-              {testimonials.map((testimonial) => (
-                <article
-                  key={testimonial.name}
-                  className="min-w-0 shrink-0 grow-0 rounded-2xl bg-background p-8"
-                  style={slideWidth > 0 ? { width: slideWidth } : undefined}
-                >
-                  <p className="mb-6 text-pretty text-lg leading-relaxed text-foreground">
-                    &quot;{testimonial.text}&quot;
-                  </p>
+              <ChevronLeft className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+            </button>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                      <span className="text-lg font-semibold text-primary">
-                        {testimonial.avatar}
-                      </span>
+            <div
+              ref={viewportRef}
+              className="min-w-0 flex-1 overflow-hidden"
+              role="region"
+              aria-label="Отзывы учеников"
+              aria-live="polite"
+            >
+              <div
+                className="flex gap-6 transition-transform duration-300 ease-out"
+                style={{ transform: trackTransform }}
+              >
+                {testimonials.map((testimonial) => (
+                  <article
+                    key={testimonial.name}
+                    className="min-w-0 shrink-0 grow-0 rounded-2xl bg-background p-8"
+                    style={slideWidth > 0 ? { width: slideWidth } : undefined}
+                  >
+                    <p className="mb-6 text-pretty text-lg leading-relaxed text-foreground">
+                      &quot;{testimonial.text}&quot;
+                    </p>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                        <span className="text-lg font-semibold text-primary">
+                          {testimonial.avatar}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">{testimonial.name}</p>
+                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-foreground">{testimonial.name}</p>
-                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={handleNext}
-            className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-background/20 bg-background/10 text-background transition-colors hover:bg-background/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c1810]"
-            aria-label="Следующий отзыв"
-          >
-            <ChevronRight className="h-6 w-6" aria-hidden />
-          </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!canGoNext}
+              className={navButtonClass}
+              aria-label="Следующий отзыв"
+            >
+              <ChevronRight className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+            </button>
+          </div>
         </motion.div>
       </div>
     </section>

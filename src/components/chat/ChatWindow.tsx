@@ -15,6 +15,11 @@ import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
 
 export type UiMessage = { id: string; role: "user" | "assistant"; content: string };
 type StreamChunk = { t: string };
+type SendResult = "success" | "skipped" | "failed";
+type PendingDeliveryState = "idle" | "in_flight" | "done";
+
+const PENDING_SEND_ERROR =
+  "Не удалось отправить сообщение. Проверьте интернет и попробуйте ещё раз.";
 
 export function ChatWindow({
   sessionId,
@@ -31,9 +36,14 @@ export function ChatWindow({
   const [streaming, setStreaming] = useState(false);
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingConsumedRef = useRef(false);
+  const pendingDeliveryRef = useRef<PendingDeliveryState>("idle");
+  const sendRef = useRef<(text: string) => Promise<SendResult>>(async () => "skipped");
+  const messagesRef = useRef(messages);
   const sendInFlightRef = useRef(false);
   const streamAbortRef = useRef<AbortController | null>(null);
   const lastSendRef = useRef<{ text: string; at: number } | null>(null);
+
+  messagesRef.current = messages;
   const [pendingText, setPendingText] = useState<string | null>(null);
   const [pendingError, setPendingError] = useState<string | null>(null);
   const [quotaBlock, setQuotaBlock] = useState<{ message: string; resetsAt?: string } | null>(
@@ -86,30 +96,46 @@ export function ChatWindow({
     return last.content.length + (last.role === "assistant" ? 1 : 0);
   }, [messages]);
 
-  const send = useCallback(async (text: string): Promise<boolean> => {
+  const clearPendingStorage = useCallback(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
+    }
+    setPendingText(null);
+    setPendingError(null);
+    pendingDeliveryRef.current = "done";
+  }, []);
+
+  const isMessageDelivered = useCallback((text: string) => {
+    const normalized = normalizeMathMessageForModel(text);
+    return messagesRef.current.some(
+      (m) => m.role === "user" && m.content === normalized,
+    );
+  }, []);
+
+  const send = useCallback(async (text: string): Promise<SendResult> => {
     // Guard against accidental double-submits (e.g. Enter + button, or rapid re-entrancy
     // before `streaming` state propagates).
-    if (sendInFlightRef.current) return false;
+    if (sendInFlightRef.current) return "skipped";
 
     const isDev = process.env.NODE_ENV !== "production";
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     let firstUsefulTokenAt: number | null = null;
 
     const normalized = normalizeMathMessageForModel(text);
-    if (!normalized.trim()) return false;
+    if (!normalized.trim()) return "skipped";
     if (normalized.length > MAX_CHAT_MESSAGE_CHARS) {
       setPendingError(
         `Сообщение слишком длинное (максимум ${MAX_CHAT_MESSAGE_CHARS} символов).`,
       );
       setPendingText(normalized);
-      return false;
+      return "failed";
     }
 
     // Extra dedupe: ignore identical sends within a short window.
     // This covers rare cases like navigation pending-message auto-send racing with user submit.
     const now0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     const last = lastSendRef.current;
-    if (last && last.text === normalized && now0 - last.at < 1500) return false;
+    if (last && last.text === normalized && now0 - last.at < 1500) return "skipped";
     lastSendRef.current = { text: normalized, at: now0 };
 
     if (isDev && normalized.includes("\\placeholder")) {
@@ -151,7 +177,7 @@ export function ChatWindow({
           typeof errJson?.error === "string" ? errJson.error : LLM_UNAVAILABLE_MESSAGE;
         setQuotaBlock({ message });
         setStreaming(false);
-        return false;
+        return "failed";
       }
 
       if (res.status === 429) {
@@ -166,7 +192,7 @@ export function ChatWindow({
         setQuotaBlock({ message, resetsAt: quota?.resetsAt });
         setStreaming(false);
         void refreshUsage();
-        return false;
+        return "failed";
       }
 
       if (!res.ok || !res.body) throw new Error("Не удалось начать стриминг");
@@ -268,11 +294,11 @@ export function ChatWindow({
         parser.feed(decoder.decode(value, { stream: true }));
       }
       setStreaming(false);
-      return !hadStreamError;
+      return hadStreamError ? "failed" : "success";
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
         setStreaming(false);
-        return false;
+        return "skipped";
       }
       setMessages((prev) =>
         prev.map((m) =>
@@ -282,7 +308,7 @@ export function ChatWindow({
         ),
       );
       setStreaming(false);
-      return false;
+      return "failed";
     } finally {
       sendInFlightRef.current = false;
       if (streamAbortRef.current?.signal.aborted) {
@@ -290,6 +316,39 @@ export function ChatWindow({
       }
     }
   }, [refreshUsage, router, sessionId]);
+
+  sendRef.current = send;
+
+  const handleSend = useCallback(
+    (text: string) => {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
+      }
+      setPendingText(null);
+      setPendingError(null);
+      pendingDeliveryRef.current = "done";
+      void sendRef.current(text);
+    },
+    [],
+  );
+
+  const retryPendingSend = useCallback(async () => {
+    const t = pendingText?.trim() ?? "";
+    if (!t || streaming) return;
+    setPendingError(null);
+    pendingDeliveryRef.current = "in_flight";
+    const result = await sendRef.current(t);
+    if (result === "success" || isMessageDelivered(t)) {
+      clearPendingStorage();
+      return;
+    }
+    if (result === "failed") {
+      pendingDeliveryRef.current = "idle";
+      setPendingError(PENDING_SEND_ERROR);
+      return;
+    }
+    pendingDeliveryRef.current = "idle";
+  }, [clearPendingStorage, isMessageDelivered, pendingText, streaming]);
 
   const stopStreaming = useCallback(() => {
     streamAbortRef.current?.abort();
@@ -302,24 +361,46 @@ export function ChatWindow({
     const trimmed = raw?.trim() ?? "";
     if (!trimmed) return;
     pendingConsumedRef.current = true;
+    pendingDeliveryRef.current = "idle";
     setPendingText(trimmed);
-  }, [send]);
+  }, []);
 
   useEffect(() => {
     const t = pendingText?.trim() ?? "";
     if (!t) return;
     if (streaming) return;
     if (pendingError) return;
+    if (pendingDeliveryRef.current === "in_flight" || pendingDeliveryRef.current === "done") {
+      return;
+    }
+
+    pendingDeliveryRef.current = "in_flight";
+    let cancelled = false;
+
     void (async () => {
-      const ok = await send(t);
-      if (ok) {
-        sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
-        setPendingText(null);
-      } else {
-        setPendingError("Не удалось отправить сообщение. Проверьте интернет и попробуйте ещё раз.");
+      const result = await sendRef.current(t);
+
+      if (result === "success" || isMessageDelivered(t)) {
+        clearPendingStorage();
+        return;
       }
+      if (cancelled) return;
+
+      if (result === "failed") {
+        pendingDeliveryRef.current = "idle";
+        setPendingError(PENDING_SEND_ERROR);
+        return;
+      }
+      pendingDeliveryRef.current = "idle";
     })();
-  }, [pendingError, pendingText, send, streaming]);
+
+    return () => {
+      cancelled = true;
+      if (pendingDeliveryRef.current === "in_flight") {
+        pendingDeliveryRef.current = "idle";
+      }
+    };
+  }, [clearPendingStorage, isMessageDelivered, pendingError, pendingText, streaming]);
 
   useEffect(() => {
     const el = messagesScrollRef.current;
@@ -342,10 +423,17 @@ export function ChatWindow({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden">
         <div
           ref={messagesScrollRef}
-          className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-auto px-3 pt-1 pb-4"
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-3 pt-1 pb-4"
         >
           {messages.map((m) => (
-            <MessageBubble key={m.id} role={m.role} content={m.content} />
+            <MessageBubble
+              key={m.id}
+              role={m.role}
+              content={m.content}
+              isStreaming={
+                streaming && m.role === "assistant" && m.id === messages.at(-1)?.id
+              }
+            />
           ))}
         </div>
         <div className="shrink-0 bg-zinc-50/95 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur dark:bg-black/85">
@@ -357,10 +445,11 @@ export function ChatWindow({
               </div>
               <button
                 type="button"
+                disabled={streaming}
                 onClick={() => {
-                  setPendingError(null);
+                  void retryPendingSend();
                 }}
-                className="shrink-0 rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+                className="shrink-0 rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
               >
                 Повторить
               </button>
@@ -382,7 +471,7 @@ export function ChatWindow({
                 </p>
               ) : null}
               <ChatInput
-                onSend={send}
+                onSend={handleSend}
                 onStop={stopStreaming}
                 streaming={streaming}
                 disabled={chatBlocked}

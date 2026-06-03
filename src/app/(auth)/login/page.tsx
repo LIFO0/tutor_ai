@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SignInPage } from "@/components/ui/sign-in";
@@ -10,11 +10,8 @@ export default function LoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const canSubmit = useMemo(() => email.trim() && password.length > 0, [email, password]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,7 +19,6 @@ export default function LoginPage() {
     const nextEmail = String(formData.get("email") || "");
     const nextPassword = String(formData.get("password") || "");
     setEmail(nextEmail);
-    setPassword(nextPassword);
 
     if (!nextEmail.trim() || !nextPassword) return;
     setLoading(true);

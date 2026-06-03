@@ -4,13 +4,13 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
   readCookieConsent,
+  subscribeCookieConsent,
   writeCookieConsent,
   type CookieConsent,
 } from "@/lib/cookie-consent";
@@ -25,22 +25,23 @@ type CookieConsentContextValue = {
 const CookieConsentContext = createContext<CookieConsentContextValue | null>(null);
 
 export function CookieConsentProvider({ children }: { children: ReactNode }) {
-  const [consent, setConsent] = useState<CookieConsent | null>(null);
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    setConsent(readCookieConsent());
-    setIsReady(true);
-  }, []);
+  const consent = useSyncExternalStore(
+    subscribeCookieConsent,
+    readCookieConsent,
+    () => null,
+  );
+  const isReady = useSyncExternalStore(
+    subscribeCookieConsent,
+    () => true,
+    () => false,
+  );
 
   const acceptAll = useCallback(() => {
     writeCookieConsent("all");
-    setConsent("all");
   }, []);
 
   const acceptEssentialOnly = useCallback(() => {
     writeCookieConsent("essential");
-    setConsent("essential");
   }, []);
 
   const value = useMemo(

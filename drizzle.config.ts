@@ -1,4 +1,4 @@
-export default {
+const drizzleConfig = {
   schema: "./src/lib/db/schema.ts",
   out: "./src/lib/db/migrations",
   dialect: "sqlite",
@@ -7,3 +7,4 @@ export default {
   },
 };
 
+export default drizzleConfig;

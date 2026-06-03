@@ -333,7 +333,7 @@ export async function* streamYandexCompletion(params: {
       temperature: params.temperature,
       signal: params.signal,
     });
-  } catch (e) {
+  } catch {
     if (params.signal?.aborted) return;
     // Fallback: request full completion and stream it ourselves.
     const fullText = await fetchCompletionText({

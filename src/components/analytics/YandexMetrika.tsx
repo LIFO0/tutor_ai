@@ -58,6 +58,7 @@ ym(${id}, "init", {
       </Script>
       <noscript>
         <div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- Yandex Metrika 1×1 pixel in noscript */}
           <img
             src={`https://mc.yandex.ru/watch/${id}`}
             style={{ position: "absolute", left: "-9999px" }}

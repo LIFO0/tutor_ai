@@ -2,6 +2,7 @@
 
 import React, {
   forwardRef,
+  useCallback,
   useEffect,
   useId,
   useImperativeHandle,
@@ -277,14 +278,14 @@ export const MathRichInput = forwardRef<
 
   const hasContent = useMemo(() => value.trim().length > 0, [value]);
 
-  async function ensureMathlive() {
+  const ensureMathlive = useCallback(async () => {
     if (mathliveReady) return;
     // Load on demand only.
     await import("mathlive");
     // CSS is optional; but improves caret/layout inside MathLive.
     await import("mathlive/static.css");
     setMathliveReady(true);
-  }
+  }, [mathliveReady]);
 
   function openEditorForIndex(idx: number) {
     setEditingIdx(idx);
@@ -299,7 +300,7 @@ export const MathRichInput = forwardRef<
   useEffect(() => {
     if (!editorOpen) return;
     void ensureMathlive();
-  }, [editorOpen]);
+  }, [editorOpen, ensureMathlive]);
 
   useEffect(() => {
     if (!editorOpen || !mathliveReady) return;

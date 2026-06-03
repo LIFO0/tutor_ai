@@ -111,6 +111,7 @@ export function UserAvatar({
           .join(" ")}
         aria-hidden
       >
+        {/* eslint-disable-next-line @next/next/no-img-element -- dynamic user avatar URL */}
         <img src={avatar} alt="" className="h-full w-full object-cover" />
       </div>
     );

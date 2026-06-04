@@ -8,6 +8,10 @@ import type { CurrentUser } from "@/lib/current-user";
 import { UserAvatar, AVATAR_IDS } from "@/components/ui/UserAvatar";
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
 
+function isYandexAvatarUrl(avatar: string) {
+  return avatar.startsWith("https://avatars.yandex.net/");
+}
+
 type Baseline = {
   name: string;
   email: string;
@@ -35,6 +39,7 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
   const [grade, setGrade] = useState(initialUser.grade);
   const [avatar, setAvatar] = useState(initialUser.avatar);
   const [chatName, setChatName] = useState(initialUser.chatName?.trim() ?? "");
+  const yandexAvatarUrl = isYandexAvatarUrl(initialUser.avatar) ? initialUser.avatar : null;
 
   useEffect(() => {
     if (!ok) return;
@@ -193,6 +198,22 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
               <span className="text-xs text-zinc-500 dark:text-zinc-400">Мишка {id.slice(-1)}</span>
             </button>
           ))}
+
+          {yandexAvatarUrl ? (
+            <button
+              type="button"
+              onClick={() => setAvatar(yandexAvatarUrl)}
+              className={[
+                "flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors",
+                avatar === yandexAvatarUrl
+                  ? "border-[color:var(--color-accent)] bg-[color:var(--color-accent)]/10"
+                  : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900",
+              ].join(" ")}
+            >
+              <UserAvatar avatar={yandexAvatarUrl} size="lg" selected={avatar === yandexAvatarUrl} />
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">Яндекс</span>
+            </button>
+          ) : null}
 
           <input
             ref={fileRef}

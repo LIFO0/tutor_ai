@@ -23,6 +23,11 @@ describe("isValidAvatar", () => {
         "https://avatars.yandex.net/get-yapic/abc/islands-200",
       ),
     ).toBe(true);
+    expect(
+      isValidAvatar(
+        "https://avatars.yandex.net/get-yapic/41418%2F5093570536-313109/islands-200",
+      ),
+    ).toBe(true);
   });
 });
 

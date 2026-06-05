@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { PluggableList } from "unified";
+import { normalizeLatexDelimiters } from "@/lib/latex-delimiters";
 import { mathLiveLatexToKatexDisplay } from "@/lib/mathlive-katex";
 import { maskIncompleteMathForStreaming } from "@/lib/streaming-markdown-math";
 
@@ -33,7 +34,8 @@ export const MessageBubble = memo(function MessageBubble({
 }) {
   const isUser = role === "user";
   const renderContent = useMemo(() => {
-    const normalized = normalizeMathlivePlaceholdersInMarkdown(content);
+    const withDelimiters = normalizeLatexDelimiters(content);
+    const normalized = normalizeMathlivePlaceholdersInMarkdown(withDelimiters);
     return isStreaming ? maskIncompleteMathForStreaming(normalized) : normalized;
   }, [content, isStreaming]);
   const widthClass =

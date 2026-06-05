@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, max, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, max, sql } from "drizzle-orm";
 import { isValidChatSubject, normalizeChatSubject, type Subject } from "@/lib/subjects";
 import { getDb, schema } from "@/lib/db";
 import { utcNowIso } from "@/lib/sqlite-datetime";
@@ -341,6 +341,22 @@ export async function maybeUpdateChatSubjectInitialWindow(params: {
     .update(schema.chatSessions)
     .set({ subject: next })
     .where(and(eq(schema.chatSessions.id, params.sessionId), eq(schema.chatSessions.userId, params.userId)));
+}
+
+/** Удаляет сообщение с указанным id и все последующие в сессии. */
+export async function deleteMessagesFrom(
+  userId: number,
+  sessionId: number,
+  fromId: number,
+): Promise<boolean> {
+  const session = await getChatSession(userId, sessionId);
+  if (!session) return false;
+
+  const db = getDb();
+  await db
+    .delete(schema.messages)
+    .where(and(eq(schema.messages.sessionId, sessionId), gte(schema.messages.id, fromId)));
+  return true;
 }
 
 /** Удаляет все сообщения сессии и саму сессию. Возвращает false, если сессия не найдена или не принадлежит пользователю. */

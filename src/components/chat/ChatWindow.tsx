@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageBubble } from "./MessageBubble";
+import { MessageActions } from "./MessageActions";
+import { MessageEditor } from "./MessageEditor";
 import { ChatInput } from "./ChatInput";
 import { createSseParser } from "./sse";
 import { BearTotem } from "@/components/ui/BearTotem";
@@ -49,6 +51,8 @@ export function ChatWindow({
   const [quotaBlock, setQuotaBlock] = useState<{ message: string; resetsAt?: string } | null>(
     null,
   );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   const router = useRouter();
   const { usage, refresh: refreshUsage } = useUsage();
@@ -67,6 +71,10 @@ export function ChatWindow({
   useEffect(() => {
     setHeaderTitle(title || "Чат");
   }, [title]);
+
+  useEffect(() => {
+    if (streaming) setEditingId(null);
+  }, [streaming]);
 
   useEffect(() => {
     // Best-effort prewarm: compile/load MathLive while user reads the chat.
@@ -223,6 +231,13 @@ export function ChatWindow({
             if (rafId !== null) cancelAnimationFrame(rafId);
             rafId = requestAnimationFrame(flush);
           }
+        } else if (ev.type === "event" && ev.event === "ids") {
+          const userId = (ev.data as { user?: unknown } | null)?.user;
+          if (typeof userId === "number" && Number.isInteger(userId)) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === userMsg.id ? { ...m, id: String(userId) } : m)),
+            );
+          }
         } else if (ev.type === "event" && ev.event === "metrics") {
           if (isDev) console.debug("[chat] server metrics:", ev.data);
         } else if (ev.type === "event" && ev.event === "session") {
@@ -353,7 +368,68 @@ export function ChatWindow({
   const stopStreaming = useCallback(() => {
     streamAbortRef.current?.abort();
     setStreaming(false);
+    setMessages((prev) => {
+      const last = prev.at(-1);
+      if (last && last.role === "assistant" && !last.content.trim()) {
+        return prev.slice(0, -1);
+      }
+      return prev;
+    });
   }, []);
+
+  const startEdit = useCallback(
+    (id: string) => {
+      if (streaming) return;
+      setEditingId(id);
+    },
+    [streaming],
+  );
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+  }, []);
+
+  const submitEdit = useCallback(
+    async (id: string, newText: string) => {
+      if (streaming || editSaving) return;
+
+      const normalized = normalizeMathMessageForModel(newText);
+      if (!normalized.trim()) return;
+      if (normalized.length > MAX_CHAT_MESSAGE_CHARS) {
+        setPendingError(
+          `Сообщение слишком длинное (максимум ${MAX_CHAT_MESSAGE_CHARS} символов).`,
+        );
+        return;
+      }
+
+      const index = messagesRef.current.findIndex((m) => m.id === id);
+      if (index < 0) return;
+
+      setEditSaving(true);
+      try {
+        const isDbId = /^\d+$/.test(id);
+        if (isDbId) {
+          const res = await fetch("/api/chat/messages", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId, fromId: Number(id) }),
+          });
+          if (!res.ok) {
+            setPendingError("Не удалось обновить сообщение. Попробуйте ещё раз.");
+            return;
+          }
+        }
+
+        setMessages((prev) => prev.slice(0, index));
+        setEditingId(null);
+        setPendingError(null);
+        void sendRef.current(normalized);
+      } finally {
+        setEditSaving(false);
+      }
+    },
+    [editSaving, sessionId, streaming],
+  );
 
   useEffect(() => {
     if (pendingConsumedRef.current) return;
@@ -425,16 +501,41 @@ export function ChatWindow({
           ref={messagesScrollRef}
           className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-3 pt-1 pb-4"
         >
-          {messages.map((m) => (
-            <MessageBubble
-              key={m.id}
-              role={m.role}
-              content={m.content}
-              isStreaming={
-                streaming && m.role === "assistant" && m.id === messages.at(-1)?.id
-              }
-            />
-          ))}
+          {messages.map((m) => {
+            const isLastMessage = m.id === messages.at(-1)?.id;
+            const isStreamingBubble =
+              streaming && m.role === "assistant" && isLastMessage;
+            const isEditing = editingId === m.id;
+
+            if (isEditing) {
+              return (
+                <MessageEditor
+                  key={m.id}
+                  initialContent={m.content}
+                  onSave={(text) => void submitEdit(m.id, text)}
+                  onCancel={cancelEdit}
+                  saving={editSaving}
+                />
+              );
+            }
+
+            return (
+              <div key={m.id} className="group flex w-full min-w-0 flex-col gap-1">
+                <MessageBubble
+                  role={m.role}
+                  content={m.content}
+                  isStreaming={isStreamingBubble}
+                />
+                <MessageActions
+                  content={m.content}
+                  role={m.role}
+                  messageId={m.id}
+                  onEdit={m.role === "user" ? startEdit : undefined}
+                  disabled={isStreamingBubble || streaming}
+                />
+              </div>
+            );
+          })}
         </div>
         <div className="shrink-0 bg-zinc-50/95 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur dark:bg-black/85">
           {pendingError && pendingText ? (

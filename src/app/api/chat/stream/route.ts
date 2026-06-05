@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   if (!session) return jsonError("Not found", 404);
 
   const beforeDbWriteMs = Date.now();
-  await addMessage({ sessionId, role: "user", content: message });
+  const userMessageId = await addMessage({ sessionId, role: "user", content: message });
   const afterDbWriteMs = Date.now();
 
   const encoder = new TextEncoder();
@@ -104,6 +104,14 @@ export async function POST(req: Request) {
                 message_len: message.length,
                 history_messages: history.length,
               })}\n\n`,
+            ),
+          );
+        }
+
+        if (Number.isInteger(userMessageId)) {
+          controller.enqueue(
+            encoder.encode(
+              `event: ids\ndata: ${JSON.stringify({ user: userMessageId })}\n\n`,
             ),
           );
         }

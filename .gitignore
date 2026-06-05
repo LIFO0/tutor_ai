@@ -41,7 +41,7 @@ yarn-error.log*
 # user uploads (created at runtime)
 /public/uploads/avatars/
 
-# sqlite
+# sqlite (runtime DB lives outside the repo; see src/lib/db/index.ts)
 database.db
 database.db-*
 *.sqlite
@@ -53,6 +53,16 @@ database.db-*
 *.sqlite-wal
 *.sqlite-shm
 /.data/
+
+# repository root hygiene (canonical assets live in public/)
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.webp
+
+# local-only archive drops (tracked _archive/ stays in git)
+/_archive/local-artifacts/
 
 # vercel
 .vercel

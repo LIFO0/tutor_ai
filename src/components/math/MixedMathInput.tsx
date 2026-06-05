@@ -86,6 +86,44 @@ async function ensureMathLiveLoaded() {
   await import("mathlive");
 }
 
+/** MathLive hardcodes inputmode=none on its keyboard sink; override so mobile OS keyboard opens. */
+function enableNativeKeyboardOnMathField(mf: HTMLElement): void {
+  const sink = mf.shadowRoot?.querySelector(".ML__keyboard-sink") as HTMLElement | null;
+  if (!sink) return;
+  sink.inputMode = "text";
+  sink.setAttribute("inputmode", "text");
+}
+
+function focusNativeKeyboardSink(mf: HTMLElement): void {
+  enableNativeKeyboardOnMathField(mf);
+  const sink = mf.shadowRoot?.querySelector(".ML__keyboard-sink") as HTMLElement | null;
+  if (sink) {
+    sink.focus({ preventScroll: true });
+    return;
+  }
+  (mf as unknown as { focus?: () => void }).focus?.();
+}
+
+function configureMathFieldForInlineEdit(mf: HTMLElement): void {
+  mf.addEventListener(
+    "mount",
+    () => {
+      try {
+        (mf as unknown as { menuItems?: unknown[] }).menuItems = [];
+        (mf as unknown as { mathVirtualKeyboardPolicy?: string }).mathVirtualKeyboardPolicy = "manual";
+        (mf as unknown as { defaultMode?: string }).defaultMode = "inline-math";
+        enableNativeKeyboardOnMathField(mf);
+      } catch {
+        // ignore
+      }
+    },
+    { once: true },
+  );
+  mf.addEventListener("focusin", () => {
+    enableNativeKeyboardOnMathField(mf);
+  });
+}
+
 function insertTextAtSelection(root: HTMLElement, text: string) {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) {
@@ -171,6 +209,14 @@ export const MixedMathInput = forwardRef<
   const placeholderText = placeholder ?? "Введите текст…";
   const hasContent = useMemo(() => value.trim().length > 0, [value]);
 
+  // Preload MathLive on touch devices so <math-field> is defined before the first tap.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
+    if (!mathlivePromiseRef.current) mathlivePromiseRef.current = ensureMathLiveLoaded();
+    void mathlivePromiseRef.current.then(() => setMathliveReady(true));
+  }, []);
+
   // Keep DOM synced when parent changes externally (but don't clobber while focused/editing).
   useEffect(() => {
     internalValueRef.current = value;
@@ -255,49 +301,7 @@ export const MixedMathInput = forwardRef<
     [disabled, disableInlineEdit, onChange],
   );
 
-  async function enterEditMode(targetSpan: HTMLElement) {
-    if (disableInlineEdit) return;
-    if (disabled) return;
-    const latex = targetSpan.dataset.latex ?? "";
-
-    if (!mathliveReady) {
-      if (!mathlivePromiseRef.current) mathlivePromiseRef.current = ensureMathLiveLoaded();
-      await mathlivePromiseRef.current;
-      setMathliveReady(true);
-    }
-    // Load CSS only when the user actually opens the editor.
-    await import("mathlive/static.css");
-
-    const mf = document.createElement("math-field");
-    // Slightly larger hit area in edit mode; keep glyph scale close to KaTeX to avoid "stretched" radicals
-    mf.className = `${MATH_CHIP_EDIT_CLASS} math-inline-edit py-1 px-2.5`;
-    mf.setAttribute("default-mode", "inline-math");
-    (mf as unknown as { value?: string }).value = latex;
-    // Disable built-in menus/virtual keyboard (they clutter the UI for our use-case).
-    mf.addEventListener(
-      "mount",
-      () => {
-        try {
-          (mf as unknown as { menuItems?: unknown[] }).menuItems = [];
-          (mf as unknown as { mathVirtualKeyboardPolicy?: string }).mathVirtualKeyboardPolicy = "manual";
-          // Keep math style tight for inline editing (helps with sqrt/fraction proportions)
-          (mf as unknown as { defaultMode?: string }).defaultMode = "inline-math";
-        } catch {
-          // ignore
-        }
-      },
-      { once: true },
-    );
-
-    // Replace node and focus
-    targetSpan.replaceWith(mf);
-    requestAnimationFrame(() => {
-      (mf as unknown as { focus?: () => void }).focus?.();
-    });
-
-    const root = rootRef.current;
-    if (!root) return;
-
+  function attachMathFieldCommitHandlers(mf: HTMLElement, root: HTMLElement) {
     const commit = () => {
       const newLatex = String((mf as unknown as { value?: string }).value ?? "");
       const span = document.createElement("span");
@@ -312,11 +316,8 @@ export const MixedMathInput = forwardRef<
       const next = serializeFromDom(root);
       internalValueRef.current = next;
       onChange(next);
-      // Important for perf: DO NOT rebuild the whole editor DOM here.
-      // We already replaced math-field with a KaTeX preview span.
 
       requestAnimationFrame(() => {
-        // Set caret safely at the end of the editor.
         const r = rootRef.current;
         const sel = window.getSelection();
         if (!r || !sel) return;
@@ -332,13 +333,59 @@ export const MixedMathInput = forwardRef<
     mf.addEventListener(
       "keydown",
       (e) => {
-        // Escape cancels edit and commits current state (cheap + predictable)
         if ((e as KeyboardEvent).key === "Escape") {
           (e as KeyboardEvent).preventDefault();
           (mf as unknown as { blur?: () => void }).blur?.();
         }
       },
       { once: false },
+    );
+  }
+
+  function createInlineMathField(targetSpan: HTMLElement, latex: string, root: HTMLElement): HTMLElement {
+    const mf = document.createElement("math-field");
+    mf.className = `${MATH_CHIP_EDIT_CLASS} math-inline-edit py-1 px-2.5`;
+    mf.setAttribute("default-mode", "inline-math");
+    (mf as unknown as { value?: string }).value = latex;
+    configureMathFieldForInlineEdit(mf);
+    targetSpan.replaceWith(mf);
+    attachMathFieldCommitHandlers(mf, root);
+    return mf;
+  }
+
+  async function enterEditMode(targetSpan: HTMLElement) {
+    if (disableInlineEdit) return;
+    if (disabled) return;
+    const latex = targetSpan.dataset.latex ?? "";
+    const root = rootRef.current;
+    if (!root) return;
+
+    void import("mathlive/static.css");
+
+    if (mathliveReady) {
+      const mf = createInlineMathField(targetSpan, latex, root);
+      focusNativeKeyboardSink(mf);
+      mf.addEventListener(
+        "mount",
+        () => {
+          focusNativeKeyboardSink(mf);
+        },
+        { once: true },
+      );
+      return;
+    }
+
+    if (!mathlivePromiseRef.current) mathlivePromiseRef.current = ensureMathLiveLoaded();
+    await mathlivePromiseRef.current;
+    setMathliveReady(true);
+
+    const mf = createInlineMathField(targetSpan, latex, root);
+    mf.addEventListener(
+      "mount",
+      () => {
+        focusNativeKeyboardSink(mf);
+      },
+      { once: true },
     );
   }
 

@@ -10,12 +10,14 @@ import { assertYandexLlmConfigured } from "@/lib/llm-config";
 import { checkAndConsume, getUsageSnapshot, toQuotaUser } from "@/lib/usage-quota";
 import { getTaskBankMixRate } from "@/lib/task-bank-config";
 import {
+  createSessionFromBankTask,
   findUnseenBankTask,
   recentSolvedTemplates,
   templateHashOf,
   upsertBankTask,
   userSolvedTemplate,
 } from "@/lib/task-bank";
+import { sanitizePromptLine } from "@/lib/prompt-sanitize";
 import { isValidTopicKey, resolveTopicKey } from "@/lib/task-topics";
 
 function parseTask(text: string) {
@@ -26,12 +28,13 @@ function parseTask(text: string) {
   const taskText = (mTask?.[1] ?? text).trim();
   const answer = (mAns?.[1] ?? "").trim();
   const topicKey = (mTopicKey?.[1] ?? "").trim();
-  const subtopic = (mSubtopic?.[1] ?? "").trim();
+  const rawSubtopic = (mSubtopic?.[1] ?? "").trim();
+  const subtopic = rawSubtopic ? sanitizePromptLine(rawSubtopic, 60) : null;
   return {
     taskText,
     answer: answer || "—",
     topicKey: topicKey || null,
-    subtopic: subtopic || null,
+    subtopic,
   };
 }
 
@@ -40,14 +43,7 @@ async function serveFromBank(params: {
   bank: Awaited<ReturnType<typeof findUnseenBankTask>>;
 }) {
   const bank = params.bank!;
-  const sessionId = await createTaskSession({
-    userId: params.userId,
-    subject: bank.subject as SchoolSubject,
-    topic: bank.rawTopic,
-    taskText: bank.taskText,
-    correctAnswer: bank.correctAnswer,
-    taskId: bank.id,
-  });
+  const sessionId = await createSessionFromBankTask(params.userId, bank);
   if (!sessionId) return jsonError("Failed to save task", 500);
 
   return NextResponse.json({
@@ -55,7 +51,6 @@ async function serveFromBank(params: {
     taskId: sessionId,
     taskText: bank.taskText,
     publicId: bank.publicId,
-    fromBank: true,
   });
 }
 
@@ -123,8 +118,6 @@ async function generateWithLlm(params: {
     taskId: sessionId,
     taskText: parsed.taskText,
     publicId: bank.publicId,
-    fromBank: false,
-    bankReused: bank.reused,
   });
 }
 

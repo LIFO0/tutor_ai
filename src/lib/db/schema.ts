@@ -29,6 +29,7 @@ export const usageDaily = sqliteTable(
     chatMessages: integer("chat_messages").notNull().default(0),
     taskGenerate: integer("task_generate").notNull().default(0),
     taskCheck: integer("task_check").notNull().default(0),
+    taskOpen: integer("task_open").notNull().default(0),
     chatSessions: integer("chat_sessions").notNull().default(0),
     estimatedTokens: integer("estimated_tokens").notNull().default(0),
   },

@@ -22,6 +22,14 @@ function ensureUserColumns(sqlite: Database.Database) {
   }
 }
 
+function ensureUsageDailyColumns(sqlite: Database.Database) {
+  const cols = sqlite.prepare("PRAGMA table_info(usage_daily)").all() as { name: string }[];
+  const has = (n: string) => cols.some((c) => c.name === n);
+  if (!has("task_open")) {
+    sqlite.exec("ALTER TABLE usage_daily ADD COLUMN task_open INTEGER NOT NULL DEFAULT 0");
+  }
+}
+
 function ensureUsageDailyTable(sqlite: Database.Database) {
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS usage_daily (
@@ -31,12 +39,14 @@ function ensureUsageDailyTable(sqlite: Database.Database) {
       chat_messages INTEGER NOT NULL DEFAULT 0,
       task_generate INTEGER NOT NULL DEFAULT 0,
       task_check INTEGER NOT NULL DEFAULT 0,
+      task_open INTEGER NOT NULL DEFAULT 0,
       chat_sessions INTEGER NOT NULL DEFAULT 0,
       estimated_tokens INTEGER NOT NULL DEFAULT 0,
       UNIQUE(user_id, date)
     );
     CREATE INDEX IF NOT EXISTS idx_usage_daily_user_date ON usage_daily(user_id, date);
   `);
+  ensureUsageDailyColumns(sqlite);
 }
 
 function ensureTasksTable(sqlite: Database.Database) {

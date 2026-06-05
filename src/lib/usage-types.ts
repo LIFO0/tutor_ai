@@ -1,4 +1,9 @@
-export type QuotaKind = "chat_message" | "task_generate" | "task_check" | "chat_session";
+export type QuotaKind =
+  | "chat_message"
+  | "task_generate"
+  | "task_check"
+  | "task_open"
+  | "chat_session";
 
 export type UserPlan = "free" | "plus";
 
@@ -6,6 +11,7 @@ export type QuotaLimits = {
   chatMessages: number;
   taskGenerate: number;
   taskCheck: number;
+  taskOpen: number;
   chatSessions: number;
   burstChatPerMin: number;
 };
@@ -14,6 +20,7 @@ export type QuotaCounters = {
   chatMessages: number;
   taskGenerate: number;
   taskCheck: number;
+  taskOpen: number;
   chatSessions: number;
 };
 
@@ -44,6 +51,8 @@ export function quotaKindLabel(kind: QuotaKind): string {
       return "генераций задач";
     case "task_check":
       return "проверок ответов";
+    case "task_open":
+      return "открытий задач по коду";
     case "chat_session":
       return "новых чатов";
   }
@@ -57,6 +66,8 @@ export function quotaExceededMessage(kind: QuotaKind, limit: number): string {
       return `Сегодня уже сгенерировано ${limit} ${limit === 1 ? "задача" : limit < 5 ? "задачи" : "задач"}. Попробуй завтра или разбери старые из истории.`;
     case "task_check":
       return `Лимит проверок на сегодня (${limit}) исчерпан.`;
+    case "task_open":
+      return `Лимит открытий задач по коду на сегодня (${limit}) исчерпан. Попробуй завтра.`;
     case "chat_session":
       return `Слишком много новых чатов за день (${limit}). Продолжи в существующем.`;
   }
@@ -82,7 +93,13 @@ export function quotaWarningMessage(kind: QuotaKind, remaining: number): string 
             : remaining < 5
               ? "проверки"
               : "проверок"
-          : remaining === 1
+          : kind === "task_open"
+            ? remaining === 1
+              ? "открытие"
+              : remaining < 5
+                ? "открытия"
+                : "открытий"
+            : remaining === 1
             ? "новый чат"
             : remaining < 5
               ? "новых чата"

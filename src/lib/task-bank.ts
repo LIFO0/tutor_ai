@@ -8,6 +8,7 @@ import { createTaskSession } from "@/lib/tasks";
 
 export { contentHashOf, templateHashOf, taskTemplate } from "@/lib/task-hash";
 
+/** Публичные поля банка — без correctAnswer (только server-side). */
 export type BankTaskRow = {
   id: number;
   publicId: string;
@@ -18,10 +19,47 @@ export type BankTaskRow = {
   topicNorm: string;
   subtopic: string | null;
   taskText: string;
-  correctAnswer: string;
   contentHash: string;
   templateHash: string;
 };
+
+/** Очистка скелета перед реинжектом в промпт (Unicode + только буквы/#/пробелы). */
+export function sanitizeTemplateForPrompt(template: string): string {
+  const normalized = template.normalize("NFKD").replace(/\p{M}/gu, "");
+  return normalized
+    .replace(/[^\p{L}#\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
+async function getBankTaskCorrectAnswer(bankId: number): Promise<string | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ correctAnswer: schema.tasks.correctAnswer })
+    .from(schema.tasks)
+    .where(eq(schema.tasks.id, bankId))
+    .limit(1);
+  return rows[0]?.correctAnswer ?? null;
+}
+
+/** Создать попытку ученика по задаче из банка (correctAnswer не покидает сервер). */
+export async function createSessionFromBankTask(
+  userId: number,
+  bank: BankTaskRow,
+): Promise<number | undefined> {
+  const correctAnswer = await getBankTaskCorrectAnswer(bank.id);
+  if (!correctAnswer) return undefined;
+
+  return createTaskSession({
+    userId,
+    subject: bank.subject as SchoolSubject,
+    topic: bank.rawTopic,
+    taskText: bank.taskText,
+    correctAnswer,
+    taskId: bank.id,
+  });
+}
 
 export async function upsertBankTask(params: {
   subject: SchoolSubject;
@@ -109,7 +147,6 @@ export async function getTaskByPublicId(code: string): Promise<BankTaskRow | nul
       topicNorm: schema.tasks.topicNorm,
       subtopic: schema.tasks.subtopic,
       taskText: schema.tasks.taskText,
-      correctAnswer: schema.tasks.correctAnswer,
       contentHash: schema.tasks.contentHash,
       templateHash: schema.tasks.templateHash,
     })
@@ -164,7 +201,9 @@ export async function recentSolvedTemplates(
     .orderBy(desc(schema.taskSessions.id))
     .limit(limit);
 
-  return rows.map((r) => taskTemplate(r.taskText));
+  return rows
+    .map((r) => sanitizeTemplateForPrompt(taskTemplate(r.taskText)))
+    .filter((t) => t.length > 0);
 }
 
 export async function userSolvedTemplate(userId: number, templateHash: string): Promise<boolean> {
@@ -222,7 +261,6 @@ export async function findUnseenBankTask(
       topicNorm: schema.tasks.topicNorm,
       subtopic: schema.tasks.subtopic,
       taskText: schema.tasks.taskText,
-      correctAnswer: schema.tasks.correctAnswer,
       contentHash: schema.tasks.contentHash,
       templateHash: schema.tasks.templateHash,
     })
@@ -261,15 +299,7 @@ export async function openTaskByPublicId(
     return { sessionId: openRows[0].id, publicId: bank.publicId };
   }
 
-  const sessionId = await createTaskSession({
-    userId,
-    subject: bank.subject as SchoolSubject,
-    topic: bank.rawTopic,
-    taskText: bank.taskText,
-    correctAnswer: bank.correctAnswer,
-    taskId: bank.id,
-  });
-
+  const sessionId = await createSessionFromBankTask(userId, bank);
   if (!sessionId) return null;
   return { sessionId, publicId: bank.publicId };
 }

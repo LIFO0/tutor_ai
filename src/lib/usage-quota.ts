@@ -54,25 +54,29 @@ function kindToLimitKey(kind: QuotaKind): keyof Omit<QuotaLimits, "burstChatPerM
       return "taskGenerate";
     case "task_check":
       return "taskCheck";
+    case "task_open":
+      return "taskOpen";
     case "chat_session":
       return "chatSessions";
   }
 }
 
 function emptyCounters(): QuotaCounters {
-  return { chatMessages: 0, taskGenerate: 0, taskCheck: 0, chatSessions: 0 };
+  return { chatMessages: 0, taskGenerate: 0, taskCheck: 0, taskOpen: 0, chatSessions: 0 };
 }
 
 function rowToCounters(row: {
   chatMessages: number;
   taskGenerate: number;
   taskCheck: number;
+  taskOpen: number;
   chatSessions: number;
 }): QuotaCounters {
   return {
     chatMessages: row.chatMessages,
     taskGenerate: row.taskGenerate,
     taskCheck: row.taskCheck,
+    taskOpen: row.taskOpen,
     chatSessions: row.chatSessions,
   };
 }
@@ -82,6 +86,7 @@ function remainingFrom(used: QuotaCounters, limits: QuotaLimits): QuotaCounters 
     chatMessages: Math.max(0, limits.chatMessages - used.chatMessages),
     taskGenerate: Math.max(0, limits.taskGenerate - used.taskGenerate),
     taskCheck: Math.max(0, limits.taskCheck - used.taskCheck),
+    taskOpen: Math.max(0, limits.taskOpen - used.taskOpen),
     chatSessions: Math.max(0, limits.chatSessions - used.chatSessions),
   };
 }
@@ -101,6 +106,7 @@ async function readUsageRow(userId: number, date: string) {
       chatMessages: schema.usageDaily.chatMessages,
       taskGenerate: schema.usageDaily.taskGenerate,
       taskCheck: schema.usageDaily.taskCheck,
+      taskOpen: schema.usageDaily.taskOpen,
       chatSessions: schema.usageDaily.chatSessions,
     })
     .from(schema.usageDaily)
@@ -141,6 +147,7 @@ export async function getUsageSnapshot(user: QuotaUser): Promise<UsageSnapshot> 
         chatMessages: limits.chatMessages,
         taskGenerate: limits.taskGenerate,
         taskCheck: limits.taskCheck,
+        taskOpen: limits.taskOpen,
         chatSessions: limits.chatSessions,
       },
     };
@@ -231,6 +238,13 @@ export async function checkAndConsume(user: QuotaUser, kind: QuotaKind): Promise
         .set({ taskCheck: sql`${schema.usageDaily.taskCheck} + 1` })
         .where(and(baseWhere, sql`${schema.usageDaily.taskCheck} < ${limit}`))
         .returning({ value: schema.usageDaily.taskCheck });
+      break;
+    case "task_open":
+      updated = await db
+        .update(schema.usageDaily)
+        .set({ taskOpen: sql`${schema.usageDaily.taskOpen} + 1` })
+        .where(and(baseWhere, sql`${schema.usageDaily.taskOpen} < ${limit}`))
+        .returning({ value: schema.usageDaily.taskOpen });
       break;
     case "chat_session":
       updated = await db

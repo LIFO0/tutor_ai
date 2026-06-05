@@ -67,18 +67,22 @@ export function resolveEffectivePlan(user: {
 
 export function getPlanLimits(plan: UserPlan): QuotaLimits {
   if (plan === "plus") {
+    const taskGenerate = envInt("USAGE_PLUS_TASK_GEN_PER_DAY", 12);
     return {
       chatMessages: envInt("USAGE_PLUS_CHAT_PER_DAY", 50),
-      taskGenerate: envInt("USAGE_PLUS_TASK_GEN_PER_DAY", 12),
+      taskGenerate,
       taskCheck: envInt("USAGE_PLUS_TASK_CHECK_PER_DAY", 24),
+      taskOpen: envInt("USAGE_PLUS_TASK_OPEN_PER_DAY", taskGenerate * 2),
       chatSessions: envInt("USAGE_PLUS_CHAT_SESSIONS_PER_DAY", 30),
       burstChatPerMin: envInt("USAGE_PLUS_BURST_CHAT_PER_MIN", 16),
     };
   }
+  const taskGenerate = envInt("USAGE_FREE_TASK_GEN_PER_DAY", 4);
   return {
     chatMessages: envInt("USAGE_FREE_CHAT_PER_DAY", 16),
-    taskGenerate: envInt("USAGE_FREE_TASK_GEN_PER_DAY", 4),
+    taskGenerate,
     taskCheck: envInt("USAGE_FREE_TASK_CHECK_PER_DAY", 6),
+    taskOpen: envInt("USAGE_FREE_TASK_OPEN_PER_DAY", taskGenerate * 2),
     chatSessions: envInt("USAGE_FREE_CHAT_SESSIONS_PER_DAY", 10),
     burstChatPerMin: envInt("USAGE_BURST_CHAT_PER_MIN", 8),
   };

@@ -8,12 +8,14 @@ export async function createTaskSession(params: {
   topic: string;
   taskText: string;
   correctAnswer: string;
+  taskId?: number;
 }) {
   const db = getDb();
   const rows = await db
     .insert(schema.taskSessions)
     .values({
       userId: params.userId,
+      taskId: params.taskId ?? null,
       subject: params.subject,
       topic: params.topic,
       taskText: params.taskText,
@@ -28,16 +30,19 @@ export async function getTask(userId: number, taskId: number) {
   const rows = await db
     .select({
       id: schema.taskSessions.id,
+      bankTaskId: schema.taskSessions.taskId,
+      publicId: schema.tasks.publicId,
       subject: schema.taskSessions.subject,
       topic: schema.taskSessions.topic,
-      taskText: schema.taskSessions.taskText,
-      correctAnswer: schema.taskSessions.correctAnswer,
+      taskText: sql<string>`coalesce(${schema.tasks.taskText}, ${schema.taskSessions.taskText})`,
+      correctAnswer: sql<string>`coalesce(${schema.tasks.correctAnswer}, ${schema.taskSessions.correctAnswer})`,
       correct: schema.taskSessions.correct,
       userAnswer: schema.taskSessions.userAnswer,
       aiFeedback: schema.taskSessions.aiFeedback,
       createdAt: schema.taskSessions.createdAt,
     })
     .from(schema.taskSessions)
+    .leftJoin(schema.tasks, eq(schema.taskSessions.taskId, schema.tasks.id))
     .where(and(eq(schema.taskSessions.userId, userId), eq(schema.taskSessions.id, taskId)))
     .limit(1);
   return rows[0] ?? null;
@@ -70,8 +75,10 @@ export async function listTaskHistory(userId: number) {
       topic: schema.taskSessions.topic,
       correct: schema.taskSessions.correct,
       createdAt: schema.taskSessions.createdAt,
+      publicId: schema.tasks.publicId,
     })
     .from(schema.taskSessions)
+    .leftJoin(schema.tasks, eq(schema.taskSessions.taskId, schema.tasks.id))
     .where(eq(schema.taskSessions.userId, userId))
     .orderBy(desc(schema.taskSessions.id))
     .limit(50);
@@ -101,4 +108,3 @@ export async function getTaskStats(userId: number) {
     solvedToday: todayRows[0]?.count ?? 0,
   };
 }
-

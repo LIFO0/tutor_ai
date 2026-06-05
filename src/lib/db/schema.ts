@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -59,20 +59,66 @@ export const messages = sqliteTable("messages", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const taskSessions = sqliteTable("task_sessions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id),
-  subject: text("subject").notNull(),
-  topic: text("topic").notNull(),
-  taskText: text("task_text").notNull(),
-  correct: integer("correct", { mode: "boolean" }), // null until checked
-  userAnswer: text("user_answer"),
-  correctAnswer: text("correct_answer"),
-  aiFeedback: text("ai_feedback"),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-});
+/**
+ * Банк переиспользуемых задач. Отделён от попытки ученика (task_sessions):
+ * одна и та же задача может решаться разными учениками и передаваться по publicId.
+ */
+export const tasks = sqliteTable(
+  "tasks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** Шорт-код для обмена между учениками (то, что вводят, чтобы открыть чужую задачу). */
+    publicId: text("public_id").notNull().unique(),
+    subject: text("subject").notNull(), // math | physics | russian
+    grade: integer("grade").notNull(), // 5..11
+    /** Что ввёл ученик в поле «Тема». */
+    rawTopic: text("raw_topic").notNull(),
+    /** Канонический ключ темы (из словаря или детерминир. нормализации). */
+    topicKey: text("topic_key").notNull(),
+    /** Детерминированная нормализация rawTopic — для матчинга без ИИ. */
+    topicNorm: text("topic_norm").notNull(),
+    /** Короткий ярлык подтемы от ИИ (опц.). */
+    subtopic: text("subtopic"),
+    taskText: text("task_text").notNull(),
+    correctAnswer: text("correct_answer").notNull(),
+    /** sha256 нормализованного текста — exact-дедуп. */
+    contentHash: text("content_hash").notNull().unique(),
+    /** sha256 «скелета» (числа -> #) — дедуп задач одного типа. */
+    templateHash: text("template_hash").notNull(),
+    createdByUserId: integer("created_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [
+    index("idx_tasks_subject_topic_grade").on(t.subject, t.topicKey, t.grade),
+    index("idx_tasks_subject_topicnorm_grade").on(t.subject, t.topicNorm, t.grade),
+    index("idx_tasks_subject_template_grade").on(t.subject, t.templateHash, t.grade),
+  ],
+);
+
+export const taskSessions = sqliteTable(
+  "task_sessions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    /** Ссылка на запись банка (nullable для совместимости со старыми строками). */
+    taskId: integer("task_id").references(() => tasks.id),
+    subject: text("subject").notNull(),
+    topic: text("topic").notNull(),
+    taskText: text("task_text").notNull(),
+    correct: integer("correct", { mode: "boolean" }), // null until checked
+    userAnswer: text("user_answer"),
+    correctAnswer: text("correct_answer"),
+    aiFeedback: text("ai_feedback"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [index("idx_task_sessions_user_task").on(t.userId, t.taskId)],
+);
 

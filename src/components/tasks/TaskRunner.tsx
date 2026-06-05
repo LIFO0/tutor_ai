@@ -13,6 +13,7 @@ import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
 export function TaskRunner({
   taskId,
   taskText,
+  publicId,
   checked,
   initialAnswer,
   initialFeedback,
@@ -20,6 +21,7 @@ export function TaskRunner({
 }: {
   taskId: number;
   taskText: string;
+  publicId?: string | null;
   checked: boolean;
   initialAnswer?: string | null;
   initialFeedback?: string | null;
@@ -27,6 +29,7 @@ export function TaskRunner({
 }) {
   const [answer, setAnswer] = useState(initialAnswer ?? "");
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [result, setResult] = useState<null | { correct: boolean; aiFeedback: string }>(
     checked && initialFeedback
       ? {
@@ -102,8 +105,35 @@ export function TaskRunner({
     }
   }
 
+  async function copyCode() {
+    if (!publicId) return;
+    try {
+      await navigator.clipboard.writeText(publicId);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-4">
+      {publicId ? (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-2 pt-4">
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              Код задания:{" "}
+              <span className="font-mono font-semibold tracking-wide text-zinc-900 dark:text-zinc-50">
+                {publicId}
+              </span>
+            </div>
+            <Button variant="secondary" size="sm" onPress={copyCode}>
+              {copied ? "Скопировано" : "Скопировать код"}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader className="font-semibold">Задание</CardHeader>
         <CardContent>

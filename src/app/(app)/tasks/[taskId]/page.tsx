@@ -21,6 +21,7 @@ export default async function TaskPage({ params }: { params: Promise<{ taskId: s
       <TaskRunner
         taskId={id}
         taskText={task.taskText}
+        publicId={task.publicId}
         checked={task.correct !== null && task.correct !== undefined}
         initialAnswer={task.userAnswer}
         initialFeedback={task.aiFeedback}

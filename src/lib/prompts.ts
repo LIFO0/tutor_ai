@@ -1,10 +1,12 @@
 import {
   CHAT_SUBJECTS,
   normalizeChatSubject,
+  type SchoolSubject,
   type Subject,
   isSchoolSubject,
 } from "@/lib/subjects";
 import { sanitizePromptBlock, sanitizePromptLine } from "@/lib/prompt-sanitize";
+import { topicKeysForSubject, topicKeyTitle } from "@/lib/task-topics";
 
 /** Подпись предмета в UI; устаревшие ключи в БД показываем как свободную тему. */
 export function subjectTitle(subject: string) {
@@ -51,19 +53,42 @@ export function taskGeneratePrompt(params: {
   subject: Subject;
   grade: number;
   topic: string;
+  /** Скелеты уже решённых задач — не повторять эти типы. */
+  avoidTemplates?: string[];
 }) {
   const safeTopic = sanitizePromptLine(params.topic, 200);
+  const schoolSubject = isSchoolSubject(params.subject) ? params.subject : null;
+
+  const topicKeysBlock = schoolSubject
+    ? `Допустимые ключи темы (ТЕМА_КЛЮЧ): ${topicKeysForSubject(schoolSubject).join(", ")}`
+    : "";
+
+  const avoidBlock =
+    params.avoidTemplates && params.avoidTemplates.length > 0
+      ? `\nУченик уже решал похожие типы задач — придумай другой тип (другую формулировку/подзадачу), не повторяй:\n${params.avoidTemplates
+          .slice(0, 5)
+          .map((t, i) => `${i + 1}. ${sanitizePromptLine(t, 120)}`)
+          .join("\n")}`
+      : "";
+
   return `Придумай одну задачу по предмету ${subjectTitle(params.subject)} для ученика ${params.grade} класса.
 [ТЕМА — только для генерации задачи]: ${safeTopic}
+${topicKeysBlock}${avoidBlock}
 
 Задача должна:
 - Соответствовать уровню ${params.grade} класса по программе РФ
 - Иметь однозначный числовой или краткий текстовый ответ
 - Быть решаемой за 5–10 минут
 
-Формат ответа:
+Формат ответа (строго):
+ТЕМА_КЛЮЧ: [один ключ из списка допустимых]
+ПОДТЕМА: [короткий ярлык подтемы, 2–5 слов]
 ЗАДАЧА: [текст задачи]
 ОТВЕТ: [правильный ответ — только для системы, не показывай ученику]`;
+}
+
+export function topicKeyLabel(subject: SchoolSubject, key: string): string {
+  return topicKeyTitle(subject, key);
 }
 
 export function taskCheckPrompt(params: {

@@ -17,13 +17,23 @@ export function TasksClient({
 }: {
   solvedToday: number;
   solvedTotal: number;
-  history: Array<{ id: number; subject: string; topic: string; correct: boolean | null; createdAt: string }>;
+  history: Array<{
+    id: number;
+    subject: string;
+    topic: string;
+    correct: boolean | null;
+    createdAt: string;
+    publicId?: string | null;
+  }>;
 }) {
   const router = useRouter();
   const [subject, setSubject] = useState<Subject>("math");
   const [topic, setTopic] = useState("");
+  const [taskCode, setTaskCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<string | null>(null);
   const { usage, refresh: refreshUsage } = useUsage();
 
   const genBlocked = !usage?.exempt && (usage?.remaining.taskGenerate ?? 1) === 0;
@@ -38,6 +48,36 @@ export function TasksClient({
     () => topic.trim().length > 0 && !loading && !genBlocked,
     [topic, loading, genBlocked],
   );
+
+  async function openByCode() {
+    const code = taskCode.trim();
+    if (!code || opening) return;
+    setOpening(true);
+    setOpenError(null);
+    try {
+      const res = await fetch("/api/tasks/open", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok: true; taskId: number }
+        | { ok: false; error: string; message?: string }
+        | null;
+      if (!res.ok || !data || data.ok !== true) {
+        const msg =
+          (data && "message" in data && typeof data.message === "string" ? data.message : null) ||
+          (data as { error?: string } | null)?.error ||
+          "Задание не найдено";
+        throw new Error(msg);
+      }
+      router.push(`/tasks/${data.taskId}`);
+    } catch (e) {
+      setOpenError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setOpening(false);
+    }
+  }
 
   async function generate() {
     if (!can) return;
@@ -90,6 +130,32 @@ export function TasksClient({
               <div className="text-2xl font-semibold">{solvedTotal}</div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="font-semibold">Есть код задания?</CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Введите код от друга — откроется то же задание без генерации.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              className="h-11 sm:flex-1 rounded-xl border border-zinc-200 bg-white px-3 text-sm uppercase tracking-wide text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+              value={taskCode}
+              onChange={(e) => setTaskCode(e.target.value)}
+              placeholder="Например: M-ABC123"
+              aria-label="Код задания"
+            />
+            <Button
+              variant="secondary"
+              isDisabled={taskCode.trim().length === 0 || opening}
+              onPress={openByCode}
+            >
+              {opening ? "Открываем…" : "Открыть"}
+            </Button>
+          </div>
+          {openError ? <div className="text-sm text-red-600 dark:text-red-400">{openError}</div> : null}
         </CardContent>
       </Card>
 
@@ -205,7 +271,7 @@ export function TasksClient({
                           <div className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
                             {subj}
                             <span className="text-zinc-300 dark:text-zinc-700"> · </span>
-                            #{h.id}
+                            {h.publicId ? h.publicId : `#${h.id}`}
                           </div>
                         </div>
                         <div className={`shrink-0 text-xs font-semibold ${status.cls}`}>{status.label}</div>

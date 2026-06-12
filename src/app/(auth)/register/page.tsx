@@ -120,7 +120,7 @@ export default function RegisterPage() {
                   <div className="animate-element animate-delay-150">
                     <YandexSignInButton />
                   </div>
-                  <form className="space-y-5" onSubmit={onSubmit}>
+                  <form className="space-y-5" onSubmit={onSubmit} suppressHydrationWarning>
                     <div className="animate-element animate-delay-200">
                       <label className="text-sm font-medium text-zinc-700">Имя</label>
                       <GlassInputWrapper>
@@ -225,7 +225,6 @@ export default function RegisterPage() {
                       </div>
                     </div>
 
-                    
                     <div className="animate-element animate-delay-550">
                       <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-zinc-600">
                         <input
@@ -249,7 +248,6 @@ export default function RegisterPage() {
                         </span>
                       </label>
                     </div>
-
 
                     {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
@@ -284,7 +282,6 @@ export default function RegisterPage() {
                   alt="Bear illustration"
                   width={720}
                   height={960}
-                  priority
                   className="h-auto w-[min(44vw,620px)] max-w-[calc(50vw-1.5rem)] translate-x-[1%] select-none object-contain md:w-[min(42vw,580px)]"
                   sizes="(min-width: 768px) 44vw, 0px"
                 />
@@ -300,4 +297,3 @@ export default function RegisterPage() {
     </>
   );
 }
-

@@ -246,6 +246,38 @@ math-field.math-inline-edit::part(keyboard-sink) {
   animation-delay: 800ms;
 }
 
+@keyframes chatMessageIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message-appear {
+  opacity: 0;
+  animation: chatMessageIn 450ms ease-out forwards;
+}
+
+.chat-message-appear-delay-1 {
+  animation-delay: 900ms;
+}
+
+.chat-message-appear-delay-2 {
+  animation-duration: 500ms;
+  animation-delay: 2600ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-message-appear {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .custom-checkbox {
   appearance: none;
   width: 18px;

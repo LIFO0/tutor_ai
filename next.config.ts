@@ -17,12 +17,12 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://yastatic.net",
+      "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://yastatic.net",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https://avatars.yandex.net https://avatars.mds.yandex.net https://mc.yandex.ru",
-      "connect-src 'self' https://mc.yandex.ru wss://mc.yandex.ru",
+      "img-src 'self' data: https://avatars.yandex.net https://avatars.mds.yandex.net https://mc.yandex.ru https://mc.yandex.com",
+      "connect-src 'self' https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.ru wss://mc.yandex.com",
       "font-src 'self'",
-      "frame-src https://mc.yandex.ru",
+      "frame-src https://mc.yandex.ru https://mc.yandex.com",
       "frame-ancestors 'self'",
     ].join("; "),
   },
@@ -36,7 +36,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: [
       "@heroui/react",
       "lucide-react",
-      "framer-motion",
     ],
   },
   async headers() {

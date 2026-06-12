@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -15,12 +14,7 @@ export default function CTA() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-4xl px-4 pb-6 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center"
-        >
+        <div className="text-center">
           <h2 className="mb-5 text-balance text-2xl font-bold leading-tight text-primary-foreground sm:mb-4 sm:text-4xl lg:mb-5 lg:text-5xl">
             Начни учиться прямо сейчас
           </h2>
@@ -41,10 +35,9 @@ export default function CTA() {
               <ArrowRight className="ml-2" size={18} />
             </Link>
           </Button>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Медведь: нижняя половина за краем блока, верхняя (голова) — в оранжевой зоне */}
       <div
         className="relative z-[1] mt-4 h-[min(68vw,240px)] w-full overflow-hidden sm:mt-0 sm:h-[min(46vw,300px)] lg:h-[320px]"
         aria-hidden

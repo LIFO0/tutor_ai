@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { faqs } from "@/data/faq";
 
 export default function FAQ() {
@@ -16,31 +15,22 @@ export default function FAQ() {
   return (
     <section className="bg-muted/30 py-20 lg:py-32">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-16 text-center"
-        >
+        <div className="mb-16 text-center">
           <span className="text-sm font-medium uppercase tracking-wider text-primary">
             Вопросы и ответы
           </span>
           <h2 className="mt-4 text-balance text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
             Частые <span className="text-primary">вопросы</span>
           </h2>
-        </motion.div>
+        </div>
 
         <div className="space-y-4">
           {faqs.map((faq, index) => {
             const isOpen = openItems.includes(index);
 
             return (
-              <motion.div
+              <div
                 key={faq.question}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
                 className="overflow-hidden rounded-xl border border-border bg-card"
               >
                 <button
@@ -50,30 +40,28 @@ export default function FAQ() {
                   className="flex w-full cursor-pointer items-center justify-between p-6 text-left"
                 >
                   <span className="pr-4 font-medium text-foreground">{faq.question}</span>
-                  <motion.span
-                    animate={{ rotate: isOpen ? 45 : 0 }}
-                    transition={{ duration: 0.25, ease: "easeOut" }}
-                    className="text-xl text-primary"
+                  <span
+                    className={[
+                      "text-xl text-primary transition-transform duration-300 ease-out",
+                      isOpen ? "rotate-45" : "rotate-0",
+                    ].join(" ")}
                   >
                     +
-                  </motion.span>
+                  </span>
                 </button>
-                <AnimatePresence initial={false}>
-                  {isOpen ? (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.35, ease: "easeInOut" }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-6 pb-6 pt-0">
-                        <p className="leading-relaxed text-muted-foreground">{faq.answer}</p>
-                      </div>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-              </motion.div>
+                <div
+                  className={[
+                    "grid transition-[grid-template-rows] duration-300 ease-in-out",
+                    isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                  ].join(" ")}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-6 pb-6 pt-0">
+                      <p className="leading-relaxed text-muted-foreground">{faq.answer}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             );
           })}
         </div>

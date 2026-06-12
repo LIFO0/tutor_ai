@@ -64,7 +64,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               </div>
 
               <div className="bg-transparent p-0 shadow-none backdrop-blur-0">
-                <form className="space-y-5" onSubmit={onSignIn}>
+                <form className="space-y-5" onSubmit={onSignIn} suppressHydrationWarning>
                   <div className="animate-element animate-delay-200">
                     <label className="text-sm font-medium text-zinc-700">Email</label>
                     <GlassInputWrapper>
@@ -146,7 +146,6 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                   alt={rightImageAlt}
                   width={720}
                   height={960}
-                  priority
                   className="h-auto w-[min(44vw,620px)] max-w-[calc(50vw-1.5rem)] translate-x-[1%] select-none object-contain md:w-[min(42vw,580px)]"
                   sizes="(min-width: 768px) 44vw, 0px"
                 />
@@ -158,4 +157,3 @@ export const SignInPage: React.FC<SignInPageProps> = ({
     </div>
   );
 };
-

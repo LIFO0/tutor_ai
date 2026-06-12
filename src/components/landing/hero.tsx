@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,11 +25,7 @@ export default function Hero() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2">
               <span className="text-sm font-medium text-primary">✦ Для 5–11 класса</span>
             </div>
@@ -68,14 +63,9 @@ export default function Hero() {
                 </a>
               </Button>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative"
-          >
+          <div className="relative">
             <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
               <div className="flex items-center gap-2 px-6 pb-4 pt-6">
                 <Image
@@ -92,25 +82,15 @@ export default function Hero() {
               </div>
 
               <div className="min-h-[300px] space-y-4 px-6 pb-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.9 }}
-                  className="flex justify-end"
-                >
+                <div className="chat-message-appear chat-message-appear-delay-1 flex justify-end">
                   <div className="max-w-[80%] rounded-2xl rounded-br-md bg-primary/10 px-4 py-3">
                     <p className="text-sm text-foreground">
                       Объясни мне тему смешанные дроби
                     </p>
                   </div>
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 2.6 }}
-                  className="flex"
-                >
+                <div className="chat-message-appear chat-message-appear-delay-2 flex">
                   <div className="max-w-[85%] rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
                     <p className="text-sm leading-relaxed text-foreground">
                       Конечно, с удовольствием объясню!
@@ -127,7 +107,7 @@ export default function Hero() {
                       Давай разберём пошагово?
                     </p>
                   </div>
-                </motion.div>
+                </div>
               </div>
 
               <div className="px-6 pb-6">
@@ -162,7 +142,7 @@ export default function Hero() {
                 </form>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

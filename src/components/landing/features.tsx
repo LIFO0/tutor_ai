@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Calculator, ClipboardCheck, History, MessageSquare } from "lucide-react";
 
 const features = [
@@ -40,30 +39,11 @@ const features = [
   },
 ];
 
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
 export default function Features() {
   return (
     <section id="features" className="py-20 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mx-auto mb-16 max-w-3xl text-center"
-        >
+        <div className="mx-auto mb-16 max-w-3xl text-center">
           <span className="text-sm font-medium uppercase tracking-wider text-primary">
             Возможности
           </span>
@@ -73,19 +53,12 @@ export default function Features() {
           <p className="mt-4 text-lg text-muted-foreground">
             Мишка — это не просто чат-бот, а полноценный помощник в учёбе
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="grid gap-6 md:grid-cols-2 lg:gap-8"
-        >
+        <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
           {features.map((feature) => (
-            <motion.div
+            <div
               key={feature.title}
-              variants={itemVariants}
               className={`group relative rounded-2xl border p-8 transition-all duration-300 hover:shadow-lg ${feature.cardClass}`}
             >
               <div
@@ -95,9 +68,9 @@ export default function Features() {
               </div>
               <h3 className="mb-3 text-xl font-semibold text-foreground">{feature.title}</h3>
               <p className="leading-relaxed text-muted-foreground">{feature.description}</p>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

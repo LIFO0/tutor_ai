@@ -4,8 +4,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
-  useSyncExternalStore,
+  useState,
   type ReactNode,
 } from "react";
 import {
@@ -25,16 +26,16 @@ type CookieConsentContextValue = {
 const CookieConsentContext = createContext<CookieConsentContextValue | null>(null);
 
 export function CookieConsentProvider({ children }: { children: ReactNode }) {
-  const consent = useSyncExternalStore(
-    subscribeCookieConsent,
-    readCookieConsent,
-    () => null,
-  );
-  const isReady = useSyncExternalStore(
-    subscribeCookieConsent,
-    () => true,
-    () => false,
-  );
+  const [state, setState] = useState<{ ready: boolean; consent: CookieConsent | null }>({
+    ready: false,
+    consent: null,
+  });
+
+  useEffect(() => {
+    const sync = () => setState({ ready: true, consent: readCookieConsent() });
+    sync();
+    return subscribeCookieConsent(sync);
+  }, []);
 
   const acceptAll = useCallback(() => {
     writeCookieConsent("all");
@@ -45,8 +46,13 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ consent, isReady, acceptAll, acceptEssentialOnly }),
-    [consent, isReady, acceptAll, acceptEssentialOnly],
+    () => ({
+      consent: state.consent,
+      isReady: state.ready,
+      acceptAll,
+      acceptEssentialOnly,
+    }),
+    [state.consent, state.ready, acceptAll, acceptEssentialOnly],
   );
 
   return (

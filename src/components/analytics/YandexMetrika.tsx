@@ -28,9 +28,9 @@ function YandexMetrikaPageViews() {
 }
 
 export function YandexMetrika() {
-  const { consent } = useCookieConsent();
+  const { consent, isReady } = useCookieConsent();
 
-  if (!isYandexMetrikaEnabled() || consent !== "all") return null;
+  if (!isReady || !isYandexMetrikaEnabled() || consent !== "all") return null;
 
   const id = YANDEX_METRIKA_ID;
   const tagSrc = `https://mc.yandex.ru/metrika/tag.js?id=${id}`;
@@ -47,7 +47,7 @@ export function YandexMetrika() {
 })(window, document, "script", "${tagSrc}", "ym");
 
 ym(${id}, "init", {
-  ssr: true,
+  ssr: false,
   webvisor: true,
   clickmap: true,
   ecommerce: "dataLayer",

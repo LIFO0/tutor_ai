@@ -54,7 +54,7 @@ export default function LoginPage() {
         error={error}
         loading={loading}
         defaultEmail={email}
-        rightImage="/bears/bear_welcoming_update.png"
+        rightImage="/bears/bear_welcoming_update.webp"
         rightImageAlt="Bear illustration"
       />
 

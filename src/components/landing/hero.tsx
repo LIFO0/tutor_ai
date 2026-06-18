@@ -31,17 +31,17 @@ export default function Hero() {
             </div>
 
             <h1 className="mb-6 font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl lg:text-6xl">
-              <span className="text-balance">Учись с ИИ</span>
+              <span className="text-balance">ИИ-репетитор</span>
               <br />
-              <span className="text-primary">репетитором</span>
+              <span className="text-primary">для школьников</span>
               <br />
-              <span className="text-balance">в любое время</span>
+              <span className="text-balance">5–11 класса</span>
             </h1>
 
             <p className="mb-8 max-w-lg text-lg text-muted-foreground sm:text-xl">
-              Персональный репетитор для{" "}
-              <strong className="text-foreground">5–11 класса</strong>. Объясняет сложные
-              темы простым языком, шаг за шагом.
+              Бесплатный персональный репетитор онлайн — объясняет математику, физику и
+              русский язык простым языком, шаг за шагом.{" "}
+              <strong className="text-foreground">Доступен 24/7.</strong>
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row">
@@ -69,7 +69,7 @@ export default function Hero() {
             <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
               <div className="flex items-center gap-2 px-6 pb-4 pt-6">
                 <Image
-                  src="/landing/bear_main_update.png"
+                  src="/landing/bear_main_update.webp"
                   alt="Мишка"
                   width={112}
                   height={112}

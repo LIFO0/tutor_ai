@@ -5,10 +5,10 @@ import Image from "next/image";
 export type BearTotemVariant = "welcoming" | "standard" | "thinking" | "happy";
 
 const SRC: Record<BearTotemVariant, string> = {
-  welcoming: "/bears/bear_welcoming.png",
-  standard: "/bears/bear_main.png",
-  thinking: "/bears/bear_thinking.png",
-  happy: "/bears/bear_happy.png",
+  welcoming: "/bears/bear_welcoming.webp",
+  standard: "/bears/bear_main.webp",
+  thinking: "/bears/bear_thinking.webp",
+  happy: "/bears/bear_happy.webp",
 };
 
 const ALT: Record<BearTotemVariant, string> = {

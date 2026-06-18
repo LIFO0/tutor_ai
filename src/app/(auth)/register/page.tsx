@@ -278,7 +278,7 @@ export default function RegisterPage() {
             <div className="relative h-full w-full overflow-hidden rounded-3xl bg-[#F59E2F]">
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-[31%] justify-center">
                 <Image
-                  src="/bears/bear_welcoming_update.png"
+                  src="/bears/bear_welcoming_update.webp"
                   alt="Bear illustration"
                   width={720}
                   height={960}

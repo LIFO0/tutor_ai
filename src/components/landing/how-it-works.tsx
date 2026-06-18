@@ -7,16 +7,19 @@ const steps = [
     title: "Выбери предмет",
     description: "Математика, физика, русский язык — выбирай тему, которая нужна прямо сейчас.",
     icon: "/landing/book_icon.png",
+    iconAlt: "Выбор предмета для занятия",
   },
   {
     title: "Задай вопрос",
     description: "Спроси что угодно так, как спросил бы у репетитора. Мишка всё поймёт.",
     icon: "/landing/conversation.png",
+    iconAlt: "Чат с репетитором",
   },
   {
     title: "Получи объяснение по шагам",
     description: "Мишка разберёт тему пошагово, просто и понятно. Можно переспрашивать!",
     icon: "/landing/star.png",
+    iconAlt: "Пошаговое объяснение темы",
   },
 ];
 
@@ -38,7 +41,7 @@ export default function HowItWorks() {
             <div key={step.title} className="relative">
               <div className="relative h-full rounded-2xl border border-border bg-card p-8 text-center">
                 <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                  <Image src={step.icon} alt="" width={36} height={36} className="h-9 w-9 object-contain" />
+                  <Image src={step.icon} alt={step.iconAlt} width={36} height={36} className="h-9 w-9 object-contain" />
                 </div>
                 <div className="mb-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                   {index + 1}

@@ -44,7 +44,7 @@ export default function CTA() {
       >
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-[38%] justify-center sm:translate-y-[34%] lg:translate-y-[38%]">
           <Image
-            src="/bears/bear_welcoming_update.png"
+            src="/bears/bear_welcoming_update.webp"
             alt=""
             width={720}
             height={960}

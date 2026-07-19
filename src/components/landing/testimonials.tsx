@@ -3,39 +3,70 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
-type Testimonial = {
+type TextTestimonial = {
+  type: "text";
   name: string;
   role: string;
   avatar: string;
   text: string;
 };
 
-const testimonials: Testimonial[] = [
+type VideoTestimonial = {
+  type: "video";
+  name: string;
+  role: string;
+  /** ID из URL kinescope.io/embed/... */
+  kinescopeId: string;
+};
+
+type Testimonial = TextTestimonial | VideoTestimonial;
+
+const videoTestimonials: VideoTestimonial[] = [
   {
+    type: "video",
+    name: "Маша",
+    role: "Ученица 11 класса",
+    kinescopeId: "sqeDb3JV72PAW9psEfyD8s",
+  },
+  {
+    type: "video",
+    name: "Лера",
+    role: "Ученица 9 класса",
+    kinescopeId: "3ATcN8TjNhSg68khU7qGwy",
+  },
+  {
+    type: "video",
+    name: "Полина",
+    role: "Ученица 10 класса",
+    kinescopeId: "xb6LvTVcXhLySteXSfJLf3",
+  },
+];
+
+const textTestimonials: TextTestimonial[] = [
+  {
+    type: "text",
     name: "Дмитрий Тихобаев",
     role: "Ученик 9 класса",
     avatar: "Д",
     text: "Мишка объясняет последовательно, без воды, и сразу даёт рабочие инструменты. За пару часов получил чёткий план действий вместо каши в голове. Очень удобно, что можно переспрашивать сколько угодно - не боишься выглядеть глупо. Рекомендую.",
   },
   {
+    type: "text",
     name: "София Пасконная",
     role: "Ученица 8 класса",
     avatar: "С",
     text: "Шикарный ИИ-репетитор, объясняет всё простым языком, не ругает и не осуждает учеников. Если же ты ошибаешься, то он объясняет, в чём дело, и предлагает попробовать снова и снова. Старается сделать процесс обучения интересным и веселым.",
   },
   {
+    type: "text",
     name: "Елизавета Щербакова",
     role: "Ученица 10 класса",
     avatar: "Е",
     text: "Отличный сервис: даже самые сложные правила объясняет на пальцах, с юмором и без занудства. Мишка классный, всем советую. Очень круто, что можно не просто почитать теорию, но и сразу закрепить её на практике.",
   },
-  {
-    name: "Зайцева Полина",
-    role: "Ученица 10 класса",
-    avatar: "З",
-    text: "Я учусь в химбио профиле, поэтому всё время уходит на химию и биологию, а вот с математикой и физикой были проблемы. «Мишка знает» стал для меня идеальным спасением, потому что он объясняет сложные формулы простыми словами.",
-  },
 ];
+
+const testimonials: Testimonial[] = [...videoTestimonials, ...textTestimonials];
 
 const DESKTOP_MAX_INDEX = Math.max(0, testimonials.length - 2);
 
@@ -45,17 +76,51 @@ const navButtonClass =
 const scrollContainerClass =
   "flex gap-4 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:gap-6";
 
+const slideSizeClassName =
+  "flex w-[88%] shrink-0 snap-center flex-col md:w-[calc(50%-12px)] md:snap-start";
+
+const textSlideClassName = `${slideSizeClassName} rounded-2xl bg-background`;
+
+function VideoTestimonialCard({
+  testimonial,
+  className,
+  slideRef,
+}: {
+  testimonial: VideoTestimonial;
+  className: string;
+  slideRef?: (node: HTMLElement | null) => void;
+}) {
+  return (
+    <article ref={slideRef} className={`${className} gap-3`}>
+      <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-2xl">
+        <iframe
+          src={`https://kinescope.io/embed/${testimonial.kinescopeId}`}
+          allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
+          allowFullScreen
+          title={`Видео-отзыв: ${testimonial.name}`}
+          className="absolute inset-0 h-full w-full border-0"
+        />
+      </div>
+
+      <div className="w-fit rounded-2xl bg-background px-4 py-3 sm:px-5 sm:py-4">
+        <p className="truncate font-semibold text-foreground">{testimonial.name}</p>
+        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+      </div>
+    </article>
+  );
+}
+
 function TestimonialCard({
   testimonial,
   className,
   slideRef,
 }: {
-  testimonial: Testimonial;
+  testimonial: TextTestimonial;
   className: string;
   slideRef?: (node: HTMLElement | null) => void;
 }) {
   return (
-    <article ref={slideRef} className={className}>
+    <article ref={slideRef} className={`${className} p-5 sm:p-6 md:p-8`}>
       <p className="mb-5 flex-1 text-pretty text-[0.9375rem] leading-snug text-foreground sm:text-base sm:leading-relaxed md:mb-6 md:text-lg">
         &quot;{testimonial.text}&quot;
       </p>
@@ -90,6 +155,10 @@ function getClosestSlideIndex(container: HTMLElement, slides: Array<HTMLElement 
   });
 
   return closestIndex;
+}
+
+function testimonialKey(testimonial: Testimonial) {
+  return testimonial.type === "video" ? testimonial.kinescopeId : testimonial.name;
 }
 
 export default function Testimonials() {
@@ -141,71 +210,84 @@ export default function Testimonials() {
           </h2>
         </div>
 
-        <div className="mx-auto max-w-4xl">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={handlePrev}
-              disabled={!canGoPrev}
-              className={`${navButtonClass} hidden md:flex`}
-              aria-label="Предыдущий отзыв"
-            >
-              <ChevronLeft className="h-6 w-6" strokeWidth={2.5} aria-hidden />
-            </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={!canGoPrev}
+            className={`${navButtonClass} hidden md:flex`}
+            aria-label="Предыдущий отзыв"
+          >
+            <ChevronLeft className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+          </button>
 
-            <div
-              ref={scrollRef}
-              className={`${scrollContainerClass} min-w-0 flex-1 snap-x snap-mandatory`}
-              role="region"
-              aria-label="Отзывы учеников"
-              onScroll={handleScroll}
-            >
-              {testimonials.map((testimonial, slideIndex) => (
+          <div
+            ref={scrollRef}
+            className={`${scrollContainerClass} min-w-0 flex-1 snap-x snap-mandatory`}
+            role="region"
+            aria-label="Отзывы учеников"
+            onScroll={handleScroll}
+          >
+            {testimonials.map((testimonial, slideIndex) => {
+              const slideRef = (node: HTMLElement | null) => {
+                slideRefs.current[slideIndex] = node;
+              };
+
+              if (testimonial.type === "video") {
+                return (
+                  <VideoTestimonialCard
+                    key={testimonial.kinescopeId}
+                    testimonial={testimonial}
+                    slideRef={slideRef}
+                    className={slideSizeClassName}
+                  />
+                );
+              }
+
+              return (
                 <TestimonialCard
                   key={testimonial.name}
                   testimonial={testimonial}
-                  slideRef={(node) => {
-                    slideRefs.current[slideIndex] = node;
-                  }}
-                  className="flex w-[88%] shrink-0 snap-center flex-col rounded-2xl bg-background p-5 sm:p-6 md:w-[calc(50%-12px)] md:snap-start md:p-8"
+                  slideRef={slideRef}
+                  className={textSlideClassName}
                 />
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={!canGoNext}
-              className={`${navButtonClass} hidden md:flex`}
-              aria-label="Следующий отзыв"
-            >
-              <ChevronRight className="h-6 w-6" strokeWidth={2.5} aria-hidden />
-            </button>
+              );
+            })}
           </div>
 
-          <div
-            className="mt-5 flex justify-center gap-2 md:hidden"
-            aria-label="Навигация по отзывам"
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!canGoNext}
+            className={`${navButtonClass} hidden md:flex`}
+            aria-label="Следующий отзыв"
           >
-            {testimonials.map((testimonial, dotIndex) => (
-              <button
-                key={testimonial.name}
-                type="button"
-                aria-label={`Отзыв ${dotIndex + 1}`}
-                aria-current={dotIndex === activeIndex ? "true" : undefined}
-                onClick={() => {
-                  scrollToSlide(dotIndex);
-                  setActiveIndex(dotIndex);
-                }}
-                className={[
-                  "h-2 rounded-full transition-all duration-300",
-                  dotIndex === activeIndex
-                    ? "w-6 bg-primary"
-                    : "w-2 bg-background/35 hover:bg-background/50",
-                ].join(" ")}
-              />
-            ))}
-          </div>
+            <ChevronRight className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+          </button>
+        </div>
+
+        <div
+          className="mt-5 flex justify-center gap-2 md:hidden"
+          aria-label="Навигация по отзывам"
+        >
+          {testimonials.map((testimonial, dotIndex) => (
+            <button
+              key={testimonialKey(testimonial)}
+              type="button"
+              aria-label={`Отзыв ${dotIndex + 1}`}
+              aria-current={dotIndex === activeIndex ? "true" : undefined}
+              onClick={() => {
+                scrollToSlide(dotIndex);
+                setActiveIndex(dotIndex);
+              }}
+              className={[
+                "h-2 rounded-full transition-all duration-300",
+                dotIndex === activeIndex
+                  ? "w-6 bg-primary"
+                  : "w-2 bg-background/35 hover:bg-background/50",
+              ].join(" ")}
+            />
+          ))}
         </div>
       </div>
     </section>

@@ -22,7 +22,7 @@ const securityHeaders = [
       "img-src 'self' data: https://avatars.yandex.net https://avatars.mds.yandex.net https://mc.yandex.ru https://mc.yandex.com",
       "connect-src 'self' https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.ru wss://mc.yandex.com",
       "font-src 'self'",
-      "frame-src https://mc.yandex.ru https://mc.yandex.com",
+      "frame-src https://mc.yandex.ru https://mc.yandex.com https://kinescope.io https://*.kinescope.io",
       "frame-ancestors 'self'",
     ].join("; "),
   },

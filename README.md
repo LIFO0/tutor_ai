@@ -47,7 +47,7 @@
 - **Профиль** — имя, класс (важен для уровня объяснений), аватар (встроенные медведи, своя картинка или фото из Яндекса), обращение в чате (как зовут в ответах).
 - **Вход** — регистрация по email и паролю или Яндекс ID. После первого входа через Яндекс можно пройти короткий шаг «выберите класс», чтобы подсказки совпадали с программой.
 
-Технически это одно Next.js-приложение: страницы и API на сервере, данные в **SQLite** (Drizzle ORM), ответы чата и задач — **YandexGPT** (Foundation Models), сессия пользователя — **JWT** в httpOnly-cookie.
+Технически это одно Next.js-приложение: страницы и API на сервере, данные в **SQLite** (Drizzle ORM), ответы чата и задач — **Google Gemini API**, сессия пользователя — **JWT** в httpOnly-cookie.
 
 ## Скриншоты
 
@@ -76,7 +76,7 @@
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite">
   <img src="https://img.shields.io/badge/Drizzle_ORM-C5F74F?style=for-the-badge&logoColor=1a1a1a" alt="Drizzle ORM">
-  <img src="https://img.shields.io/badge/YandexGPT-FC3F1D?style=for-the-badge&logo=yandexcloud&logoColor=white" alt="YandexGPT">
+  <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Google Gemini">
   <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT">
   <img src="https://img.shields.io/badge/Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white" alt="Vitest">
   <img src="https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white" alt="ESLint">
@@ -87,7 +87,7 @@
 | Фреймворк | Next.js (Turbopack) |
 | Язык | TypeScript |
 | База данных | SQLite + Drizzle ORM |
-| ИИ | YandexGPT (Foundation Models) |
+| ИИ | Google Gemini API |
 | Аутентификация | JWT в httpOnly-cookie, OAuth Яндекса |
 | Тесты | Vitest |
 | Линтинг | ESLint |
@@ -101,14 +101,14 @@
 | `src/app/api/tasks/*` | Генерация задачи, проверка ответа, история |
 | `src/app/api/profile/*` | Профиль и загрузка аватара |
 | `src/app/api/auth/*` | Регистрация, логин, выход, OAuth Яндекса |
-| `src/lib/yandex-gpt.ts` | Запросы к YandexGPT (стрим с запасным вариантом без стрима) |
+| `src/lib/gemini.ts` | Запросы к Google Gemini (стрим SSE с запасным вариантом без стрима) |
 | `src/lib/db/*` | SQLite, схема таблиц, создание таблиц при старте |
 
-Если не заданы `YANDEX_GPT_API_KEY` и `YANDEX_FOLDER_ID`, чат и задачи работают в **демо-режиме** (локальная заглушка без вызова облака) — удобно для разработки, для продакшена ключи обязательны.
+Если не задан `GEMINI_API_KEY`, чат и задачи работают в **демо-режиме** (локальная заглушка без вызова облака) — удобно для разработки, для продакшена ключ обязателен.
 
 ## Переменные окружения
 
-Файл `.env.local` не коммитится. Полный перечень и комментарии — в [`.env.local.example`](./.env.local.example): ключи YandexGPT, `JWT_SECRET`, `NEXT_PUBLIC_APP_URL`, OAuth Яндекса, опционально `DATABASE_PATH`.
+Файл `.env.local` не коммитится. Полный перечень и комментарии — в [`.env.local.example`](./.env.local.example): ключ Gemini (`GEMINI_API_KEY`), опционально `GEMINI_MODEL`, `JWT_SECRET`, `NEXT_PUBLIC_APP_URL`, OAuth Яндекса, опционально `DATABASE_PATH`.
 
 При компрометации ключей см. [SECURITY.md](./SECURITY.md) (ротация секретов, проверка git).
 

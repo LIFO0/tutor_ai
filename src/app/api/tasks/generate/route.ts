@@ -6,7 +6,7 @@ import { taskGeneratePrompt } from "@/lib/prompts";
 import { completeOnce } from "@/lib/llm";
 import { createTaskSession } from "@/lib/tasks";
 import { quotaErrorResponse } from "@/lib/api/quota-response";
-import { assertYandexLlmConfigured } from "@/lib/llm-config";
+import { assertLlmConfigured } from "@/lib/llm-config";
 import { checkAndConsume, getUsageSnapshot, toQuotaUser } from "@/lib/usage-quota";
 import { getTaskBankMixRate } from "@/lib/task-bank-config";
 import {
@@ -151,7 +151,7 @@ export async function POST(req: Request) {
     return serveFromBank({ userId: user.id, bank: bankCandidate });
   }
 
-  const llmGuard = assertYandexLlmConfigured();
+  const llmGuard = assertLlmConfigured();
   if (llmGuard) return llmGuard;
 
   const quota = await checkAndConsume(toQuotaUser(user), "task_generate");

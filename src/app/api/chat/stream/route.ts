@@ -10,10 +10,10 @@ import {
 } from "@/lib/chat";
 import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 import { systemPrompt } from "@/lib/prompts";
-import { streamYandexCompletion } from "@/lib/yandex-gpt";
+import { streamCompletion } from "@/lib/llm";
 import { normalizeChatSubject } from "@/lib/subjects";
 import { quotaErrorResponse } from "@/lib/api/quota-response";
-import { assertYandexLlmConfigured, validateChatMessageLength } from "@/lib/llm-config";
+import { assertLlmConfigured, validateChatMessageLength } from "@/lib/llm-config";
 import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 
 export async function POST(req: Request) {
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return jsonError("Unauthorized", 401);
 
-  const llmGuard = assertYandexLlmConfigured();
+  const llmGuard = assertLlmConfigured();
   if (llmGuard) return llmGuard;
 
   const body = (await req.json().catch(() => null)) as
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
         }
 
         const beforeModelMs = Date.now();
-        for await (const chunk of streamYandexCompletion({
+        for await (const chunk of streamCompletion({
           messages: [
             { role: "system", text: sys },
             ...history,

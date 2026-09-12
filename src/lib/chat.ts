@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gte, isNull, max, sql } from "drizzle-orm";
 import { isValidChatSubject, normalizeChatSubject, type Subject } from "@/lib/subjects";
 import { getDb, schema } from "@/lib/db";
 import { utcNowIso } from "@/lib/sqlite-datetime";
-import { completeYandexText } from "@/lib/yandex-gpt";
+import { completeText } from "@/lib/llm";
 
 const AUTO_TITLE_INITIAL_WINDOW_MESSAGES = 8;
 const AUTO_TITLE_CONTEXT_MESSAGES = 18;
@@ -248,7 +248,7 @@ export async function maybeUpdateChatTitleInitialWindow(params: {
 
   // Prefer AI title if model is configured; otherwise fallback to heuristics.
   let nextTitle: string | null = null;
-  const aiText = await completeYandexText({
+  const aiText = await completeText({
     messages: [
       {
         role: "system",
@@ -309,7 +309,7 @@ export async function maybeUpdateChatSubjectInitialWindow(params: {
   const history = ctx?.messages ?? [];
 
   let next: Subject | null = null;
-  const aiText = await completeYandexText({
+  const aiText = await completeText({
     messages: [
       {
         role: "system",

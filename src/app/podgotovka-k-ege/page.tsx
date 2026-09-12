@@ -120,6 +120,7 @@ export default function PodgotovkaKEgePage() {
         { label: "Репетитор по физике", href: "/repetitor-po-fizike" },
         { label: "Репетитор по русскому языку", href: "/repetitor-po-russkomu-yazyku" },
         { label: "Подготовка к ОГЭ", href: "/podgotovka-k-oge" },
+        { label: "ЕГЭ по информатике 2026: 27 заданий", href: "/blog#ege-informatika-2026" },
       ]}
       jsonLd={jsonLd}
     />

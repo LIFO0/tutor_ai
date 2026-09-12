@@ -5,11 +5,11 @@ import { ArrowRight } from "lucide-react";
 import Header from "@/components/landing/header";
 import Footer from "@/components/landing/footer";
 import { Button } from "@/components/ui/button";
-import { blogPosts, getBlogPost } from "@/data/blog/posts";
+import { getBlogPost, getBlogPostSlugs, getRelatedPosts, getSeriesNeighbors } from "@/data/blog/posts";
 import { SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 
 export function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
+  return getBlogPostSlugs().map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -39,14 +39,30 @@ export async function generateMetadata({
   };
 }
 
-function markdownToBlocks(md: string): { type: "h2" | "h3" | "p" | "ul" | "li"; text: string }[] {
-  const lines = md
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const blocks: { type: "h2" | "h3" | "p" | "ul" | "li"; text: string }[] = [];
+function markdownToBlocks(md: string): { type: "h2" | "h3" | "p" | "li" | "code"; text: string }[] {
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  const blocks: { type: "h2" | "h3" | "p" | "li" | "code"; text: string }[] = [];
+  let i = 0;
 
-  for (const line of lines) {
+  while (i < lines.length) {
+    const raw = lines[i];
+    if (raw.trim().startsWith("```")) {
+      const codeLines: string[] = [];
+      i += 1;
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        codeLines.push(lines[i]);
+        i += 1;
+      }
+      i += 1;
+      blocks.push({ type: "code", text: codeLines.join("\n").replace(/\s+$/, "") });
+      continue;
+    }
+
+    const line = raw.trim();
+    if (!line) {
+      i += 1;
+      continue;
+    }
     if (line.startsWith("### ")) {
       blocks.push({ type: "h3", text: line.slice(4) });
     } else if (line.startsWith("## ")) {
@@ -56,15 +72,26 @@ function markdownToBlocks(md: string): { type: "h2" | "h3" | "p" | "ul" | "li"; 
     } else {
       blocks.push({ type: "p", text: line });
     }
+    i += 1;
   }
   return blocks;
 }
 
 function renderInline(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+      return (
+        <code
+          key={i}
+          className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.92em] text-foreground"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
     }
     return part;
   });
@@ -109,6 +136,15 @@ function ArticleBody({ body }: { body: string }) {
           {renderInline(block.text)}
         </h3>,
       );
+    } else if (block.type === "code") {
+      rendered.push(
+        <pre
+          key={`code-${rendered.length}`}
+          className="my-4 overflow-x-auto rounded-xl bg-zinc-950 p-4 text-sm leading-relaxed text-zinc-100"
+        >
+          <code className="font-mono">{block.text}</code>
+        </pre>,
+      );
     } else {
       rendered.push(
         <p key={`p-${rendered.length}`} className="leading-relaxed text-foreground">
@@ -131,7 +167,8 @@ export default async function BlogPostPage({
   const post = getBlogPost(slug);
   if (!post) notFound();
 
-  const others = blogPosts.filter((p) => p.slug !== slug).slice(0, 3);
+  const others = getRelatedPosts(post, 3);
+  const { prev, next } = getSeriesNeighbors(post);
 
   const publishedDate = new Date(post.publishedAt).toLocaleDateString("ru-RU", {
     year: "numeric",
@@ -219,6 +256,11 @@ export default async function BlogPostPage({
               <span aria-hidden>·</span>
               <span>{post.readingTime} мин чтения</span>
             </div>
+            {post.seriesLabel && post.seriesOrder ? (
+              <p className="mb-4 text-sm font-medium text-primary">
+                ЕГЭ по информатике 2026 · задание {post.seriesOrder} из 27
+              </p>
+            ) : null}
             <h1 className="text-3xl font-bold leading-snug text-foreground sm:text-4xl">
               {post.h1}
             </h1>
@@ -228,6 +270,41 @@ export default async function BlogPostPage({
           <div className="prose-custom">
             <ArticleBody body={post.body} />
           </div>
+
+          {(prev || next) && (
+            <nav aria-label="Соседние задания" className="mt-10 grid gap-3 sm:grid-cols-2">
+              {prev ? (
+                <Link
+                  href={`/blog/${prev.slug}`}
+                  className="rounded-2xl border border-border p-4 transition-shadow hover:shadow-md"
+                >
+                  <span className="text-sm text-muted-foreground">Предыдущее задание</span>
+                  <span className="mt-1 block font-medium text-foreground">
+                    {prev.seriesOrder}.{" "}
+                    {prev.seriesLabel
+                      ? prev.seriesLabel.charAt(0).toUpperCase() + prev.seriesLabel.slice(1)
+                      : prev.title}
+                  </span>
+                </Link>
+              ) : (
+                <span />
+              )}
+              {next ? (
+                <Link
+                  href={`/blog/${next.slug}`}
+                  className="rounded-2xl border border-border p-4 text-right transition-shadow hover:shadow-md"
+                >
+                  <span className="text-sm text-muted-foreground">Следующее задание</span>
+                  <span className="mt-1 block font-medium text-foreground">
+                    {next.seriesOrder}.{" "}
+                    {next.seriesLabel
+                      ? next.seriesLabel.charAt(0).toUpperCase() + next.seriesLabel.slice(1)
+                      : next.title}
+                  </span>
+                </Link>
+              ) : null}
+            </nav>
+          )}
 
           {/* CTA */}
           <div className="mt-12 rounded-2xl bg-primary/10 p-7 text-center">

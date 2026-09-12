@@ -12,8 +12,8 @@ export function isProductionRuntime(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-export function isYandexLlmConfigured(): boolean {
-  return Boolean(getOptionalEnv("YANDEX_GPT_API_KEY") && getOptionalEnv("YANDEX_FOLDER_ID"));
+export function isLlmConfigured(): boolean {
+  return Boolean(getOptionalEnv("GEMINI_API_KEY"));
 }
 
 export function assertProductionEnv(): void {
@@ -36,9 +36,9 @@ export function llmUnavailableResponse() {
   );
 }
 
-export function assertYandexLlmConfigured(): NextResponse | null {
+export function assertLlmConfigured(): NextResponse | null {
   assertProductionEnv();
-  if (isProductionRuntime() && !isYandexLlmConfigured()) {
+  if (isProductionRuntime() && !isLlmConfigured()) {
     return llmUnavailableResponse();
   }
   return null;

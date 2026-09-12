@@ -7,7 +7,7 @@ import { completeOnce } from "@/lib/llm";
 import { resolveTaskCheckResult } from "@/lib/task-check-json";
 import { answersMatchForTask } from "@/lib/answer-normalize";
 import { quotaErrorResponse } from "@/lib/api/quota-response";
-import { assertYandexLlmConfigured } from "@/lib/llm-config";
+import { assertLlmConfigured } from "@/lib/llm-config";
 import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 
 const TASK_CHECK_SYSTEM_PROMPT =
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
   const task = await getTask(user.id, taskId);
   if (!task) return jsonError("Not found", 404);
 
-  const llmGuard = assertYandexLlmConfigured();
+  const llmGuard = assertLlmConfigured();
   if (llmGuard) return llmGuard;
 
   const quota = await checkAndConsume(toQuotaUser(user), "task_check");

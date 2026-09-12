@@ -1,3 +1,5 @@
+import { egeInformatika2026Posts } from "@/data/blog/ege-informatika-2026";
+
 export type BlogPost = {
   slug: string;
   title: string;
@@ -10,6 +12,9 @@ export type BlogPost = {
   coverImage: string;
   coverAlt: string;
   body: string;
+  series?: string;
+  seriesOrder?: number;
+  seriesLabel?: string;
 };
 
 export const blogPosts: BlogPost[] = [
@@ -640,6 +645,7 @@ export const blogPosts: BlogPost[] = [
 Попробуйте работу с Мишкой уже сегодня — это бесплатно и доступно прямо в браузере.
 `,
   },
+  ...egeInformatika2026Posts,
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
@@ -648,4 +654,34 @@ export function getBlogPost(slug: string): BlogPost | undefined {
 
 export function getBlogPostSlugs(): string[] {
   return blogPosts.map((p) => p.slug);
+}
+
+export function getSeriesPosts(series: string): BlogPost[] {
+  return blogPosts
+    .filter((post) => post.series === series)
+    .sort((a, b) => (a.seriesOrder ?? 0) - (b.seriesOrder ?? 0));
+}
+
+export function getSeriesNeighbors(post: BlogPost): { prev?: BlogPost; next?: BlogPost } {
+  if (!post.series) return {};
+  const series = getSeriesPosts(post.series);
+  const index = series.findIndex((item) => item.slug === post.slug);
+  return {
+    prev: index > 0 ? series[index - 1] : undefined,
+    next: index >= 0 ? series[index + 1] : undefined,
+  };
+}
+
+export function getRelatedPosts(post: BlogPost, limit = 3): BlogPost[] {
+  if (post.series) {
+    const series = getSeriesPosts(post.series).filter((item) => item.slug !== post.slug);
+    return series
+      .sort(
+        (a, b) =>
+          Math.abs((a.seriesOrder ?? 0) - (post.seriesOrder ?? 0)) -
+          Math.abs((b.seriesOrder ?? 0) - (post.seriesOrder ?? 0)),
+      )
+      .slice(0, limit);
+  }
+  return blogPosts.filter((item) => item.slug !== post.slug && !item.series).slice(0, limit);
 }

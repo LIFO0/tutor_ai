@@ -50,7 +50,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${origin}/blog`,
-      lastModified: new Date("2026-06-12"),
+      lastModified: new Date("2026-09-11"),
       changeFrequency: "weekly",
       priority: 0.75,
     },

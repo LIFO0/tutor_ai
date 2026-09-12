@@ -16,6 +16,7 @@ const blogLinks = [
   { label: "Подготовка к ОГЭ по математике", href: "/blog/kak-podgotovitsya-k-oge-po-matematike" },
   { label: "Как учить физику", href: "/blog/kak-uchit-fiziku-shkolniku" },
   { label: "Ошибки в русском языке", href: "/blog/chastye-oshibki-v-russkom-yazyke" },
+  { label: "ЕГЭ информатика 2026", href: "/blog#ege-informatika-2026" },
   { label: "Все статьи", href: "/blog" },
 ];
 

@@ -247,6 +247,7 @@ export async function maybeUpdateChatTitleInitialWindow(params: {
   const history = ctx?.messages ?? [];
 
   // Prefer AI title if model is configured; otherwise fallback to heuristics.
+  // Final turn must be `user` — Gemini Flash-Lite rejects contents ending in `model`.
   let nextTitle: string | null = null;
   const aiText = await completeText({
     messages: [
@@ -258,9 +259,13 @@ export async function maybeUpdateChatTitleInitialWindow(params: {
           "Максимум 60 символов. Верни ТОЛЬКО тему одной строкой.",
       },
       ...history.map((m) => ({
-        role: m.role,
+        role: m.role as "user" | "assistant",
         text: m.content,
       })),
+      {
+        role: "user",
+        text: "Сгенерируй тему чата по правилам выше. Верни только тему одной строкой.",
+      },
     ],
     maxTokens: 40,
     temperature: 0.2,
@@ -309,6 +314,7 @@ export async function maybeUpdateChatSubjectInitialWindow(params: {
   const history = ctx?.messages ?? [];
 
   let next: Subject | null = null;
+  // Final turn must be `user` — Gemini Flash-Lite rejects contents ending in `model`.
   const aiText = await completeText({
     messages: [
       {
@@ -319,7 +325,14 @@ export async function maybeUpdateChatSubjectInitialWindow(params: {
           "Если это не математика/физика/русский — верни free.\n" +
           "Ответ: только одно слово, без кавычек и точек.",
       },
-      ...history.map((m) => ({ role: m.role, text: m.content })),
+      ...history.map((m) => ({
+        role: m.role as "user" | "assistant",
+        text: m.content,
+      })),
+      {
+        role: "user",
+        text: "Определи предмет по правилам выше. Ответ: одно слово из списка.",
+      },
     ],
     maxTokens: 4,
     temperature: 0,

@@ -68,14 +68,20 @@ export function toGeminiRequest(
 
   for (const m of messages) {
     if (m.role === "system") continue;
-    const role = m.role === "assistant" ? "model" : "user";
     const text = m.text;
+    if (typeof text !== "string" || !text.trim()) continue;
+    const role = m.role === "assistant" ? "model" : "user";
     const last = contents[contents.length - 1];
     if (last && last.role === role) {
       last.parts[0].text += `\n${text}`;
     } else {
       contents.push({ role, parts: [{ text }] });
     }
+  }
+
+  // Gemini multi-turn must start with a user turn.
+  while (contents.length > 0 && contents[0].role === "model") {
+    contents.shift();
   }
 
   const body: GeminiRequestBody = {
@@ -128,7 +134,10 @@ export function extractGeminiText(payload: unknown): string | null {
 /** Exported for unit tests. */
 export function mapGeminiHttpError(status: number, body: string): Error {
   if (status === 429) return new Error(MSG_RATE_LIMIT);
-  if (status === 400 || status === 401 || status === 403) return new Error(MSG_ACCESS);
+  // 404: treat as known access error so stream path does not double-fetch via fallback.
+  if (status === 400 || status === 401 || status === 403 || status === 404) {
+    return new Error(MSG_ACCESS);
+  }
   if (status >= 500) return new Error(MSG_UNAVAILABLE);
   const snippet = body.trim().slice(0, 200);
   return new Error(snippet ? `Gemini error: ${status} ${snippet}` : `Gemini error: ${status}`);
@@ -196,6 +205,7 @@ async function fetchCompletionText(params: {
 
     if (!response.ok) {
       const err = await response.text().catch(() => "");
+      console.error("[gemini] generateContent failed", response.status, err.trim().slice(0, 500));
       throw mapGeminiHttpError(response.status, err);
     }
 
@@ -235,6 +245,7 @@ async function* fetchCompletionStreamPieces(params: {
 
     if (!response.ok) {
       const err = await response.text().catch(() => "");
+      console.error("[gemini] streamGenerateContent failed", response.status, err.trim().slice(0, 500));
       throw mapGeminiHttpError(response.status, err);
     }
     if (!response.body) throw new Error("Gemini stream: empty response body");

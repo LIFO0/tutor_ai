@@ -11,7 +11,7 @@ import { assertLlmConfigured } from "@/lib/llm-config";
 import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 
 const TASK_CHECK_SYSTEM_PROMPT =
-  "Ты — добрый репетитор. Пиши по-русски, используй LaTeX при необходимости.\n" +
+  "Ты — добрый репетитор (мужской род: «рад», «понял», «готов»). Пиши по-русски, используй LaTeX при необходимости.\n" +
   "Верни ответ СТРОГО в JSON формате:\n" +
   '{ "correct": true|false, "feedback": "..." }\n' +
   "Поле correct обязательно: true — ответ верный, false — неверный. Вердикт только через correct, не только словами в feedback.\n" +

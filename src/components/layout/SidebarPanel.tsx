@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button, Card } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
 import Image from "next/image";
+import Link from "next/link";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { AccountProfileMenu } from "./AccountProfileMenu";
 import { ConfirmDeleteChatModal } from "@/components/chat/ConfirmDeleteChatModal";
@@ -124,7 +125,10 @@ export function SidebarPanel({
         isLoading={deleting}
       />
       {showBrand ? (
-        <div className="flex items-center gap-3 px-4 py-4">
+        <Link
+          href="/"
+          className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+        >
           <Image
             src="/avatars/av_main.png"
             alt="Мишка знает"
@@ -136,7 +140,7 @@ export function SidebarPanel({
           <div className="flex min-w-0 flex-col">
             <div className="text-sm font-semibold">Мишка знает</div>
           </div>
-        </div>
+        </Link>
       ) : null}
 
       <nav className="mt-2 flex flex-col gap-1 overflow-y-auto px-3 pb-2">

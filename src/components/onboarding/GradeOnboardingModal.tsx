@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -22,10 +22,15 @@ export function GradeOnboardingModal({
   initialGrade?: number;
 }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [grade, setGrade] = useState<number>(initialGrade || 7);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const canSave = useMemo(() => Number.isInteger(grade) && grade >= 5 && grade <= 11, [grade]);
   const isOpen = show && !saved;
@@ -59,14 +64,12 @@ export function GradeOnboardingModal({
     }
   }
 
+  // Client-only + closed → null: avoids HeroUI Modal Trigger SSR/client mismatch.
+  if (!mounted || !isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onOpenChange={() => undefined}>
-      <Modal.Trigger>
-        <button type="button" className="sr-only">
-          Open
-        </button>
-      </Modal.Trigger>
-      <Modal.Backdrop>
+    <Modal isOpen onOpenChange={() => undefined}>
+      <Modal.Backdrop isDismissable={false}>
         <ModalContainer>
           <ModalDialog>
             <ModalHeader className="flex flex-col gap-1">Выберите класс</ModalHeader>
@@ -109,4 +112,3 @@ export function GradeOnboardingModal({
     </Modal>
   );
 }
-

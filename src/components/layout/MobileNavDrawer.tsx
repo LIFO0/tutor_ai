@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { X } from "lucide-react";
 import type { CurrentUser } from "@/lib/current-user";
 import { SidebarPanel } from "./SidebarPanel";
@@ -41,7 +42,11 @@ export function MobileNavDrawer({
       />
       <div className="absolute left-0 top-0 flex h-full w-[min(100vw-3rem,18rem)] flex-col border-r border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-200 px-3 py-3 dark:border-zinc-800">
-          <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-3 rounded-xl py-1 pl-1 pr-2 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+            onClick={() => onOpenChange(false)}
+          >
             <Image
               src="/avatars/av_main.png"
               alt="Мишка знает"
@@ -53,7 +58,7 @@ export function MobileNavDrawer({
             <span className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">
               Мишка знает
             </span>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={() => onOpenChange(false)}

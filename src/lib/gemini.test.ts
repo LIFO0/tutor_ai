@@ -78,6 +78,43 @@ describe("toGeminiRequest / extractGeminiText / mapGeminiHttpError", () => {
   test("maps 429 to rate limit message", () => {
     expect(mapGeminiHttpError(429, "").message).toBe(MSG_RATE_LIMIT);
   });
+
+  test("maps 404 to access message (no generic fallback retry)", () => {
+    expect(mapGeminiHttpError(404, "not found").message).toBe(
+      "Проблема с доступом к ИИ. Проверьте настройки сервиса или попробуйте позже.",
+    );
+  });
+
+  test("drops leading assistant turns so contents start with user", () => {
+    const body = toGeminiRequest([
+      { role: "assistant", text: "orphan reply" },
+      { role: "user", text: "next question" },
+      { role: "assistant", text: "answer" },
+      { role: "user", text: "follow-up" },
+    ]);
+    expect(body.contents[0].role).toBe("user");
+    expect(body.contents[0].parts[0].text).toBe("next question");
+    expect(body.contents.at(-1)?.role).toBe("user");
+  });
+
+  test("skips empty texts and keeps title-style trailing user turn last", () => {
+    const body = toGeminiRequest([
+      { role: "system", text: "Title rules" },
+      { role: "user", text: "Hi" },
+      { role: "assistant", text: "Hello" },
+      { role: "user", text: "   " },
+      { role: "user", text: "Сгенерируй тему чата по правилам выше. Верни только тему одной строкой." },
+    ]);
+    expect(body.contents).toEqual([
+      { role: "user", parts: [{ text: "Hi" }] },
+      { role: "model", parts: [{ text: "Hello" }] },
+      {
+        role: "user",
+        parts: [{ text: "Сгенерируй тему чата по правилам выше. Верни только тему одной строкой." }],
+      },
+    ]);
+    expect(body.contents.at(-1)?.role).toBe("user");
+  });
 });
 
 describe("completeGeminiText / streamGeminiCompletion", () => {
@@ -150,6 +187,19 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
     await expect(
       completeGeminiText({ messages: [{ role: "user", text: "hi" }] }),
     ).rejects.toThrow(MSG_RATE_LIMIT);
+  });
+
+  test("stream 404 does not fall back to a second generateContent call", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: "missing" }, { status: 404, ok: false }));
+
+    await expect(async () => {
+      for await (const _ of streamGeminiCompletion({
+        messages: [{ role: "user", text: "hi" }],
+      })) {
+        // drain
+      }
+    }).rejects.toThrow("Проблема с доступом к ИИ");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   test("stream yields SSE data pieces in order", async () => {

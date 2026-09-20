@@ -32,13 +32,11 @@ export function ConfirmDeleteChatModal({
 }) {
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
 
+  // Avoid always-mounted HeroUI Modal + dummy Trigger (hydration mismatch).
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-      <Modal.Trigger>
-        <button type="button" className="sr-only">
-          Open
-        </button>
-      </Modal.Trigger>
+    <Modal isOpen onOpenChange={onOpenChange}>
       <Modal.Backdrop>
         <ModalContainer>
           <ModalDialog>
@@ -60,4 +58,3 @@ export function ConfirmDeleteChatModal({
     </Modal>
   );
 }
-

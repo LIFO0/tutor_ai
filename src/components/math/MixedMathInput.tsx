@@ -208,6 +208,11 @@ export const MixedMathInput = forwardRef<
 
   const placeholderText = placeholder ?? "Введите текст…";
   const hasContent = useMemo(() => value.trim().length > 0, [value]);
+  // Avoid hydration #418: browsers insert <br> into empty contentEditable before React hydrates.
+  const [editableReady, setEditableReady] = useState(false);
+  useEffect(() => {
+    setEditableReady(true);
+  }, []);
 
   // Preload MathLive on touch devices so <math-field> is defined before the first tap.
   useEffect(() => {
@@ -401,8 +406,9 @@ export const MixedMathInput = forwardRef<
           role="textbox"
           aria-multiline
           tabIndex={disabled ? -1 : 0}
-          contentEditable={!disabled}
+          contentEditable={editableReady && !disabled}
           suppressContentEditableWarning
+          suppressHydrationWarning
           onFocus={onFocus}
           onKeyDown={onKeyDown}
           onInput={() => {

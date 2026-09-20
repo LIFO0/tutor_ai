@@ -22,7 +22,7 @@ function MobileSettingsBar({ onMenuOpen }: { onMenuOpen: () => void }) {
       </button>
 
       <Link
-        href="/dashboard"
+        href="/"
         className="flex min-w-0 items-center gap-2 rounded-xl py-1 pl-1 pr-2 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
       >
         <Image

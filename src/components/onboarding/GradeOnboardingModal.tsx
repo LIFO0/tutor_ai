@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -14,6 +14,15 @@ import {
 
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
 
+/** true only on the client; avoids SSR/client Modal mismatch without setState-in-effect. */
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
 export function GradeOnboardingModal({
   show,
   initialGrade = 7,
@@ -22,15 +31,11 @@ export function GradeOnboardingModal({
   initialGrade?: number;
 }) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const isClient = useIsClient();
   const [saved, setSaved] = useState(false);
   const [grade, setGrade] = useState<number>(initialGrade || 7);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const canSave = useMemo(() => Number.isInteger(grade) && grade >= 5 && grade <= 11, [grade]);
   const isOpen = show && !saved;
@@ -65,7 +70,7 @@ export function GradeOnboardingModal({
   }
 
   // Client-only + closed → null: avoids HeroUI Modal Trigger SSR/client mismatch.
-  if (!mounted || !isOpen) return null;
+  if (!isClient || !isOpen) return null;
 
   return (
     <Modal isOpen onOpenChange={() => undefined}>

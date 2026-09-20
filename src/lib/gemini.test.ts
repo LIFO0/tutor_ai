@@ -193,10 +193,10 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ error: "missing" }, { status: 404, ok: false }));
 
     await expect(async () => {
-      for await (const _ of streamGeminiCompletion({
+      for await (const chunk of streamGeminiCompletion({
         messages: [{ role: "user", text: "hi" }],
       })) {
-        // drain
+        void chunk;
       }
     }).rejects.toThrow("Проблема с доступом к ИИ");
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -264,10 +264,10 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
     process.env.NODE_ENV = "production";
 
     await expect(async () => {
-      for await (const _ of streamGeminiCompletion({
+      for await (const chunk of streamGeminiCompletion({
         messages: [{ role: "user", text: "hi" }],
       })) {
-        // drain
+        void chunk;
       }
     }).rejects.toThrow(LLM_UNAVAILABLE_MESSAGE);
     expect(fetchMock).not.toHaveBeenCalled();

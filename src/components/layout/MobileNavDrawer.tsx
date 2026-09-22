@@ -69,7 +69,12 @@ export function MobileNavDrawer({
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">
-          <SidebarPanel user={user} onNavigate={() => onOpenChange(false)} showBrand={false} />
+          <SidebarPanel
+            user={user}
+            onNavigate={() => onOpenChange(false)}
+            showBrand={false}
+            collapsed={false}
+          />
         </div>
       </div>
     </div>

@@ -56,6 +56,8 @@ export default async function Image() {
               border: "4px solid #fde8c3",
             }}
           >
+            {/* next/og (Satori) does not support next/image */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={avatarSrc}
               width={128}

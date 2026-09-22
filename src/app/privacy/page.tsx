@@ -7,7 +7,7 @@ import { SITE_ORIGIN } from "@/lib/seo";
 export const metadata: Metadata = {
   title: "Политика конфиденциальности",
   description:
-    "Политика конфиденциальности сервиса «Мишка знает»: обработка персональных данных школьников, cookies, Google Gemini API и права пользователей.",
+    "Политика конфиденциальности сервиса «Мишка знает»: обработка персональных данных школьников, изображения в чате, cookies, Google Gemini API и права пользователей.",
   alternates: { canonical: `${SITE_ORIGIN}/privacy` },
   robots: { index: false, follow: true },
 };

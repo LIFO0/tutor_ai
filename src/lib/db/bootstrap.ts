@@ -28,6 +28,20 @@ function ensureUsageDailyColumns(sqlite: Database.Database) {
   if (!has("task_open")) {
     sqlite.exec("ALTER TABLE usage_daily ADD COLUMN task_open INTEGER NOT NULL DEFAULT 0");
   }
+  if (!has("chat_images")) {
+    sqlite.exec("ALTER TABLE usage_daily ADD COLUMN chat_images INTEGER NOT NULL DEFAULT 0");
+  }
+}
+
+function ensureMessagesColumns(sqlite: Database.Database) {
+  const cols = sqlite.prepare("PRAGMA table_info(messages)").all() as { name: string }[];
+  const has = (n: string) => cols.some((c) => c.name === n);
+  if (!has("image_key")) {
+    sqlite.exec("ALTER TABLE messages ADD COLUMN image_key TEXT");
+    sqlite.exec(
+      "CREATE INDEX IF NOT EXISTS idx_messages_image_key ON messages(image_key) WHERE image_key IS NOT NULL",
+    );
+  }
 }
 
 function ensureUsageDailyTable(sqlite: Database.Database) {
@@ -41,6 +55,7 @@ function ensureUsageDailyTable(sqlite: Database.Database) {
       task_check INTEGER NOT NULL DEFAULT 0,
       task_open INTEGER NOT NULL DEFAULT 0,
       chat_sessions INTEGER NOT NULL DEFAULT 0,
+      chat_images INTEGER NOT NULL DEFAULT 0,
       estimated_tokens INTEGER NOT NULL DEFAULT 0,
       UNIQUE(user_id, date)
     );
@@ -238,6 +253,7 @@ export function ensureTables(sqlite: Database.Database) {
   `);
   ensureUserColumns(sqlite);
   ensureUsageDailyTable(sqlite);
+  ensureMessagesColumns(sqlite);
   ensureTasksTable(sqlite);
   ensureTaskSessionsColumns(sqlite);
   backfillTaskSessionsToBank(sqlite);

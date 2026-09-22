@@ -3,6 +3,7 @@ import { isValidChatSubject, normalizeChatSubject, type Subject } from "@/lib/su
 import { getDb, schema } from "@/lib/db";
 import { utcNowIso } from "@/lib/sqlite-datetime";
 import { completeText } from "@/lib/llm";
+import { deleteChatImages } from "@/lib/chat-uploads";
 
 const AUTO_TITLE_INITIAL_WINDOW_MESSAGES = 8;
 const AUTO_TITLE_CONTEXT_MESSAGES = 18;
@@ -153,6 +154,7 @@ export async function listMessages(userId: number, sessionId: number) {
       id: schema.messages.id,
       role: schema.messages.role,
       content: schema.messages.content,
+      imageKey: schema.messages.imageKey,
       createdAt: schema.messages.createdAt,
     })
     .from(schema.messages)
@@ -177,6 +179,7 @@ export async function listRecentMessagesForSession(params: {
       id: schema.messages.id,
       role: schema.messages.role,
       content: schema.messages.content,
+      imageKey: schema.messages.imageKey,
     })
     .from(schema.messages)
     .where(eq(schema.messages.sessionId, params.sessionId))
@@ -191,6 +194,7 @@ export async function addMessage(params: {
   sessionId: number;
   role: "user" | "assistant";
   content: string;
+  imageKey?: string | null;
 }) {
   const db = getDb();
   const rows = await db
@@ -199,6 +203,7 @@ export async function addMessage(params: {
       sessionId: params.sessionId,
       role: params.role,
       content: params.content,
+      imageKey: params.imageKey ?? null,
       createdAt: utcNowIso(),
     })
     .returning({ id: schema.messages.id });
@@ -366,9 +371,16 @@ export async function deleteMessagesFrom(
   if (!session) return false;
 
   const db = getDb();
+  const toDelete = await db
+    .select({ imageKey: schema.messages.imageKey })
+    .from(schema.messages)
+    .where(and(eq(schema.messages.sessionId, sessionId), gte(schema.messages.id, fromId)));
+
   await db
     .delete(schema.messages)
     .where(and(eq(schema.messages.sessionId, sessionId), gte(schema.messages.id, fromId)));
+
+  await deleteChatImages(toDelete.map((r) => r.imageKey));
   return true;
 }
 
@@ -378,10 +390,32 @@ export async function deleteChatSession(userId: number, sessionId: number): Prom
   if (!session) return false;
 
   const db = getDb();
+  const toDelete = await db
+    .select({ imageKey: schema.messages.imageKey })
+    .from(schema.messages)
+    .where(eq(schema.messages.sessionId, sessionId));
+
   await db.delete(schema.messages).where(eq(schema.messages.sessionId, sessionId));
   await db
     .delete(schema.chatSessions)
     .where(and(eq(schema.chatSessions.id, sessionId), eq(schema.chatSessions.userId, userId)));
+
+  await deleteChatImages(toDelete.map((r) => r.imageKey));
   return true;
+}
+
+export async function findOwnedMessageByImageKey(userId: number, imageKey: string) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: schema.messages.id,
+      sessionId: schema.messages.sessionId,
+      imageKey: schema.messages.imageKey,
+    })
+    .from(schema.messages)
+    .innerJoin(schema.chatSessions, eq(schema.messages.sessionId, schema.chatSessions.id))
+    .where(and(eq(schema.chatSessions.userId, userId), eq(schema.messages.imageKey, imageKey)))
+    .limit(1);
+  return rows[0] ?? null;
 }
 

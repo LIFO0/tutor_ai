@@ -70,6 +70,7 @@ export function getPlanLimits(plan: UserPlan): QuotaLimits {
     const taskGenerate = envInt("USAGE_PLUS_TASK_GEN_PER_DAY", 12);
     return {
       chatMessages: envInt("USAGE_PLUS_CHAT_PER_DAY", 50),
+      chatImages: envInt("USAGE_PLUS_CHAT_IMAGE_PER_DAY", 12),
       taskGenerate,
       taskCheck: envInt("USAGE_PLUS_TASK_CHECK_PER_DAY", 24),
       taskOpen: envInt("USAGE_PLUS_TASK_OPEN_PER_DAY", taskGenerate * 2),
@@ -80,6 +81,7 @@ export function getPlanLimits(plan: UserPlan): QuotaLimits {
   const taskGenerate = envInt("USAGE_FREE_TASK_GEN_PER_DAY", 4);
   return {
     chatMessages: envInt("USAGE_FREE_CHAT_PER_DAY", 16),
+    chatImages: envInt("USAGE_FREE_CHAT_IMAGE_PER_DAY", 4),
     taskGenerate,
     taskCheck: envInt("USAGE_FREE_TASK_CHECK_PER_DAY", 6),
     taskOpen: envInt("USAGE_FREE_TASK_OPEN_PER_DAY", taskGenerate * 2),

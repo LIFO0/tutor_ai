@@ -111,6 +111,45 @@ input[type="password"]::-ms-clear {
 }
 
 /* Chat/task message bubbles: contain wide formulas on narrow viewports */
+.message-bubble-prose {
+  line-height: 1.65;
+}
+.message-bubble-prose > :first-child {
+  margin-top: 0;
+}
+.message-bubble-prose > :last-child {
+  margin-bottom: 0;
+}
+.message-bubble-prose p,
+.message-bubble-prose ul,
+.message-bubble-prose ol,
+.message-bubble-prose pre,
+.message-bubble-prose blockquote,
+.message-bubble-prose table {
+  margin-top: 0.7em;
+  margin-bottom: 0.7em;
+}
+.message-bubble-prose li {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+.message-bubble-prose li > p {
+  margin-top: 0.35em;
+  margin-bottom: 0.35em;
+}
+.message-bubble-prose h1,
+.message-bubble-prose h2,
+.message-bubble-prose h3,
+.message-bubble-prose h4 {
+  margin-top: 1em;
+  margin-bottom: 0.45em;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.message-bubble-prose ul,
+.message-bubble-prose ol {
+  padding-left: 1.25em;
+}
 .message-bubble-prose .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
@@ -132,8 +171,57 @@ input[type="password"]::-ms-clear {
   max-width: 100%;
 }
 
+.message-bubble-prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .message-bubble-prose--streaming .katex-error {
   display: none;
+}
+
+@keyframes typing-dot-wave {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.25rem;
+}
+
+.typing-dots__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-accent) 85%, #78716c);
+  animation: typing-dot-wave 1.05s ease-in-out infinite;
+}
+
+.typing-dots__dot:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.typing-dots__dot:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-dots__dot {
+    animation: none;
+    opacity: 0.55;
+  }
 }
 
 /* MathLive: hide built-in menu + keyboard toggles */

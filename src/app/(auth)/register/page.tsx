@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
+import { ListBox, Select } from "@heroui/react";
 import { AVATAR_IDS, UserAvatar } from "@/components/ui/UserAvatar";
 import { YandexSignInButton } from "@/components/ui/YandexSignInButton";
 
@@ -180,20 +181,57 @@ export default function RegisterPage() {
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-stretch">
                       <div className="animate-element animate-delay-500">
-                        <label className="text-sm font-medium text-zinc-700">Класс</label>
+                        <label
+                          className="text-sm font-medium text-zinc-700"
+                          htmlFor="register-grade"
+                        >
+                          Класс
+                        </label>
+                        <input type="hidden" name="grade" value={grade} />
                         <GlassInputWrapper>
-                          <select
-                            name="grade"
-                            value={grade}
-                            onChange={(e) => setGrade(Number(e.target.value))}
-                            className="w-full appearance-none rounded-2xl bg-transparent p-4 text-sm text-zinc-900 focus:outline-none"
+                          <Select
+                            fullWidth
+                            variant="secondary"
+                            value={String(grade)}
+                            onChange={(key) => {
+                              if (key == null) return;
+                              setGrade(Number(key));
+                            }}
+                            aria-label="Класс"
+                            className="w-full"
                           >
-                            {grades.map((g) => (
-                              <option key={g} value={g}>
-                                {g}
-                              </option>
-                            ))}
-                          </select>
+                            <Select.Trigger
+                              id="register-grade"
+                              className={[
+                                "w-full justify-between gap-2 rounded-2xl border-0 bg-transparent p-4 text-start text-sm font-normal text-zinc-900 shadow-none",
+                                "outline-none focus-visible:ring-0 data-[focus-visible]:ring-0",
+                              ].join(" ")}
+                            >
+                              <Select.Value />
+                              <Select.Indicator className="shrink-0 text-zinc-500" />
+                            </Select.Trigger>
+                            <Select.Popover
+                              placement="bottom start"
+                              className="overflow-x-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-lg"
+                            >
+                              <ListBox className="max-h-60 min-w-0 overflow-x-hidden overflow-y-auto py-1.5 px-2.5 outline-none">
+                                {grades.map((g) => (
+                                  <ListBox.Item
+                                    key={g}
+                                    id={String(g)}
+                                    textValue={`${g} класс`}
+                                    className={[
+                                      "mx-0.5 cursor-pointer rounded-lg px-3 py-2 text-sm text-zinc-900 outline-none",
+                                      "data-[focused]:bg-[color:var(--color-accent)]/10 data-[hovered]:bg-[color:var(--color-accent)]/10",
+                                      "data-[selected]:bg-[color:var(--color-accent)]/15 data-[selected]:font-medium",
+                                    ].join(" ")}
+                                  >
+                                    {g}
+                                  </ListBox.Item>
+                                ))}
+                              </ListBox>
+                            </Select.Popover>
+                          </Select>
                         </GlassInputWrapper>
                       </div>
 

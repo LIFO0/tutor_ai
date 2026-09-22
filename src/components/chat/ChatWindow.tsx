@@ -9,13 +9,20 @@ import { ChatInput } from "./ChatInput";
 import { createSseParser } from "./sse";
 import { BearTotem } from "@/components/ui/BearTotem";
 import { PENDING_CHAT_MESSAGE_KEY } from "@/lib/pending-chat-message";
+import { takePendingChatFile } from "@/lib/pending-chat-file";
 import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
 import { LLM_UNAVAILABLE_MESSAGE, MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat-limits";
 import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
 
-export type UiMessage = { id: string; role: "user" | "assistant"; content: string };
+export type UiMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  imageKey?: string | null;
+  imagePreviewUrl?: string | null;
+};
 type StreamChunk = { t: string };
 type SendResult = "success" | "skipped" | "failed";
 type PendingDeliveryState = "idle" | "in_flight" | "done";
@@ -30,16 +37,28 @@ export function ChatWindow({
 }: {
   sessionId: number;
   title?: string | null;
-  initialMessages: Array<{ id: number; role: "user" | "assistant"; content: string }>;
+  initialMessages: Array<{
+    id: number;
+    role: "user" | "assistant";
+    content: string;
+    imageKey?: string | null;
+  }>;
 }) {
   const [messages, setMessages] = useState<UiMessage[]>(() =>
-    initialMessages.map((m) => ({ id: String(m.id), role: m.role, content: m.content })),
+    initialMessages.map((m) => ({
+      id: String(m.id),
+      role: m.role,
+      content: m.content,
+      imageKey: m.imageKey ?? null,
+    })),
   );
   const [streaming, setStreaming] = useState(false);
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingConsumedRef = useRef(false);
   const pendingDeliveryRef = useRef<PendingDeliveryState>("idle");
-  const sendRef = useRef<(text: string) => Promise<SendResult>>(async () => "skipped");
+  const sendRef = useRef<(text: string, file?: File | null) => Promise<SendResult>>(
+    async () => "skipped",
+  );
   const messagesRef = useRef(messages);
   const sendInFlightRef = useRef(false);
   const streamAbortRef = useRef<AbortController | null>(null);
@@ -59,12 +78,19 @@ export function ChatWindow({
 
   const chatBlocked =
     !usage?.exempt && (quotaBlock !== null || (usage?.remaining.chatMessages ?? 1) === 0);
+  const imagesExhausted = !usage?.exempt && usage != null && usage.remaining.chatImages === 0;
   const chatWarning =
     !usage?.exempt &&
     !chatBlocked &&
     usage != null &&
     usage.remaining.chatMessages > 0 &&
     usage.remaining.chatMessages <= 3;
+  const imagesWarning =
+    !usage?.exempt &&
+    !imagesExhausted &&
+    usage != null &&
+    usage.remaining.chatImages > 0 &&
+    usage.remaining.chatImages <= 2;
 
   const [headerTitle, setHeaderTitle] = useState<string>(() => title || "Чат");
 
@@ -120,7 +146,7 @@ export function ChatWindow({
     );
   }, []);
 
-  const send = useCallback(async (text: string): Promise<SendResult> => {
+  const send = useCallback(async (text: string, file?: File | null): Promise<SendResult> => {
     // Guard against accidental double-submits (e.g. Enter + button, or rapid re-entrancy
     // before `streaming` state propagates).
     if (sendInFlightRef.current) return "skipped";
@@ -130,7 +156,8 @@ export function ChatWindow({
     let firstUsefulTokenAt: number | null = null;
 
     const normalized = normalizeMathMessageForModel(text);
-    if (!normalized.trim()) return "skipped";
+    const hasFile = Boolean(file);
+    if (!normalized.trim() && !hasFile) return "skipped";
     if (normalized.length > MAX_CHAT_MESSAGE_CHARS) {
       setPendingError(
         `Сообщение слишком длинное (максимум ${MAX_CHAT_MESSAGE_CHARS} символов).`,
@@ -138,13 +165,21 @@ export function ChatWindow({
       setPendingText(normalized);
       return "failed";
     }
+    if (hasFile && imagesExhausted) {
+      setQuotaBlock({
+        message: quotaExceededMessage("chat_image", usage?.limits.chatImages ?? 4),
+        resetsAt: usage?.resetsAt,
+      });
+      return "failed";
+    }
 
     // Extra dedupe: ignore identical sends within a short window.
     // This covers rare cases like navigation pending-message auto-send racing with user submit.
     const now0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     const last = lastSendRef.current;
-    if (last && last.text === normalized && now0 - last.at < 1500) return "skipped";
-    lastSendRef.current = { text: normalized, at: now0 };
+    const dedupeKey = `${normalized}::${file?.name ?? ""}:${file?.size ?? 0}`;
+    if (last && last.text === dedupeKey && now0 - last.at < 1500) return "skipped";
+    lastSendRef.current = { text: dedupeKey, at: now0 };
 
     if (isDev && normalized.includes("\\placeholder")) {
       console.error("[chat] normalizeMathMessageForModel left placeholder scaffolding:", {
@@ -153,7 +188,14 @@ export function ChatWindow({
       });
     }
     sendInFlightRef.current = true;
-    const userMsg: UiMessage = { id: crypto.randomUUID(), role: "user", content: normalized };
+    const previewUrl = file ? URL.createObjectURL(file) : null;
+    const displayContent = normalized || (hasFile ? "📷 Фото" : "");
+    const userMsg: UiMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: displayContent,
+      imagePreviewUrl: previewUrl,
+    };
     const assistantMsg: UiMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
@@ -169,18 +211,32 @@ export function ChatWindow({
       const ac = new AbortController();
       streamAbortRef.current = ac;
 
-      const res = await fetch("/api/chat/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message: normalized }),
-        signal: ac.signal,
-      });
+      let res: Response;
+      if (file) {
+        const form = new FormData();
+        form.set("sessionId", String(sessionId));
+        form.set("message", normalized);
+        form.set("file", file);
+        res = await fetch("/api/chat/stream", {
+          method: "POST",
+          body: form,
+          signal: ac.signal,
+        });
+      } else {
+        res = await fetch("/api/chat/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, message: normalized }),
+          signal: ac.signal,
+        });
+      }
 
       if (res.status === 503) {
         const errJson = (await res.json().catch(() => null)) as Record<string, unknown> | null;
         setMessages((prev) =>
           prev.filter((m) => m.id !== userMsg.id && m.id !== assistantMsg.id),
         );
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
         const message =
           typeof errJson?.error === "string" ? errJson.error : LLM_UNAVAILABLE_MESSAGE;
         setQuotaBlock({ message });
@@ -188,18 +244,29 @@ export function ChatWindow({
         return "failed";
       }
 
-      if (res.status === 429) {
+      if (res.status === 429 || res.status === 400) {
         const errJson = (await res.json().catch(() => null)) as Record<string, unknown> | null;
         const quota = parseQuotaResponse(res, errJson);
         setMessages((prev) =>
           prev.filter((m) => m.id !== userMsg.id && m.id !== assistantMsg.id),
         );
-        const message =
-          quota?.message ??
-          (typeof errJson?.message === "string" ? errJson.message : quotaExceededMessage("chat_message", 16));
-        setQuotaBlock({ message, resetsAt: quota?.resetsAt });
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        if (quota || res.status === 429) {
+          const message =
+            quota?.message ??
+            (typeof errJson?.message === "string"
+              ? errJson.message
+              : typeof errJson?.error === "string"
+                ? errJson.error
+                : quotaExceededMessage("chat_message", 16));
+          setQuotaBlock({ message, resetsAt: quota?.resetsAt });
+          void refreshUsage();
+        } else {
+          setPendingError(
+            typeof errJson?.error === "string" ? errJson.error : "Не удалось отправить.",
+          );
+        }
         setStreaming(false);
-        void refreshUsage();
         return "failed";
       }
 
@@ -232,11 +299,26 @@ export function ChatWindow({
             rafId = requestAnimationFrame(flush);
           }
         } else if (ev.type === "event" && ev.event === "ids") {
-          const userId = (ev.data as { user?: unknown } | null)?.user;
+          const payload = ev.data as { user?: unknown; imageKey?: unknown } | null;
+          const userId = payload?.user;
+          const imageKey = payload?.imageKey;
           if (typeof userId === "number" && Number.isInteger(userId)) {
             setMessages((prev) =>
-              prev.map((m) => (m.id === userMsg.id ? { ...m, id: String(userId) } : m)),
+              prev.map((m) =>
+                m.id === userMsg.id
+                  ? {
+                      ...m,
+                      id: String(userId),
+                      imageKey: typeof imageKey === "string" ? imageKey : m.imageKey,
+                      imagePreviewUrl:
+                        typeof imageKey === "string" ? null : m.imagePreviewUrl,
+                    }
+                  : m,
+              ),
             );
+            if (typeof imageKey === "string" && previewUrl) {
+              URL.revokeObjectURL(previewUrl);
+            }
           }
         } else if (ev.type === "event" && ev.event === "metrics") {
           if (isDev) console.debug("[chat] server metrics:", ev.data);
@@ -330,19 +412,19 @@ export function ChatWindow({
         streamAbortRef.current = null;
       }
     }
-  }, [refreshUsage, router, sessionId]);
+  }, [imagesExhausted, refreshUsage, router, sessionId, usage?.limits.chatImages, usage?.resetsAt]);
 
   sendRef.current = send;
 
   const handleSend = useCallback(
-    (text: string) => {
+    (text: string, file?: File | null) => {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
       }
       setPendingText(null);
       setPendingError(null);
       pendingDeliveryRef.current = "done";
-      void sendRef.current(text);
+      void sendRef.current(text, file);
     },
     [],
   );
@@ -435,11 +517,28 @@ export function ChatWindow({
     if (pendingConsumedRef.current) return;
     const raw = typeof window !== "undefined" ? sessionStorage.getItem(PENDING_CHAT_MESSAGE_KEY) : null;
     const trimmed = raw?.trim() ?? "";
-    if (!trimmed) return;
+    const pendingFile = takePendingChatFile();
+    if (!trimmed && !pendingFile) return;
     pendingConsumedRef.current = true;
     pendingDeliveryRef.current = "idle";
-    setPendingText(trimmed);
-  }, []);
+    if (trimmed) setPendingText(trimmed);
+    if (pendingFile) {
+      // Send immediately with optional text from pending storage.
+      pendingDeliveryRef.current = "in_flight";
+      void (async () => {
+        const result = await sendRef.current(trimmed, pendingFile);
+        if (result === "success" || (trimmed && isMessageDelivered(trimmed))) {
+          clearPendingStorage();
+        } else if (result === "failed") {
+          pendingDeliveryRef.current = "idle";
+          setPendingError(PENDING_SEND_ERROR);
+          if (trimmed) setPendingText(trimmed);
+        } else {
+          pendingDeliveryRef.current = "idle";
+        }
+      })();
+    }
+  }, [clearPendingStorage, isMessageDelivered]);
 
   useEffect(() => {
     const t = pendingText?.trim() ?? "";
@@ -524,6 +623,8 @@ export function ChatWindow({
                 <MessageBubble
                   role={m.role}
                   content={m.content}
+                  imageKey={m.imageKey}
+                  imagePreviewUrl={m.imagePreviewUrl}
                   isStreaming={isStreamingBubble}
                 />
                 <MessageActions
@@ -571,11 +672,22 @@ export function ChatWindow({
                   {quotaWarningMessage("chat_message", usage.remaining.chatMessages)}
                 </p>
               ) : null}
+              {imagesWarning && usage ? (
+                <p className="mb-2 text-sm text-amber-600 dark:text-amber-400">
+                  {quotaWarningMessage("chat_image", usage.remaining.chatImages)}
+                </p>
+              ) : null}
+              {imagesExhausted && usage ? (
+                <p className="mb-2 text-sm text-zinc-500 dark:text-zinc-400">
+                  Лимит фото на сегодня исчерпан — можно продолжать текстом.
+                </p>
+              ) : null}
               <ChatInput
                 onSend={handleSend}
                 onStop={stopStreaming}
                 streaming={streaming}
                 disabled={chatBlocked}
+                allowImage={!imagesExhausted}
               />
             </>
           )}

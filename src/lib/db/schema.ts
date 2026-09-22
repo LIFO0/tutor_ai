@@ -31,6 +31,7 @@ export const usageDaily = sqliteTable(
     taskCheck: integer("task_check").notNull().default(0),
     taskOpen: integer("task_open").notNull().default(0),
     chatSessions: integer("chat_sessions").notNull().default(0),
+    chatImages: integer("chat_images").notNull().default(0),
     estimatedTokens: integer("estimated_tokens").notNull().default(0),
   },
   (t) => [uniqueIndex("usage_daily_user_date_idx").on(t.userId, t.date)],
@@ -55,6 +56,8 @@ export const messages = sqliteTable("messages", {
     .references(() => chatSessions.id),
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   content: text("content").notNull(),
+  /** Private chat attachment filename (UUID.jpg); served only to session owner. */
+  imageKey: text("image_key"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),

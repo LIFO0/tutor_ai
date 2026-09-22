@@ -1,5 +1,6 @@
 export type QuotaKind =
   | "chat_message"
+  | "chat_image"
   | "task_generate"
   | "task_check"
   | "task_open"
@@ -9,6 +10,7 @@ export type UserPlan = "free" | "plus";
 
 export type QuotaLimits = {
   chatMessages: number;
+  chatImages: number;
   taskGenerate: number;
   taskCheck: number;
   taskOpen: number;
@@ -18,6 +20,7 @@ export type QuotaLimits = {
 
 export type QuotaCounters = {
   chatMessages: number;
+  chatImages: number;
   taskGenerate: number;
   taskCheck: number;
   taskOpen: number;
@@ -47,6 +50,8 @@ export function quotaKindLabel(kind: QuotaKind): string {
   switch (kind) {
     case "chat_message":
       return "сообщений в чате";
+    case "chat_image":
+      return "изображений в чате";
     case "task_generate":
       return "генераций задач";
     case "task_check":
@@ -62,6 +67,8 @@ export function quotaExceededMessage(kind: QuotaKind, limit: number): string {
   switch (kind) {
     case "chat_message":
       return `На сегодня ты задал все ${limit} вопросов Мишке. Завтра лимит обновится!`;
+    case "chat_image":
+      return `На сегодня лимит фото в чате исчерпан (${limit}). Завтра можно будет снова.`;
     case "task_generate":
       return `Сегодня уже сгенерировано ${limit} ${limit === 1 ? "задача" : limit < 5 ? "задачи" : "задач"}. Попробуй завтра или разбери старые из истории.`;
     case "task_check":
@@ -81,29 +88,35 @@ export function quotaWarningMessage(kind: QuotaKind, remaining: number): string 
         : remaining < 5
           ? "сообщения"
           : "сообщений"
-      : kind === "task_generate"
+      : kind === "chat_image"
         ? remaining === 1
-          ? "генерация"
+          ? "фото"
           : remaining < 5
-            ? "генерации"
-            : "генераций"
-        : kind === "task_check"
+            ? "фото"
+            : "фото"
+        : kind === "task_generate"
           ? remaining === 1
-            ? "проверка"
+            ? "генерация"
             : remaining < 5
-              ? "проверки"
-              : "проверок"
-          : kind === "task_open"
+              ? "генерации"
+              : "генераций"
+          : kind === "task_check"
             ? remaining === 1
-              ? "открытие"
+              ? "проверка"
               : remaining < 5
-                ? "открытия"
-                : "открытий"
-            : remaining === 1
-            ? "новый чат"
-            : remaining < 5
-              ? "новых чата"
-              : "новых чатов";
+                ? "проверки"
+                : "проверок"
+            : kind === "task_open"
+              ? remaining === 1
+                ? "открытие"
+                : remaining < 5
+                  ? "открытия"
+                  : "открытий"
+              : remaining === 1
+                ? "новый чат"
+                : remaining < 5
+                  ? "новых чата"
+                  : "новых чатов";
   return `Осталось ${remaining} ${unit} на сегодня. Лимит обновится завтра в 00:00 (МСК).`;
 }
 

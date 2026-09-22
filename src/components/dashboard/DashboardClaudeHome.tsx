@@ -8,6 +8,7 @@ import { BearTotem, type BearTotemVariant } from "@/components/ui/BearTotem";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
 import { PENDING_CHAT_MESSAGE_KEY } from "@/lib/pending-chat-message";
+import { setPendingChatFile } from "@/lib/pending-chat-file";
 import type { Subject } from "@/lib/subjects";
 import { CHAT_SUBJECTS, DEFAULT_CHAT_SUBJECT } from "@/lib/subjects";
 import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
@@ -37,6 +38,7 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
 
   const sessionsBlocked = !usage?.exempt && (usage?.remaining.chatSessions ?? 1) === 0;
   const messagesBlocked = !usage?.exempt && (usage?.remaining.chatMessages ?? 1) === 0;
+  const imagesExhausted = !usage?.exempt && usage != null && usage.remaining.chatImages === 0;
   const inputBlocked = sessionsBlocked || messagesBlocked;
 
   const sessionsWarning =
@@ -52,6 +54,13 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
     usage != null &&
     usage.remaining.chatMessages > 0 &&
     usage.remaining.chatMessages <= 3;
+
+  const imagesWarning =
+    !usage?.exempt &&
+    !imagesExhausted &&
+    usage != null &&
+    usage.remaining.chatImages > 0 &&
+    usage.remaining.chatImages <= 2;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,12 +86,16 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
     return () => window.clearTimeout(id);
   }, []);
 
-  async function handleSend(text: string) {
+  async function handleSend(text: string, file?: File | null) {
     const message = text.trim();
-    if (!message || submitting) return;
+    if ((!message && !file) || submitting) return;
     const isDev = process.env.NODE_ENV !== "production";
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     if (inputBlocked) return;
+    if (file && imagesExhausted) {
+      setSubmitError(quotaExceededMessage("chat_image", usage?.limits.chatImages ?? 4));
+      return;
+    }
 
     setSubmitting(true);
     setSubmitError(null);
@@ -118,7 +131,9 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
       void refreshUsage();
       const sessionId = data.sessionId;
       if (isDev) console.time("[dashboard] sessionStorage + push");
-      sessionStorage.setItem(PENDING_CHAT_MESSAGE_KEY, message);
+      if (message) sessionStorage.setItem(PENDING_CHAT_MESSAGE_KEY, message);
+      else sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
+      setPendingChatFile(file ?? null);
       setOpenHint("Открываем чат…");
       router.push(`/chat/${sessionId}`);
       if (isDev) console.timeEnd("[dashboard] sessionStorage + push");
@@ -188,6 +203,11 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
                   {quotaWarningMessage("chat_message", usage.remaining.chatMessages)}
                 </p>
               ) : null}
+              {imagesWarning && usage ? (
+                <p className="mb-2 text-sm text-amber-600 dark:text-amber-400">
+                  {quotaWarningMessage("chat_image", usage.remaining.chatImages)}
+                </p>
+              ) : null}
               {submitError ? (
                 <div className="mb-2">
                   <QuotaExceededBanner message={submitError} resetsAt={usage?.resetsAt} />
@@ -197,6 +217,7 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
                 onSend={handleSend}
                 disabled={submitting || inputBlocked}
                 placeholder={dashboardPlaceholder}
+                allowImage={!imagesExhausted}
                 mixedMathInputProps={{ inlineEditActivation: "doubleClick" }}
               />
               {openHint ? (

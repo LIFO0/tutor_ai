@@ -1,7 +1,14 @@
 import { LLM_UNAVAILABLE_MESSAGE } from "@/lib/chat-limits";
 import { getOptionalEnv } from "@/lib/env";
 
-export type LlmMessage = { role: "system" | "user" | "assistant"; text: string };
+export type LlmImagePart = { mimeType: string; data: string };
+
+export type LlmMessage = {
+  role: "system" | "user" | "assistant";
+  text: string;
+  /** Base64 image payload for multimodal user turns. */
+  image?: LlmImagePart;
+};
 
 const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -50,7 +57,11 @@ async function* fakeStream(text: string) {
   }
 }
 
-type GeminiContent = { role: "user" | "model"; parts: Array<{ text: string }> };
+type GeminiPart =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } };
+
+type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
 
 export type GeminiRequestBody = {
   systemInstruction?: { parts: Array<{ text: string }> };
@@ -68,14 +79,32 @@ export function toGeminiRequest(
 
   for (const m of messages) {
     if (m.role === "system") continue;
-    const text = m.text;
-    if (typeof text !== "string" || !text.trim()) continue;
+    const text = typeof m.text === "string" ? m.text : "";
+    const hasImage = Boolean(m.image?.data && m.image.mimeType);
+    const trimmed = text.trim();
+    if (!trimmed && !hasImage) continue;
+
     const role = m.role === "assistant" ? "model" : "user";
+    const parts: GeminiPart[] = [];
+    if (hasImage && m.image) {
+      parts.push({
+        inlineData: { mimeType: m.image.mimeType, data: m.image.data },
+      });
+    }
+    if (trimmed) {
+      parts.push({ text: trimmed });
+    } else if (hasImage) {
+      parts.push({ text: "Посмотри на изображение и помоги с заданием." });
+    }
+
     const last = contents[contents.length - 1];
-    if (last && last.role === role) {
-      last.parts[0].text += `\n${text}`;
+    // Do not merge turns that include images — keep multimodal parts intact.
+    if (last && last.role === role && !hasImage && last.parts.every((p) => "text" in p)) {
+      const textPart = last.parts.find((p): p is { text: string } => "text" in p);
+      if (textPart) textPart.text += `\n${trimmed}`;
+      else last.parts.push({ text: trimmed });
     } else {
-      contents.push({ role, parts: [{ text }] });
+      contents.push({ role, parts });
     }
   }
 

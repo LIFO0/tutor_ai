@@ -11,6 +11,20 @@ import { maskIncompleteMathForStreaming } from "@/lib/streaming-markdown-math";
 
 const rehypeKatexPlugins: PluggableList = [[rehypeKatex, { errorColor: "currentColor" }]];
 
+function TypingDots() {
+  return (
+    <div
+      className="typing-dots"
+      role="status"
+      aria-label="Мишка печатает"
+    >
+      <span className="typing-dots__dot" />
+      <span className="typing-dots__dot" />
+      <span className="typing-dots__dot" />
+    </div>
+  );
+}
+
 function normalizeMathlivePlaceholdersInMarkdown(input: string) {
   // Inline math is `$...$` in markdown; we only normalize placeholder scaffolding inside those segments.
   return input.replace(/\$([^$]+)\$/g, (_m, inner) => `$${mathLiveLatexToKatexDisplay(String(inner))}$`);
@@ -19,12 +33,17 @@ function normalizeMathlivePlaceholdersInMarkdown(input: string) {
 export const MessageBubble = memo(function MessageBubble({
   role,
   content,
+  imageKey,
+  imagePreviewUrl,
   assistantFullWidth = false,
   assistantEnd,
   isStreaming = false,
 }: {
   role: "user" | "assistant";
   content: string;
+  imageKey?: string | null;
+  /** Local blob preview before server imageKey is known */
+  imagePreviewUrl?: string | null;
   /** Рядом с маскотом в карточке задания — пузырь на всю ширину колонки */
   assistantFullWidth?: boolean;
   /** Доп. блок справа внутри пузыря ассистента (например маскот в задании) */
@@ -40,10 +59,15 @@ export const MessageBubble = memo(function MessageBubble({
   }, [content, isStreaming]);
   const widthClass =
     isUser || !assistantFullWidth ? "max-w-[80%]" : "max-w-full w-full";
-  const prose = (
+  const imageSrc =
+    imagePreviewUrl ||
+    (imageKey ? `/api/chat/attachments/${encodeURIComponent(imageKey)}` : null);
+  const showText = Boolean(content.trim()) && content.trim() !== "📷 Фото";
+  const showTyping = !isUser && isStreaming && !showText;
+  const prose = showText ? (
     <div
       className={[
-        "message-bubble-prose prose prose-zinc min-w-0 max-w-full break-words dark:prose-invert prose-p:my-2 prose-pre:my-2 prose-pre:overflow-x-auto prose-pre:overflow-y-hidden prose-table:block prose-table:max-w-full prose-table:overflow-x-auto",
+        "message-bubble-prose min-w-0 max-w-full break-words",
         isStreaming ? "message-bubble-prose--streaming" : "",
       ].join(" ")}
     >
@@ -51,13 +75,15 @@ export const MessageBubble = memo(function MessageBubble({
         {renderContent}
       </ReactMarkdown>
     </div>
-  );
+  ) : showTyping ? (
+    <TypingDots />
+  ) : null;
   return (
     <div className={`flex w-full min-w-0 ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className={[
-          widthClass,
-          "min-w-0 overflow-hidden rounded-2xl px-4 py-3 text-sm leading-6",
+          showTyping ? "w-fit" : widthClass,
+          "min-w-0 overflow-hidden rounded-2xl px-4 py-3 text-sm leading-relaxed",
           !isUser && assistantEnd ? "flex flex-col gap-3 sm:flex-row sm:items-start" : "",
           isUser
             ? "bg-[color:var(--color-accent)]/20 text-zinc-900 dark:text-zinc-50"
@@ -66,11 +92,31 @@ export const MessageBubble = memo(function MessageBubble({
       >
         {!isUser && assistantEnd ? (
           <>
-            <div className="min-w-0 flex-1">{prose}</div>
+            <div className="min-w-0 flex-1 space-y-2">
+              {imageSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageSrc}
+                  alt="Вложение"
+                  className="max-h-64 max-w-full rounded-xl object-contain"
+                />
+              ) : null}
+              {prose}
+            </div>
             <div className="shrink-0 self-center sm:self-start">{assistantEnd}</div>
           </>
         ) : (
-          prose
+          <div className="space-y-2">
+            {imageSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageSrc}
+                alt="Вложение"
+                className="max-h-64 max-w-full rounded-xl object-contain"
+              />
+            ) : null}
+            {prose}
+          </div>
         )}
       </div>
     </div>
@@ -78,6 +124,8 @@ export const MessageBubble = memo(function MessageBubble({
 }, (prev, next) =>
   prev.role === next.role &&
   prev.content === next.content &&
+  prev.imageKey === next.imageKey &&
+  prev.imagePreviewUrl === next.imagePreviewUrl &&
   prev.isStreaming === next.isStreaming &&
   prev.assistantFullWidth === next.assistantFullWidth &&
   prev.assistantEnd === next.assistantEnd,

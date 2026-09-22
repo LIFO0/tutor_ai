@@ -19,7 +19,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://yastatic.net",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https://avatars.yandex.net https://avatars.mds.yandex.net https://mc.yandex.ru https://mc.yandex.com",
+      "img-src 'self' data: blob: https://avatars.yandex.net https://avatars.mds.yandex.net https://mc.yandex.ru https://mc.yandex.com",
       "connect-src 'self' https://mc.yandex.ru https://mc.yandex.com wss://mc.yandex.ru wss://mc.yandex.com",
       "font-src 'self'",
       "frame-src https://mc.yandex.ru https://mc.yandex.com https://kinescope.io https://*.kinescope.io",

@@ -53,9 +53,14 @@ describe("usage-quota helpers", () => {
   test("getPlanLimits free defaults", () => {
     const limits = getPlanLimits("free");
     expect(limits.chatMessages).toBe(16);
+    expect(limits.chatImages).toBe(4);
     expect(limits.taskGenerate).toBe(4);
     expect(limits.taskCheck).toBe(6);
     expect(limits.chatSessions).toBe(10);
+  });
+
+  test("getPlanLimits plus image default", () => {
+    expect(getPlanLimits("plus").chatImages).toBe(12);
   });
 
   test("getPlanLimits respects env override", () => {

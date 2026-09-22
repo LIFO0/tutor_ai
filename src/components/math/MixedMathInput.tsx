@@ -177,6 +177,7 @@ export const MixedMathInput = forwardRef<
     placeholder?: string;
     className?: string;
     inputClassName?: string;
+    placeholderClassName?: string;
     onKeyDown?: (e: React.KeyboardEvent<HTMLElement>) => void;
     onFocus?: () => void;
     /** Disable inline MathLive editor (no <math-field>, no dynamic import). */
@@ -192,6 +193,7 @@ export const MixedMathInput = forwardRef<
     placeholder,
     className,
     inputClassName,
+    placeholderClassName,
     onKeyDown,
     onFocus,
     disableInlineEdit,
@@ -398,7 +400,16 @@ export const MixedMathInput = forwardRef<
     <div className={className}>
       <div className="relative">
         {!hasContent ? (
-          <div className="pointer-events-none absolute left-3 top-2 text-sm text-zinc-400">{placeholderText}</div>
+          <div
+            className={[
+              "pointer-events-none absolute left-3 top-2 text-sm text-zinc-400",
+              placeholderClassName,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {placeholderText}
+          </div>
         ) : null}
         <div
           id={inputId}

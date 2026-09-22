@@ -50,6 +50,8 @@ function kindToLimitKey(kind: QuotaKind): keyof Omit<QuotaLimits, "burstChatPerM
   switch (kind) {
     case "chat_message":
       return "chatMessages";
+    case "chat_image":
+      return "chatImages";
     case "task_generate":
       return "taskGenerate";
     case "task_check":
@@ -62,11 +64,19 @@ function kindToLimitKey(kind: QuotaKind): keyof Omit<QuotaLimits, "burstChatPerM
 }
 
 function emptyCounters(): QuotaCounters {
-  return { chatMessages: 0, taskGenerate: 0, taskCheck: 0, taskOpen: 0, chatSessions: 0 };
+  return {
+    chatMessages: 0,
+    chatImages: 0,
+    taskGenerate: 0,
+    taskCheck: 0,
+    taskOpen: 0,
+    chatSessions: 0,
+  };
 }
 
 function rowToCounters(row: {
   chatMessages: number;
+  chatImages: number;
   taskGenerate: number;
   taskCheck: number;
   taskOpen: number;
@@ -74,6 +84,7 @@ function rowToCounters(row: {
 }): QuotaCounters {
   return {
     chatMessages: row.chatMessages,
+    chatImages: row.chatImages,
     taskGenerate: row.taskGenerate,
     taskCheck: row.taskCheck,
     taskOpen: row.taskOpen,
@@ -84,6 +95,7 @@ function rowToCounters(row: {
 function remainingFrom(used: QuotaCounters, limits: QuotaLimits): QuotaCounters {
   return {
     chatMessages: Math.max(0, limits.chatMessages - used.chatMessages),
+    chatImages: Math.max(0, limits.chatImages - used.chatImages),
     taskGenerate: Math.max(0, limits.taskGenerate - used.taskGenerate),
     taskCheck: Math.max(0, limits.taskCheck - used.taskCheck),
     taskOpen: Math.max(0, limits.taskOpen - used.taskOpen),
@@ -104,6 +116,7 @@ async function readUsageRow(userId: number, date: string) {
   const rows = await db
     .select({
       chatMessages: schema.usageDaily.chatMessages,
+      chatImages: schema.usageDaily.chatImages,
       taskGenerate: schema.usageDaily.taskGenerate,
       taskCheck: schema.usageDaily.taskCheck,
       taskOpen: schema.usageDaily.taskOpen,
@@ -145,6 +158,7 @@ export async function getUsageSnapshot(user: QuotaUser): Promise<UsageSnapshot> 
       used: emptyCounters(),
       remaining: {
         chatMessages: limits.chatMessages,
+        chatImages: limits.chatImages,
         taskGenerate: limits.taskGenerate,
         taskCheck: limits.taskCheck,
         taskOpen: limits.taskOpen,
@@ -224,6 +238,13 @@ export async function checkAndConsume(user: QuotaUser, kind: QuotaKind): Promise
         .set({ chatMessages: sql`${schema.usageDaily.chatMessages} + 1` })
         .where(and(baseWhere, sql`${schema.usageDaily.chatMessages} < ${limit}`))
         .returning({ value: schema.usageDaily.chatMessages });
+      break;
+    case "chat_image":
+      updated = await db
+        .update(schema.usageDaily)
+        .set({ chatImages: sql`${schema.usageDaily.chatImages} + 1` })
+        .where(and(baseWhere, sql`${schema.usageDaily.chatImages} < ${limit}`))
+        .returning({ value: schema.usageDaily.chatImages });
       break;
     case "task_generate":
       updated = await db

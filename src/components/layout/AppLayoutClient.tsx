@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Menu } from "lucide-react";
@@ -8,6 +8,38 @@ import type { CurrentUser } from "@/lib/current-user";
 import { LLM_UNAVAILABLE_MESSAGE } from "@/lib/chat-limits";
 import { Sidebar } from "./Sidebar";
 import { MobileNavDrawer } from "./MobileNavDrawer";
+
+const SIDEBAR_COLLAPSED_KEY = "mishka.sidebarCollapsed";
+
+const sidebarCollapsedListeners = new Set<() => void>();
+
+function subscribeSidebarCollapsed(onStoreChange: () => void) {
+  sidebarCollapsedListeners.add(onStoreChange);
+  return () => {
+    sidebarCollapsedListeners.delete(onStoreChange);
+  };
+}
+
+function getSidebarCollapsedSnapshot() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function getSidebarCollapsedServerSnapshot() {
+  return false;
+}
+
+function setSidebarCollapsedStored(next: boolean) {
+  try {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+  } catch {
+    // ignore
+  }
+  for (const listener of sidebarCollapsedListeners) listener();
+}
 
 function MobileSettingsBar({ onMenuOpen }: { onMenuOpen: () => void }) {
   return (
@@ -51,12 +83,25 @@ export function AppLayoutClient({
   children: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const sidebarCollapsed = useSyncExternalStore(
+    subscribeSidebarCollapsed,
+    getSidebarCollapsedSnapshot,
+    getSidebarCollapsedServerSnapshot,
+  );
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsedStored(!getSidebarCollapsedSnapshot());
+  }, []);
 
   return (
     <div className="flex h-dvh min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
       <MobileSettingsBar onMenuOpen={() => setMobileNavOpen(true)} />
       <MobileNavDrawer open={mobileNavOpen} onOpenChange={setMobileNavOpen} user={user} />
-      <Sidebar user={user} />
+      <Sidebar
+        user={user}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapsed}
+      />
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50 dark:bg-black">
         <div className="mx-auto flex min-h-0 w-full max-w-full flex-1 flex-col overflow-y-auto px-4 pt-4 pb-0 md:pt-6">
           {!llmConfigured ? (

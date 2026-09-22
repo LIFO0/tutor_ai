@@ -5,6 +5,8 @@ import Link from "next/link";
 
 const subjectLinks = [
   { label: "Репетитор по математике", href: "/repetitor-po-matematike" },
+  { label: "Математика 5 класс", href: "/matematika-5-klass" },
+  { label: "Математика 6 класс", href: "/matematika-6-klass" },
   { label: "Репетитор по физике", href: "/repetitor-po-fizike" },
   { label: "Репетитор по русскому", href: "/repetitor-po-russkomu-yazyku" },
   { label: "Подготовка к ОГЭ", href: "/podgotovka-k-oge" },

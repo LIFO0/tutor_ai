@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="24" fill="#FEF3C7"/>
+  <circle cx="520" cy="60" r="90" fill="#FDE68A" fill-opacity="0.55"/>
+  <circle cx="80" cy="300" r="70" fill="#FBBF24" fill-opacity="0.35"/>
+  <text x="40" y="48" font-family="system-ui,sans-serif" font-size="22" fill="#78350F" font-weight="700">&#1088;&#1072;&#1089;&#1082;&#1088;&#1099;&#1090;&#1080;&#1077; &#1089;&#1082;&#1086;&#1073;&#1086;&#1082;</text>
+  <text x="40" y="78" font-family="system-ui,sans-serif" font-size="15" fill="#B45309">&#1084;&#1080;&#1085;&#1091;&#1089; &#1087;&#1077;&#1088;&#1077;&#1076; &#1089;&#1082;&#1086;&#1073;&#1082;&#1086;&#1081; &#1084;&#1077;&#1085;&#1103;&#1077;&#1090; &#1079;&#1085;&#1072;&#1082;&#1080;</text>
+  <rect x="48" y="120" width="220" height="140" rx="20" fill="#FFFBEB" stroke="#D97706" stroke-width="3"/>
+  <text x="158" y="175" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="#92400E">&#1076;&#1086;</text>
+  <text x="158" y="225" text-anchor="middle" font-family="Georgia,serif" font-size="36" fill="#78350F" font-weight="700">-(a-b)</text>
+  <path d="M290 190 H350" stroke="#EA580C" stroke-width="6" stroke-linecap="round"/>
+  <polygon points="350,190 332,180 332,200" fill="#EA580C"/>
+  <rect x="370" y="120" width="220" height="140" rx="20" fill="#FFEDD5" stroke="#EA580C" stroke-width="3"/>
+  <text x="480" y="175" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="#9A3412">&#1087;&#1086;&#1089;&#1083;&#1077;</text>
+  <text x="480" y="225" text-anchor="middle" font-family="Georgia,serif" font-size="36" fill="#9A3412" font-weight="700">-a+b</text>
+  <rect x="120" y="290" width="56" height="36" rx="8" fill="#FDBA74"/>
+  <text x="148" y="314" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#7C2D12" font-weight="700">+</text>
+  <rect x="190" y="290" width="56" height="36" rx="8" fill="#FED7AA"/>
+  <text x="218" y="314" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#7C2D12" font-weight="700">-</text>
+  <rect x="400" y="290" width="56" height="36" rx="8" fill="#FB923C"/>
+  <text x="428" y="314" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#FFF7ED" font-weight="700">-</text>
+  <rect x="470" y="290" width="56" height="36" rx="8" fill="#EA580C"/>
+  <text x="498" y="314" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#FFF7ED" font-weight="700">+</text>
+  <path d="M250 308 H395" stroke="#B45309" stroke-width="2" stroke-dasharray="6 4"/>
+</svg>

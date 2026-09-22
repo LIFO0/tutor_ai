@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="24" fill="#F5F3FF"/>
+  <circle cx="250" cy="180" r="90" fill="#DDD6FE" stroke="#7C3AED" stroke-width="4"/>
+  <circle cx="370" cy="180" r="90" fill="#C4B5FD" stroke="#7C3AED" stroke-width="4" fill-opacity="0.7"/>
+  <text x="200" y="185" font-family="system-ui,sans-serif" font-size="22" fill="#5B21B6" font-weight="700">12</text>
+  <text x="360" y="185" font-family="system-ui,sans-serif" font-size="22" fill="#5B21B6" font-weight="700">18</text>
+  <text x="285" y="185" font-family="system-ui,sans-serif" font-size="20" fill="#4C1D95" font-weight="700">6</text>
+  <text x="40" y="50" font-family="system-ui,sans-serif" font-size="24" fill="#5B21B6" font-weight="700">&#1053;&#1054;&#1044; &#1080; &#1053;&#1054;&#1050;</text>
+  <text x="40" y="85" font-family="system-ui,sans-serif" font-size="16" fill="#6D28D9">&#1076;&#1077;&#1083;&#1080;&#1084;&#1086;&#1089;&#1090;&#1100; &#183; &#1087;&#1088;&#1086;&#1089;&#1090;&#1099;&#1077; &#1084;&#1085;&#1086;&#1078;&#1080;&#1090;&#1077;&#1083;&#1080;</text>
+</svg>

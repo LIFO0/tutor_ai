@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getAppOrigin } from "@/lib/app-url";
 import { blogPosts } from "@/data/blog/posts";
+import { math5Lessons } from "@/data/math-5/lessons";
+import { math6Lessons } from "@/data/math-6/lessons";
 
 const DEFAULT_ORIGIN = "https://mishkaznaet.ru";
 
@@ -55,6 +57,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.75,
     },
     {
+      url: `${origin}/matematika-5-klass`,
+      lastModified: new Date("2026-09-22"),
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
+      url: `${origin}/matematika-6-klass`,
+      lastModified: new Date("2026-09-22"),
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
       url: `${origin}/help`,
       lastModified: new Date("2026-05-01"),
       changeFrequency: "monthly",
@@ -75,5 +89,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...blogPages];
+  const math5Pages: MetadataRoute.Sitemap = math5Lessons.map((lesson) => ({
+    url: `${origin}/matematika-5-klass/${lesson.slug}`,
+    lastModified: new Date(lesson.updatedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  }));
+
+  const math6Pages: MetadataRoute.Sitemap = math6Lessons.map((lesson) => ({
+    url: `${origin}/matematika-6-klass/${lesson.slug}`,
+    lastModified: new Date(lesson.updatedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...blogPages, ...math5Pages, ...math6Pages];
 }

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="24" fill="#FEF3C7"/>
+  <path d="M220 90 L360 130 L360 250 L220 210 Z" fill="#FCD34D" stroke="#B45309" stroke-width="3"/>
+  <path d="M220 90 L120 130 L120 250 L220 210 Z" fill="#F59E0B" stroke="#B45309" stroke-width="3"/>
+  <path d="M120 250 L220 210 L360 250 L260 290 Z" fill="#D97706" stroke="#B45309" stroke-width="3"/>
+  <text x="300" y="120" font-family="Georgia,serif" font-size="22" fill="#92400E">a</text>
+  <text x="150" y="100" font-family="Georgia,serif" font-size="22" fill="#92400E">b</text>
+  <text x="95" y="200" font-family="Georgia,serif" font-size="22" fill="#92400E">c</text>
+  <text x="400" y="170" font-family="Georgia,serif" font-size="36" fill="#78350F" font-weight="700">V = a&#183;b&#183;c</text>
+  <text x="40" y="50" font-family="system-ui,sans-serif" font-size="22" fill="#92400E" font-weight="700">&#1086;&#1073;&#1098;&#1105;&#1084; &#1080; &#1077;&#1076;&#1080;&#1085;&#1080;&#1094;&#1099;</text>
+</svg>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="24" fill="#FFF1F2"/>
+  <circle cx="560" cy="40" r="100" fill="#FECDD3" fill-opacity="0.5"/>
+  <circle cx="40" cy="320" r="80" fill="#FDA4AF" fill-opacity="0.35"/>
+  <text x="40" y="48" font-family="system-ui,sans-serif" font-size="22" fill="#881337" font-weight="700">&#1087;&#1088;&#1086;&#1094;&#1077;&#1085;&#1090;&#1099; &#1080; &#1087;&#1088;&#1086;&#1087;&#1086;&#1088;&#1094;&#1080;&#1080;</text>
+  <text x="40" y="78" font-family="system-ui,sans-serif" font-size="15" fill="#BE123C">&#1089;&#1085;&#1080;&#1078;&#1077;&#1085;&#1080;&#1077; &#1080; &#1087;&#1086;&#1074;&#1099;&#1096;&#1077;&#1085;&#1080;&#1077; &#1094;&#1077;&#1085;&#1099;</text>
+  <rect x="50" y="120" width="140" height="120" rx="18" fill="#FFE4E6" stroke="#E11D48" stroke-width="3"/>
+  <text x="120" y="170" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#9F1239">&#1073;&#1099;&#1083;&#1086;</text>
+  <text x="120" y="215" text-anchor="middle" font-family="Georgia,serif" font-size="40" fill="#BE123C" font-weight="700">100%</text>
+  <path d="M205 180 H245" stroke="#E11D48" stroke-width="5" stroke-linecap="round"/>
+  <polygon points="245,180 228,170 228,190" fill="#E11D48"/>
+  <text x="225" y="155" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#E11D48" font-weight="700">-20%</text>
+  <rect x="260" y="120" width="140" height="120" rx="18" fill="#FECDD3" stroke="#BE123C" stroke-width="3"/>
+  <text x="330" y="170" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#9F1239">&#1089;&#1090;&#1072;&#1083;&#1086;</text>
+  <text x="330" y="215" text-anchor="middle" font-family="Georgia,serif" font-size="40" fill="#9F1239" font-weight="700">80%</text>
+  <path d="M415 180 H455" stroke="#16A34A" stroke-width="5" stroke-linecap="round"/>
+  <polygon points="455,180 438,170 438,190" fill="#16A34A"/>
+  <text x="435" y="155" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#16A34A" font-weight="700">+15%</text>
+  <rect x="470" y="120" width="130" height="120" rx="18" fill="#DCFCE7" stroke="#16A34A" stroke-width="3"/>
+  <text x="535" y="170" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#166534">&#1080;&#1090;&#1086;&#1075;</text>
+  <text x="535" y="215" text-anchor="middle" font-family="Georgia,serif" font-size="40" fill="#15803D" font-weight="700">92%</text>
+  <rect x="120" y="280" width="400" height="44" rx="12" fill="#881337"/>
+  <text x="320" y="308" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#FFF1F2" font-weight="700">1000 &#8381; &#8594; 800 &#8381; &#8594; 920 &#8381;</text>
+</svg>

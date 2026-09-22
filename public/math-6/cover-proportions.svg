@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="24" fill="#F5F3FF"/>
+  <circle cx="560" cy="300" r="100" fill="#DDD6FE" fill-opacity="0.55"/>
+  <circle cx="60" cy="50" r="70" fill="#C4B5FD" fill-opacity="0.4"/>
+  <text x="40" y="48" font-family="system-ui,sans-serif" font-size="22" fill="#4C1D95" font-weight="700">&#1087;&#1088;&#1086;&#1087;&#1086;&#1088;&#1094;&#1080;&#1080;</text>
+  <text x="40" y="78" font-family="system-ui,sans-serif" font-size="15" fill="#6D28D9">&#1082;&#1088;&#1077;&#1089;&#1090;-&#1085;&#1072;&#1082;&#1088;&#1077;&#1089;&#1090; &#183; a&#183;d = b&#183;c</text>
+  <rect x="60" y="110" width="280" height="200" rx="20" fill="#EDE9FE" stroke="#7C3AED" stroke-width="3"/>
+  <text x="130" y="165" text-anchor="middle" font-family="Georgia,serif" font-size="42" fill="#5B21B6" font-weight="700">a</text>
+  <text x="130" y="255" text-anchor="middle" font-family="Georgia,serif" font-size="42" fill="#5B21B6" font-weight="700">b</text>
+  <line x1="95" y1="185" x2="165" y2="185" stroke="#5B21B6" stroke-width="4"/>
+  <text x="200" y="210" text-anchor="middle" font-family="system-ui,sans-serif" font-size="36" fill="#7C3AED" font-weight="700">=</text>
+  <text x="270" y="165" text-anchor="middle" font-family="Georgia,serif" font-size="42" fill="#5B21B6" font-weight="700">c</text>
+  <text x="270" y="255" text-anchor="middle" font-family="Georgia,serif" font-size="42" fill="#5B21B6" font-weight="700">d</text>
+  <line x1="235" y1="185" x2="305" y2="185" stroke="#5B21B6" stroke-width="4"/>
+  <line x1="145" y1="155" x2="255" y2="245" stroke="#EA580C" stroke-width="3" stroke-dasharray="8 5"/>
+  <line x1="145" y1="245" x2="255" y2="155" stroke="#16A34A" stroke-width="3" stroke-dasharray="8 5"/>
+  <rect x="380" y="130" width="200" height="160" rx="20" fill="#FFFFFF" stroke="#7C3AED" stroke-width="3"/>
+  <text x="480" y="175" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#6D28D9">&#1086;&#1089;&#1085;&#1086;&#1074;&#1085;&#1086;&#1077;</text>
+  <text x="480" y="200" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#6D28D9">&#1089;&#1074;&#1086;&#1081;&#1089;&#1090;&#1074;&#1086;</text>
+  <text x="480" y="250" text-anchor="middle" font-family="Georgia,serif" font-size="28" fill="#4C1D95" font-weight="700">a&#183;d = b&#183;c</text>
+</svg>

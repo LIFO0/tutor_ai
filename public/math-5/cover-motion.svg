@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="24" fill="#ECFEFF"/>
+  <path d="M0 200 Q160 160 320 200 T640 200 V360 H0 Z" fill="#67E8F9"/>
+  <path d="M40 210 H600" stroke="#0891B2" stroke-width="3" stroke-dasharray="12 8"/>
+  <ellipse cx="160" cy="195" rx="36" ry="14" fill="#0E7490"/>
+  <rect x="140" y="170" width="40" height="22" rx="4" fill="#F97316"/>
+  <ellipse cx="440" cy="195" rx="36" ry="14" fill="#0E7490"/>
+  <rect x="420" y="170" width="40" height="22" rx="4" fill="#22C55E"/>
+  <path d="M200 155 H280" stroke="#EA580C" stroke-width="4" marker-end="url(#motArr)"/>
+  <path d="M400 155 H320" stroke="#16A34A" stroke-width="4" marker-end="url(#motArr)"/>
+  <defs>
+    <marker id="motArr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#334155"/>
+    </marker>
+  </defs>
+  <text x="40" y="50" font-family="system-ui,sans-serif" font-size="24" fill="#155E75" font-weight="700">&#1076;&#1074;&#1080;&#1078;&#1077;&#1085;&#1080;&#1077; &#1087;&#1086; &#1074;&#1086;&#1076;&#1077;</text>
+  <text x="40" y="85" font-family="system-ui,sans-serif" font-size="16" fill="#0E7490">&#1087;&#1086; &#1090;&#1077;&#1095;&#1077;&#1085;&#1080;&#1102; &#183; &#1087;&#1088;&#1086;&#1090;&#1080;&#1074; &#183; &#1085;&#1072;&#1074;&#1089;&#1090;&#1088;&#1077;&#1095;&#1091;</text>
+</svg>

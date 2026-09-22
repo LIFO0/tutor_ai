@@ -9,6 +9,12 @@ import { MixedMathInput, type MixedMathInputHandle } from "@/components/math/Mix
 
 const MAX_ATTACH_BYTES = 8 * 1024 * 1024;
 
+function fileListFromFile(file: File): FileList {
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  return dt.files;
+}
+
 export function ChatInput({
   onSend,
   onStop,
@@ -90,6 +96,29 @@ export function ChatInput({
   function resetDrag() {
     dragDepthRef.current = 0;
     setDragging(false);
+  }
+
+  function onPasteImage(e: React.ClipboardEvent) {
+    if (!canAttach) return;
+    const items = e.clipboardData?.items;
+    if (items) {
+      for (const item of items) {
+        if (!item.type.startsWith("image/")) continue;
+        const blob = item.getAsFile();
+        if (!blob) continue;
+        e.preventDefault();
+        onPickFile(fileListFromFile(blob));
+        return;
+      }
+    }
+    const files = e.clipboardData?.files;
+    if (files && files.length > 0) {
+      const image = Array.from(files).find((f) => f.type.startsWith("image/"));
+      if (image) {
+        e.preventDefault();
+        onPickFile(fileListFromFile(image));
+      }
+    }
   }
 
   function submit() {
@@ -205,10 +234,11 @@ export function ChatInput({
               placeholder={placeholder ?? "С чего начнём?"}
               disabled={inputDisabled}
               className="min-w-0 flex-1"
-              inputClassName="!min-h-11 rounded-none border-0 bg-transparent px-2 py-2.5 focus:border-transparent dark:bg-transparent"
+              inputClassName="!min-h-11 max-h-[min(40vh,16rem)] overflow-y-auto rounded-none border-0 bg-transparent px-2 py-2.5 focus:border-transparent dark:bg-transparent"
               placeholderClassName="!top-1/2 left-2 -translate-y-1/2"
               onFocus={onFocus}
               {...mixedMathInputProps}
+              onPaste={onPasteImage}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && !streaming) {
                   e.preventDefault();

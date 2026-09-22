@@ -179,6 +179,7 @@ export const MixedMathInput = forwardRef<
     inputClassName?: string;
     placeholderClassName?: string;
     onKeyDown?: (e: React.KeyboardEvent<HTMLElement>) => void;
+    onPaste?: (e: React.ClipboardEvent<HTMLElement>) => void;
     onFocus?: () => void;
     /** Disable inline MathLive editor (no <math-field>, no dynamic import). */
     disableInlineEdit?: boolean;
@@ -195,6 +196,7 @@ export const MixedMathInput = forwardRef<
     inputClassName,
     placeholderClassName,
     onKeyDown,
+    onPaste,
     onFocus,
     disableInlineEdit,
     inlineEditActivation = "click",
@@ -422,6 +424,7 @@ export const MixedMathInput = forwardRef<
           suppressHydrationWarning
           onFocus={onFocus}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
           onInput={() => {
             const root = rootRef.current;
             if (!root) return;

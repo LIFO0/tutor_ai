@@ -39,9 +39,19 @@ export async function generateMetadata({
   };
 }
 
-function markdownToBlocks(md: string): { type: "h2" | "h3" | "p" | "li" | "code"; text: string }[] {
+function markdownToBlocks(
+  md: string,
+): {
+  type: "h2" | "h3" | "p" | "li" | "oli" | "code" | "quote" | "img";
+  text: string;
+  src?: string;
+}[] {
   const lines = md.replace(/\r\n/g, "\n").split("\n");
-  const blocks: { type: "h2" | "h3" | "p" | "li" | "code"; text: string }[] = [];
+  const blocks: {
+    type: "h2" | "h3" | "p" | "li" | "oli" | "code" | "quote" | "img";
+    text: string;
+    src?: string;
+  }[] = [];
   let i = 0;
 
   while (i < lines.length) {
@@ -63,12 +73,33 @@ function markdownToBlocks(md: string): { type: "h2" | "h3" | "p" | "li" | "code"
       i += 1;
       continue;
     }
+
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imgMatch) {
+      blocks.push({ type: "img", text: imgMatch[1], src: imgMatch[2] });
+      i += 1;
+      continue;
+    }
+
+    if (line.startsWith("> ")) {
+      const quoteLines: string[] = [line.slice(2)];
+      i += 1;
+      while (i < lines.length && lines[i].trim().startsWith("> ")) {
+        quoteLines.push(lines[i].trim().slice(2));
+        i += 1;
+      }
+      blocks.push({ type: "quote", text: quoteLines.join(" ") });
+      continue;
+    }
+
     if (line.startsWith("### ")) {
       blocks.push({ type: "h3", text: line.slice(4) });
     } else if (line.startsWith("## ")) {
       blocks.push({ type: "h2", text: line.slice(3) });
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
       blocks.push({ type: "li", text: line.slice(2) });
+    } else if (/^\d+\.\s+/.test(line)) {
+      blocks.push({ type: "oli", text: line.replace(/^\d+\.\s+/, "") });
     } else {
       blocks.push({ type: "p", text: line });
     }
@@ -110,8 +141,9 @@ function ArticleBody({ body }: { body: string }) {
   const blocks = markdownToBlocks(body);
   const rendered: React.ReactNode[] = [];
   let liBuffer: string[] = [];
+  let oliBuffer: string[] = [];
 
-  const flushList = () => {
+  const flushUl = () => {
     if (liBuffer.length) {
       rendered.push(
         <ul key={`ul-${rendered.length}`} className="my-4 space-y-2 pl-5">
@@ -126,16 +158,42 @@ function ArticleBody({ body }: { body: string }) {
     }
   };
 
+  const flushOl = () => {
+    if (oliBuffer.length) {
+      rendered.push(
+        <ol key={`ol-${rendered.length}`} className="my-4 list-decimal space-y-2 pl-5">
+          {oliBuffer.map((item, i) => (
+            <li key={i} className="leading-relaxed text-foreground">
+              {renderInline(item)}
+            </li>
+          ))}
+        </ol>,
+      );
+      oliBuffer = [];
+    }
+  };
+
+  const flushLists = () => {
+    flushUl();
+    flushOl();
+  };
+
   for (const block of blocks) {
     if (block.type === "li") {
+      flushOl();
       liBuffer.push(block.text);
       continue;
     }
-    flushList();
+    if (block.type === "oli") {
+      flushUl();
+      oliBuffer.push(block.text);
+      continue;
+    }
+    flushLists();
 
     if (block.type === "h2") {
       rendered.push(
-        <h2 key={`h2-${rendered.length}`} className="mb-3 mt-8 text-2xl font-bold text-foreground">
+        <h2 key={`h2-${rendered.length}`} className="mb-3 mt-10 text-2xl font-bold text-foreground">
           {renderInline(block.text)}
         </h2>,
       );
@@ -154,6 +212,30 @@ function ArticleBody({ body }: { body: string }) {
           <code className="font-mono">{block.text}</code>
         </pre>,
       );
+    } else if (block.type === "quote") {
+      rendered.push(
+        <aside
+          key={`quote-${rendered.length}`}
+          className="my-6 rounded-2xl border-l-4 border-primary bg-primary/10 px-4 py-4 text-[0.95rem] leading-relaxed text-foreground sm:px-5"
+        >
+          {renderInline(block.text)}
+        </aside>,
+      );
+    } else if (block.type === "img" && block.src) {
+      rendered.push(
+        <figure
+          key={`img-${rendered.length}`}
+          className="my-8 overflow-hidden rounded-2xl border border-border bg-muted/20"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={block.src} alt={block.text} className="h-auto w-full" loading="lazy" />
+          {block.text ? (
+            <figcaption className="px-4 py-3 text-center text-sm text-muted-foreground">
+              {block.text}
+            </figcaption>
+          ) : null}
+        </figure>,
+      );
     } else {
       rendered.push(
         <p key={`p-${rendered.length}`} className="leading-relaxed text-foreground">
@@ -162,7 +244,7 @@ function ArticleBody({ body }: { body: string }) {
       );
     }
   }
-  flushList();
+  flushLists();
 
   return <div className="space-y-4">{rendered}</div>;
 }
@@ -270,9 +352,19 @@ export default async function BlogPostPage({
                 ЕГЭ по информатике 2026 · задание {post.seriesOrder} из 27
               </p>
             ) : null}
-            <h1 className="text-3xl font-bold leading-snug text-foreground sm:text-4xl">
+            <h1 className="mb-6 text-3xl font-bold leading-snug text-foreground sm:text-4xl">
               {post.h1}
             </h1>
+            {post.coverImage ? (
+              <div className="overflow-hidden rounded-2xl border border-border bg-muted/20">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.coverImage}
+                  alt={post.coverAlt}
+                  className="mx-auto h-auto max-h-56 w-full object-contain p-6 sm:max-h-72"
+                />
+              </div>
+            ) : null}
           </header>
 
           {/* Body */}

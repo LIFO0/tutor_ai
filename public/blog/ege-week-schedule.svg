@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="260" viewBox="0 0 640 260" fill="none">
+  <rect width="640" height="260" rx="20" fill="#EFF6FF"/>
+  <text x="24" y="36" font-family="system-ui,sans-serif" font-size="16" fill="#1E3A8A" font-weight="700">10&#8211;12 &#1095;&#1072;&#1089;&#1086;&#1074; &#1074; &#1085;&#1077;&#1076;&#1077;&#1083;&#1102;</text>
+  <rect x="40" y="70" width="160" height="70" rx="14" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
+  <text x="120" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#1E40AF">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</text>
+  <text x="120" y="122" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" fill="#1E3A8A" font-weight="700">3 &#1095;</text>
+  <rect x="230" y="70" width="180" height="70" rx="14" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>
+  <text x="320" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#92400E">&#1052;&#1072;&#1090;&#1077;&#1084;&#1072;&#1090;&#1080;&#1082;&#1072;</text>
+  <text x="320" y="122" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" fill="#78350F" font-weight="700">2&#8211;4 &#1095;</text>
+  <rect x="440" y="70" width="160" height="70" rx="14" fill="#DCFCE7" stroke="#16A34A" stroke-width="2"/>
+  <text x="520" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#166534">3-&#1081; &#1087;&#1088;&#1077;&#1076;&#1084;&#1077;&#1090;</text>
+  <text x="520" y="122" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" fill="#14532D" font-weight="700">3&#8211;4 &#1095;</text>
+  <rect x="40" y="170" width="560" height="56" rx="14" fill="#1E3A8A"/>
+  <text x="320" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#EFF6FF" font-weight="700">&#1055;&#1085;/&#1057;&#1088;/&#1055;&#1090; &#183; &#1057;&#1073; &#1076;&#1083;&#1080;&#1085;&#1085;&#1077;&#1077; &#183; &#1042;&#1089; &#1074;&#1099;&#1093;&#1086;&#1076;&#1085;&#1086;&#1081;</text>
+</svg>

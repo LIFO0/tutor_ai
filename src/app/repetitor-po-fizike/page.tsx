@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import SubjectPageTemplate from "@/components/landing/SubjectPageTemplate";
-import { SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
+import { OG_IMAGE, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 
 const PATH = "/repetitor-po-fizike";
 const H1 = "Онлайн-репетитор по физике для школьников 7–11 класса";
@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: "ru_RU",
     type: "website",
+    images: [OG_IMAGE],
   },
 };
 

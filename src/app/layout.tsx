@@ -4,6 +4,7 @@ import "katex/dist/katex.min.css";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
+  HTML_RDFA_PREFIX,
   OG_DESCRIPTION,
   OG_TITLE,
   SEO_KEYWORDS,
@@ -84,6 +85,7 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
+      prefix={HTML_RDFA_PREFIX}
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} ${geologica.variable} ${manrope.variable} h-full antialiased`}
       suppressHydrationWarning

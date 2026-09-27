@@ -12,6 +12,20 @@ export const OG_TITLE = "Мишка знает — ИИ-репетитор дл�
 export const OG_DESCRIPTION =
   "Персональный ИИ-репетитор для школьников 5–11 класса. Математика, физика, русский язык — объяснения простым языком, шаг за шагом.";
 
+/** Картинка из `app/opengraph-image.tsx`. Путь без `.png`: так её отдаёт Next.js. */
+export const OG_IMAGE_PATH = "/opengraph-image";
+
+export const OG_IMAGE = {
+  url: OG_IMAGE_PATH,
+  width: 1200,
+  height: 630,
+  alt: DEFAULT_TITLE,
+  type: "image/png",
+} as const;
+
+/** RDFa-префиксы для валидатора Яндекса: `og:` он знает сам, `article:` — нет. */
+export const HTML_RDFA_PREFIX = "og: http://ogp.me/ns# article: http://ogp.me/ns/article#";
+
 export const SEO_KEYWORDS = [
   "ИИ репетитор",
   "репетитор онлайн",

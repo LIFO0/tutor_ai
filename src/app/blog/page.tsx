@@ -4,7 +4,7 @@ import Header from "@/components/landing/header";
 import Footer from "@/components/landing/footer";
 import { blogPosts, getSeriesPosts } from "@/data/blog/posts";
 import { EGE_INFORMATIKA_2026_SERIES } from "@/data/blog/ege-informatika-2026";
-import { SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
+import { OG_IMAGE, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Блог — советы по учёбе для школьников",
@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: "ru_RU",
     type: "website",
+    images: [OG_IMAGE],
   },
 };
 

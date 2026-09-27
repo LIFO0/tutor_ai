@@ -5,7 +5,7 @@ import Header from "@/components/landing/header";
 import Footer from "@/components/landing/footer";
 import { Button } from "@/components/ui/button";
 import { math6Lessons } from "@/data/math-6/lessons";
-import { SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
+import { OG_IMAGE, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 
 const PATH = "/matematika-6-klass";
 const TITLE = "Математика 6 класс — отрицательные числа, уравнения, пропорции";
@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: "ru_RU",
     type: "website",
+    images: [OG_IMAGE],
   },
 };
 

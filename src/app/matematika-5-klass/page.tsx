@@ -5,7 +5,7 @@ import Header from "@/components/landing/header";
 import Footer from "@/components/landing/footer";
 import { Button } from "@/components/ui/button";
 import { math5Lessons } from "@/data/math-5/lessons";
-import { SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
+import { OG_IMAGE, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 
 const PATH = "/matematika-5-klass";
 const TITLE = "Математика 5 класс — дроби, НОД и НОК, движение, объём";
@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: "ru_RU",
     type: "website",
+    images: [OG_IMAGE],
   },
 };
 

@@ -6,7 +6,7 @@ import Header from "@/components/landing/header";
 import Footer from "@/components/landing/footer";
 import { Button } from "@/components/ui/button";
 import { getBlogPost, getBlogPostSlugs, getRelatedPosts, getSeriesNeighbors } from "@/data/blog/posts";
-import { SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
+import { OG_IMAGE, OG_IMAGE_PATH, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 
 export function generateStaticParams() {
   return getBlogPostSlugs().map((slug) => ({ slug }));
@@ -35,6 +35,7 @@ export async function generateMetadata({
       type: "article",
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,
+      images: [OG_IMAGE],
     },
   };
 }
@@ -288,7 +289,7 @@ export default async function BlogPostPage({
       "@type": "WebPage",
       "@id": `${SITE_ORIGIN}/blog/${post.slug}`,
     },
-    image: `${SITE_ORIGIN}/opengraph-image.png`,
+    image: `${SITE_ORIGIN}${OG_IMAGE_PATH}`,
     inLanguage: "ru",
   };
 

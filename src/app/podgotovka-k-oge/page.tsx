@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import SubjectPageTemplate from "@/components/landing/SubjectPageTemplate";
-import { SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
+import { OG_IMAGE, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 
 const PATH = "/podgotovka-k-oge";
 const H1 = "Подготовка к ОГЭ онлайн: математика, физика, русский язык";
@@ -27,6 +27,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: "ru_RU",
     type: "website",
+    images: [OG_IMAGE],
   },
 };
 

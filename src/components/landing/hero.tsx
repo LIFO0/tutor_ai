@@ -114,6 +114,7 @@ export default function Hero() {
                 <form
                   onSubmit={handleLandingChatSubmit}
                   className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3"
+                  suppressHydrationWarning
                 >
                   <input
                     type="text"
@@ -123,6 +124,7 @@ export default function Hero() {
                     onChange={(e) => setLandingChatMessage(e.target.value)}
                     placeholder="С чего начнём?"
                     className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                    suppressHydrationWarning
                   />
                   <button
                     type="button"

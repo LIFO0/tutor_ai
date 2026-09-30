@@ -6,9 +6,16 @@ import { Popover } from "@heroui/react";
 import { Button as AriaButton } from "react-aria-components/Button";
 import type { CurrentUser } from "@/lib/current-user";
 import { logoutAndRedirect } from "@/lib/logout-client";
+import { useIsClient } from "@/hooks/useIsClient";
 
 const itemClass =
   "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-zinc-800 outline-none transition-colors hover:bg-zinc-100 focus-visible:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800/90 dark:focus-visible:bg-zinc-800/90";
+
+const triggerClass = (fullWidth: boolean) =>
+  [
+    "cursor-pointer border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950",
+    fullWidth ? "w-full" : "w-auto shrink-0",
+  ].join(" ");
 
 export function AccountProfileMenu({
   user,
@@ -22,15 +29,15 @@ export function AccountProfileMenu({
   fullWidth?: boolean;
   children: React.ReactNode;
 }) {
+  // HeroUI/React Aria Popover can diverge SSR vs client DOM (ids, portal attrs) → #418.
+  const isClient = useIsClient();
+  if (!isClient) {
+    return <div className={triggerClass(fullWidth)}>{children}</div>;
+  }
+
   return (
     <Popover.Root>
-      <AriaButton
-        type="button"
-        className={[
-          "cursor-pointer border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950",
-          fullWidth ? "w-full" : "w-auto shrink-0",
-        ].join(" ")}
-      >
+      <AriaButton type="button" className={triggerClass(fullWidth)}>
         {children}
       </AriaButton>
       <Popover.Content

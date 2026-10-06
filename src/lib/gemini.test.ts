@@ -3,10 +3,13 @@ import { LLM_UNAVAILABLE_MESSAGE } from "@/lib/chat-limits";
 import {
   completeGeminiText,
   extractGeminiText,
+  getGeminiModelChain,
   mapGeminiHttpError,
   streamGeminiCompletion,
   toGeminiRequest,
 } from "@/lib/gemini";
+
+const MSG_UNAVAILABLE = "Сервис ИИ временно недоступен. Попробуйте позже.";
 
 const MSG_RATE_LIMIT =
   "Сейчас слишком много запросов к ИИ. Подождите минуту и попробуйте снова.";
@@ -125,6 +128,9 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
     process.env = { ...prev };
     process.env.GEMINI_API_KEY = "test-key";
     delete process.env.GEMINI_MODEL;
+    delete process.env.GEMINI_FALLBACK_MODELS;
+    // Keep chain to a single model unless a test opts into fallbacks.
+    process.env.GEMINI_FALLBACK_MODELS = "gemini-3.5-flash-lite";
     process.env.NODE_ENV = "test";
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
@@ -290,5 +296,93 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
     });
     expect(text).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("getGeminiModelChain dedupes primary and fallbacks", () => {
+    process.env.GEMINI_MODEL = "gemini-3.5-flash-lite";
+    process.env.GEMINI_FALLBACK_MODELS =
+      "gemma-4-31b-it,gemini-3.5-flash-lite,gemma-4-26b-a4b-it";
+    expect(getGeminiModelChain()).toEqual([
+      "gemini-3.5-flash-lite",
+      "gemma-4-31b-it",
+      "gemma-4-26b-a4b-it",
+    ]);
+  });
+
+  test("complete retries 503 then succeeds on same model", async () => {
+    process.env.GEMINI_FALLBACK_MODELS = "gemini-3.5-flash-lite";
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: "busy" }, { status: 503, ok: false }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          candidates: [{ content: { parts: [{ text: "ok-after-retry" }] } }],
+        }),
+      );
+
+    const text = await completeGeminiText({
+      messages: [{ role: "user", text: "hi" }],
+    });
+    expect(text).toBe("ok-after-retry");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("complete switches to fallback model after primary 503s", async () => {
+    process.env.GEMINI_MODEL = "gemini-3.5-flash-lite";
+    process.env.GEMINI_FALLBACK_MODELS = "gemma-4-31b-it";
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: "busy" }, { status: 503, ok: false }))
+      .mockResolvedValueOnce(jsonResponse({ error: "busy" }, { status: 503, ok: false }))
+      .mockResolvedValueOnce(jsonResponse({ error: "busy" }, { status: 503, ok: false }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          candidates: [{ content: { parts: [{ text: "from-fallback" }] } }],
+        }),
+      );
+
+    const text = await completeGeminiText({
+      messages: [{ role: "user", text: "hi" }],
+    });
+    expect(text).toBe("from-fallback");
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const lastUrl = fetchMock.mock.calls[3][0] as string;
+    expect(lastUrl).toContain("/models/gemma-4-31b-it:generateContent");
+  });
+
+  test("stream recovers from 503 via fallback model", async () => {
+    process.env.GEMINI_MODEL = "gemini-3.5-flash-lite";
+    process.env.GEMINI_FALLBACK_MODELS = "gemma-4-26b-a4b-it";
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: "busy" }, { status: 503, ok: false }))
+      .mockResolvedValueOnce(jsonResponse({ error: "busy" }, { status: 503, ok: false }))
+      .mockResolvedValueOnce(jsonResponse({ error: "busy" }, { status: 503, ok: false }))
+      .mockResolvedValueOnce(
+        sseResponse([
+          `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "Спасён" }] } }] })}\n\n`,
+        ]),
+      );
+
+    const out: string[] = [];
+    for await (const chunk of streamGeminiCompletion({
+      messages: [{ role: "user", text: "hi" }],
+    })) {
+      out.push(chunk);
+    }
+    expect(out).toEqual(["Спасён"]);
+    const okUrl = fetchMock.mock.calls[3][0] as string;
+    expect(okUrl).toContain("/models/gemma-4-26b-a4b-it:streamGenerateContent");
+  });
+
+  test("stream still surfaces unavailable after exhausting model chain", async () => {
+    process.env.GEMINI_FALLBACK_MODELS = "gemini-3.5-flash-lite";
+    fetchMock.mockResolvedValue(jsonResponse({ error: "busy" }, { status: 503, ok: false }));
+
+    await expect(async () => {
+      for await (const chunk of streamGeminiCompletion({
+        messages: [{ role: "user", text: "hi" }],
+      })) {
+        void chunk;
+      }
+    }).rejects.toThrow(MSG_UNAVAILABLE);
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 });

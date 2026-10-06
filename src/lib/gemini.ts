@@ -11,6 +11,8 @@ export type LlmMessage = {
 };
 
 const DEFAULT_MODEL = "gemini-3.5-flash-lite";
+/** Tried after the primary model when Google returns capacity 503s. */
+const DEFAULT_FALLBACK_MODELS = ["gemma-4-31b-it", "gemma-4-26b-a4b-it"];
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const MSG_ACCESS =
@@ -29,6 +31,119 @@ function isProductionRuntime(): boolean {
 
 export function getGeminiModel(): string {
   return getOptionalEnv("GEMINI_MODEL")?.trim() || DEFAULT_MODEL;
+}
+
+/** Primary model first, then unique fallbacks (env or defaults). */
+export function getGeminiModelChain(): string[] {
+  const primary = getGeminiModel();
+  const raw = getOptionalEnv("GEMINI_FALLBACK_MODELS");
+  const fallbacks = raw
+    ? raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : DEFAULT_FALLBACK_MODELS;
+  const seen = new Set<string>();
+  const chain: string[] = [];
+  for (const model of [primary, ...fallbacks]) {
+    if (seen.has(model)) continue;
+    seen.add(model);
+    chain.push(model);
+  }
+  return chain;
+}
+
+function retryDelaysMs(): number[] {
+  // Keep unit tests fast; production uses short backoff before switching models.
+  if (process.env.NODE_ENV === "test") return [0, 0];
+  return [400, 1200];
+}
+
+function isTransientUnavailable(e: unknown): boolean {
+  return e instanceof Error && e.message === MSG_UNAVAILABLE;
+}
+
+function isKnownUserFacingError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  return (
+    e.message === MSG_RATE_LIMIT ||
+    e.message === MSG_ACCESS ||
+    e.message === MSG_SAFETY ||
+    e.message === MSG_TIMEOUT ||
+    e.message === LLM_UNAVAILABLE_MESSAGE
+  );
+}
+
+async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  if (ms <= 0) return;
+  if (signal?.aborted) {
+    const err = new Error("aborted");
+    err.name = "AbortError";
+    throw err;
+  }
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (signal) signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      const err = new Error("aborted");
+      err.name = "AbortError";
+      reject(err);
+    };
+    if (signal) signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/**
+ * Retry the same model on capacity 503, then try the next model in the chain.
+ * Non-transient errors fail immediately.
+ */
+async function withGeminiCapacityRetries<T>(
+  models: string[],
+  signal: AbortSignal | undefined,
+  run: (model: string) => Promise<T>,
+): Promise<T> {
+  const delays = retryDelaysMs();
+  let lastError: unknown;
+
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const model = models[modelIndex]!;
+    const attempts = 1 + delays.length;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      if (signal?.aborted) remapAbort(lastError ?? new Error("aborted"), signal);
+      try {
+        if (attempt > 0 || modelIndex > 0) {
+          console.warn(
+            `[gemini] trying model=${model} attempt=${attempt + 1}/${attempts}`,
+          );
+        }
+        return await run(model);
+      } catch (e) {
+        lastError = e;
+        if (signal?.aborted) remapAbort(e, signal);
+        if (!isTransientUnavailable(e)) throw e;
+
+        const delay = delays[attempt];
+        if (delay != null) {
+          console.warn(
+            `[gemini] capacity 503 on ${model}; retry in ${delay}ms (${attempt + 1}/${attempts})`,
+          );
+          try {
+            await sleep(delay, signal);
+          } catch (sleepErr) {
+            remapAbort(sleepErr, signal);
+          }
+        } else if (modelIndex < models.length - 1) {
+          console.warn(`[gemini] capacity 503 on ${model}; switching fallback model`);
+        }
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(MSG_UNAVAILABLE);
 }
 
 function mergeAbortSignals(external?: AbortSignal): { signal: AbortSignal; cleanup: () => void } {
@@ -388,14 +503,16 @@ export async function completeGeminiText(params: {
   const apiKey = getOptionalEnv("GEMINI_API_KEY");
   if (!apiKey) return null;
 
-  return fetchCompletionText({
-    apiKey,
-    model: getGeminiModel(),
-    messages: params.messages,
-    maxTokens: params.maxTokens,
-    temperature: params.temperature,
-    signal: params.signal,
-  });
+  return withGeminiCapacityRetries(getGeminiModelChain(), params.signal, (model) =>
+    fetchCompletionText({
+      apiKey,
+      model,
+      messages: params.messages,
+      maxTokens: params.maxTokens,
+      temperature: params.temperature,
+      signal: params.signal,
+    }),
+  );
 }
 
 export async function* streamGeminiCompletion(params: {
@@ -419,42 +536,105 @@ export async function* streamGeminiCompletion(params: {
     return;
   }
 
-  const model = getGeminiModel();
+  const models = getGeminiModelChain();
+  const delays = retryDelaysMs();
+  let lastError: unknown;
 
-  try {
-    yield* fetchCompletionStreamPieces({
-      apiKey,
-      model,
-      messages: params.messages,
-      maxTokens: params.maxTokens ?? 1200,
-      temperature: params.temperature,
-      signal: params.signal,
-    });
-  } catch (e) {
-    if (params.signal?.aborted) return;
-    // Known user-facing errors: rethrow without fallback.
-    if (e instanceof Error) {
-      if (
-        e.message === MSG_RATE_LIMIT ||
-        e.message === MSG_ACCESS ||
-        e.message === MSG_SAFETY ||
-        e.message === MSG_UNAVAILABLE ||
-        e.message === MSG_TIMEOUT ||
-        e.message === LLM_UNAVAILABLE_MESSAGE
-      ) {
-        throw e;
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const model = models[modelIndex]!;
+    const attempts = 1 + delays.length;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      if (params.signal?.aborted) return;
+
+      if (attempt > 0 || modelIndex > 0) {
+        console.warn(
+          `[gemini] stream trying model=${model} attempt=${attempt + 1}/${attempts}`,
+        );
+      }
+
+      let yielded = false;
+      try {
+        for await (const piece of fetchCompletionStreamPieces({
+          apiKey,
+          model,
+          messages: params.messages,
+          maxTokens: params.maxTokens ?? 1200,
+          temperature: params.temperature,
+          signal: params.signal,
+        })) {
+          yielded = true;
+          yield piece;
+        }
+        return;
+      } catch (e) {
+        if (params.signal?.aborted) return;
+        lastError = e;
+
+        // Already started streaming to the client — cannot switch models safely.
+        if (yielded) throw e;
+
+        // Capacity: retry / next model (do not surface 503 until chain is exhausted).
+        if (isTransientUnavailable(e)) {
+          const delay = delays[attempt];
+          if (delay != null) {
+            console.warn(
+              `[gemini] stream capacity 503 on ${model}; retry in ${delay}ms (${attempt + 1}/${attempts})`,
+            );
+            try {
+              await sleep(delay, params.signal);
+            } catch {
+              return;
+            }
+            continue;
+          }
+          if (modelIndex < models.length - 1) {
+            console.warn(`[gemini] stream capacity 503 on ${model}; switching fallback model`);
+          }
+          break;
+        }
+
+        // Auth / safety / rate-limit: fail fast, no model switching.
+        if (isKnownUserFacingError(e)) throw e;
+
+        // Parser / other stream issues: try non-stream once on this model, then continue chain on 503.
+        try {
+          const fullText = await fetchCompletionText({
+            apiKey,
+            model,
+            messages: params.messages,
+            maxTokens: params.maxTokens ?? 1200,
+            temperature: params.temperature,
+            signal: params.signal,
+          });
+          if (params.signal?.aborted) return;
+          yield* fakeStream(fullText);
+          return;
+        } catch (fallbackErr) {
+          if (params.signal?.aborted) return;
+          lastError = fallbackErr;
+          if (isTransientUnavailable(fallbackErr)) {
+            const delay = delays[attempt];
+            if (delay != null) {
+              try {
+                await sleep(delay, params.signal);
+              } catch {
+                return;
+              }
+              continue;
+            }
+            if (modelIndex < models.length - 1) {
+              console.warn(
+                `[gemini] generateContent capacity 503 on ${model}; switching fallback model`,
+              );
+            }
+            break;
+          }
+          throw fallbackErr;
+        }
       }
     }
-    // Fallback: request full completion and stream it ourselves.
-    const fullText = await fetchCompletionText({
-      apiKey,
-      model,
-      messages: params.messages,
-      maxTokens: params.maxTokens ?? 1200,
-      temperature: params.temperature,
-      signal: params.signal,
-    });
-    if (params.signal?.aborted) return;
-    yield* fakeStream(fullText);
   }
+
+  throw lastError instanceof Error ? lastError : new Error(MSG_UNAVAILABLE);
 }

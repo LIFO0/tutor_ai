@@ -14,7 +14,7 @@ export default function NotFound() {
   return (
     <main className="landing-light-theme flex min-h-screen flex-col bg-background text-foreground">
       <Header />
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 pb-12 pt-24 text-center sm:px-6 sm:pb-16 md:pt-32">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-10 text-center sm:px-6 sm:py-14">
         <Image
           src="/bears/bear_thinking.webp"
           alt="Мишка задумался"

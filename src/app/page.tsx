@@ -27,7 +27,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <main className="landing-light-theme min-h-screen bg-background text-foreground">
-        <Header />
+        <Header overlay />
         <Hero />
         <SubjectsMarquee />
         <HowItWorks />

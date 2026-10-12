@@ -6,6 +6,7 @@ import { taskCheckPrompt } from "@/lib/prompts";
 import { completeOnce } from "@/lib/llm";
 import { resolveTaskCheckResult } from "@/lib/task-check-json";
 import { answersMatchForTask } from "@/lib/answer-normalize";
+import { verifiedReferenceAnswer } from "@/lib/linear-equation";
 import { quotaErrorResponse } from "@/lib/api/quota-response";
 import { assertLlmConfigured } from "@/lib/llm-config";
 import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
@@ -70,7 +71,11 @@ export async function POST(req: Request) {
   const quota = await checkAndConsume(toQuotaUser(user), "task_check");
   if (!quota.ok) return quotaErrorResponse(quota);
 
-  const correctAnswer = task.correctAnswer ?? "";
+  // Эталон из БД мог быть посчитан LLM с ошибкой (уже сохранённые задачи банка) —
+  // для линейных уравнений пересчитываем корень детерминированно.
+  const verified = verifiedReferenceAnswer(task.taskText, task.correctAnswer ?? "");
+  const hasVerifiedReference = verified.verified;
+  const correctAnswer = verified.answer;
   const deterministicCorrect = answersMatchForTask(userAnswer, correctAnswer);
 
   let modelRaw = await runTaskCheckLlm({
@@ -101,7 +106,8 @@ export async function POST(req: Request) {
     resolved = resolveTaskCheckResult(modelRaw);
   }
 
-  const modelSaysCorrect = resolved.correct === true;
+  // Если эталон проверен вычислением, вердикт LLM не может его перебить.
+  const modelSaysCorrect = hasVerifiedReference ? deterministicCorrect : resolved.correct === true;
   const feedbackText = resolved.feedbackText;
 
   await setTaskCheckResult({

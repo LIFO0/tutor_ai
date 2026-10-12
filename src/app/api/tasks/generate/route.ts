@@ -17,6 +17,7 @@ import {
   upsertBankTask,
   userSolvedTemplate,
 } from "@/lib/task-bank";
+import { verifiedReferenceAnswer } from "@/lib/linear-equation";
 import { sanitizePromptLine } from "@/lib/prompt-sanitize";
 import { isValidTopicKey, resolveTopicKey } from "@/lib/task-topics";
 
@@ -81,6 +82,14 @@ async function generateWithLlm(params: {
   });
 
   const parsed = parseTask(raw);
+  const verified = verifiedReferenceAnswer(parsed.taskText, parsed.answer);
+  if (verified.overridden) {
+    console.warn("[tasks/generate] LLM answer replaced by computed root", {
+      modelAnswer: parsed.answer,
+      computed: verified.answer,
+    });
+    parsed.answer = verified.answer;
+  }
   const aiTopicKey =
     parsed.topicKey && isValidTopicKey(params.subject, parsed.topicKey)
       ? parsed.topicKey

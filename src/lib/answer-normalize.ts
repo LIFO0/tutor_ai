@@ -8,7 +8,8 @@ export function normalizeAnswerForCompare(s: string): string {
     .replace(/\s+/g, " ")
     .replace(/÷|∶|:/g, "/")
     .replace(/×|·|\*/g, "*")
-    .replace(/−|–|—/g, "-")
+    .replace(/[\u2212\u2012\u2013\u2014\u2015\uFE63\uFF0D]/g, "-")
+    .replace(/\\minus/g, "-")
     .replace(/,/g, ".")
     .replace(/\s*([+\-*/()])\s*/g, "$1");
 }
@@ -165,7 +166,14 @@ export function areNumericExpressionsEquivalent(a: string, b: string, epsilon = 
   return Math.abs(va - vb) <= epsilon;
 }
 
+/** Убирает префикс «x =» в ответе вида «x = −4». */
+export function stripVariablePrefix(s: string): string {
+  return s.replace(/^\s*\$?\s*[a-zA-Z]\s*=\s*/, "");
+}
+
 export function answersMatchForTask(userAnswer: string, correctAnswer: string): boolean {
+  userAnswer = stripVariablePrefix(userAnswer);
+  correctAnswer = stripVariablePrefix(correctAnswer);
   const u = normalizeAnswerForCompare(userAnswer);
   const c = normalizeAnswerForCompare(correctAnswer);
   if (!c || c === "—") return false;

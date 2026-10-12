@@ -6,10 +6,11 @@ import type { QuotaCounters, QuotaKind, QuotaLimits, UsageSnapshot } from "@/lib
 import { quotaExceededMessage } from "@/lib/usage-types";
 import {
   getMoscowDateString,
-  getPlanLimits,
   getQuotaResetsAt,
+  getUserLimits,
   isQuotaExemptByEmail,
   isQuotaExemptUserId,
+  isTestAccountUnlimited,
   isQuotaGloballyDisabled,
   resolveEffectivePlan,
 } from "@/lib/usage-quota-config";
@@ -43,7 +44,8 @@ const chatBurstHits = new Map<string, number[]>();
 
 export function isQuotaExemptUser(user: QuotaUser): boolean {
   if (isQuotaExemptByEmail(user.email)) return true;
-  return isQuotaExemptUserId(user.id);
+  if (isQuotaExemptUserId(user.id)) return true;
+  return isTestAccountUnlimited(user);
 }
 
 function kindToLimitKey(kind: QuotaKind): keyof Omit<QuotaLimits, "burstChatPerMin"> {
@@ -149,7 +151,7 @@ export async function getUsageSnapshot(user: QuotaUser): Promise<UsageSnapshot> 
   const resetsAt = getQuotaResetsAt();
   if (isQuotaGloballyDisabled() || isQuotaExemptUser(user)) {
     const plan = resolveEffectivePlan(user);
-    const limits = getPlanLimits(plan);
+    const limits = getUserLimits(plan, user);
     return {
       exempt: true,
       plan,
@@ -168,7 +170,7 @@ export async function getUsageSnapshot(user: QuotaUser): Promise<UsageSnapshot> 
   }
 
   const plan = resolveEffectivePlan(user);
-  const limits = getPlanLimits(plan);
+  const limits = getUserLimits(plan, user);
   const date = getMoscowDateString();
   await ensureUsageRow(user.id, date);
   const row = await readUsageRow(user.id, date);
@@ -203,7 +205,7 @@ export async function checkAndConsume(user: QuotaUser, kind: QuotaKind): Promise
   }
 
   const plan = resolveEffectivePlan(user);
-  const limits = getPlanLimits(plan);
+  const limits = getUserLimits(plan, user);
 
   if (kind === "chat_message") {
     const burst = checkChatBurst(user.id, limits.burstChatPerMin);

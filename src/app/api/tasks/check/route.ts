@@ -49,6 +49,27 @@ async function runTaskCheckLlm(params: {
   });
 }
 
+const BLIND_SOLVE_SYSTEM_PROMPT =
+  "Реши задачу. Верни СТРОГО JSON без markdown: { \"answer\": \"...\" } — только итоговое число/выражение, без единиц и пояснений.";
+
+/** Независимое решение без эталона: модель, видя эталон, склонна под него подстраиваться. */
+async function blindSolve(taskText: string): Promise<string | null> {
+  try {
+    const raw = await completeOnce({
+      messages: [
+        { role: "system", text: BLIND_SOLVE_SYSTEM_PROMPT },
+        { role: "user", text: taskText },
+      ],
+      temperature: 0,
+      maxTokens: 2000,
+    });
+    const m = /"answer"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(raw);
+    return m?.[1]?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return jsonError("Unauthorized", 401);
@@ -107,18 +128,32 @@ export async function POST(req: Request) {
     resolved = resolveTaskCheckResult(modelRaw);
   }
 
-  const { verdict, referenceSuspect } = decideTaskVerdict({
+  let { verdict, referenceSuspect } = decideTaskVerdict({
     userAnswer,
     referenceAnswer: correctAnswer,
     hasVerifiedReference,
     modelCorrect: resolved.correct,
     modelOwnAnswer: resolved.ownAnswer,
   });
+  let blindAnswer: string | null = null;
+  if (verdict === "incorrect" && !hasVerifiedReference) {
+    blindAnswer = await blindSolve(task.taskText);
+    if (blindAnswer) {
+      ({ verdict, referenceSuspect } = decideTaskVerdict({
+        userAnswer,
+        referenceAnswer: correctAnswer,
+        hasVerifiedReference,
+        modelCorrect: false,
+        modelOwnAnswer: blindAnswer,
+      }));
+    }
+  }
   if (referenceSuspect) {
     console.warn("[tasks/check] reference answer looks wrong", {
       taskId,
       reference: correctAnswer,
       modelOwnAnswer: resolved.ownAnswer,
+      blindAnswer,
       verdict,
     });
   }

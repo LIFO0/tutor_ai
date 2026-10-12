@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MessageBubble } from "./MessageBubble";
 import { MessageActions } from "./MessageActions";
 import { MessageEditor } from "./MessageEditor";
@@ -583,18 +583,36 @@ export function ChatWindow({
   }, [messages.length, streaming, lastMessageFingerprint]);
 
   // Переход из поиска: /chat/:id?m=<messageId> — прокрутить к сообщению и подсветить.
+  // Реагируем на смену ?m= (в т.ч. в уже открытом чате) и на событие повторного клика.
+  const searchParams = useSearchParams();
+  const jumpParam = searchParams.get("m");
+  const [jumpTarget, setJumpTarget] = useState<{ id: string; nonce: number } | null>(null);
+  const [lastJumpParam, setLastJumpParam] = useState<string | null>(null);
+  if (jumpParam !== lastJumpParam) {
+    setLastJumpParam(jumpParam);
+    if (jumpParam) setJumpTarget({ id: jumpParam, nonce: Date.now() });
+  }
   useEffect(() => {
-    const raw = new URLSearchParams(window.location.search).get("m");
-    if (!raw) return;
+    const onJump = (e: Event) => {
+      const d = (e as CustomEvent<{ sessionId: number; messageId: number }>).detail;
+      if (d?.sessionId === sessionId) setJumpTarget({ id: String(d.messageId), nonce: Date.now() });
+    };
+    window.addEventListener("chat:jump-to-message", onJump);
+    return () => window.removeEventListener("chat:jump-to-message", onJump);
+  }, [sessionId]);
+  useEffect(() => {
+    if (!jumpTarget) return;
     const t = window.setTimeout(() => {
-      const el = document.getElementById(`msg-${raw}`);
+      const el = document.getElementById(`msg-${jumpTarget.id}`);
       if (!el) return;
       el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("search-hit");
+      void el.offsetWidth;
       el.classList.add("search-hit");
       window.setTimeout(() => el.classList.remove("search-hit"), 2500);
     }, 350);
     return () => clearTimeout(t);
-  }, [sessionId]);
+  }, [jumpTarget]);
 
   return (
     <div className="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden">

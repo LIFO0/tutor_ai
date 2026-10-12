@@ -228,9 +228,26 @@ export function ChatSessionsSidebar({
                   <li key={`sr-${r.sessionId}`}>
                     <button
                       type="button"
-                      onClick={() =>
-                        router.push(r.messageId ? `/chat/${r.sessionId}?m=${r.messageId}` : `/chat/${r.sessionId}`)
-                      }
+                      onClick={() => {
+                        if (!r.messageId) {
+                          router.push(`/chat/${r.sessionId}`);
+                          return;
+                        }
+                        const href = `/chat/${r.sessionId}?m=${r.messageId}`;
+                        const sameUrl =
+                          pathname === `/chat/${r.sessionId}` &&
+                          new URLSearchParams(window.location.search).get("m") === String(r.messageId);
+                        if (sameUrl) {
+                          // URL не меняется — просим открытый чат прокрутить ещё раз.
+                          window.dispatchEvent(
+                            new CustomEvent("chat:jump-to-message", {
+                              detail: { sessionId: r.sessionId, messageId: r.messageId },
+                            }),
+                          );
+                        } else {
+                          router.push(href, { scroll: false });
+                        }
+                      }}
                       className="w-full rounded-2xl border border-transparent px-3 py-2.5 text-left hover:border-zinc-300/90 hover:bg-zinc-50/90 dark:hover:border-zinc-500/65 dark:hover:bg-zinc-900/50"
                     >
                       <div className="truncate text-[15px] font-medium text-zinc-900 dark:text-zinc-50">

@@ -5,7 +5,7 @@ import { getTask, setTaskCheckResult } from "@/lib/tasks";
 import { taskCheckPrompt } from "@/lib/prompts";
 import { completeOnce } from "@/lib/llm";
 import { resolveTaskCheckResult } from "@/lib/task-check-json";
-import { answersMatchForTask } from "@/lib/answer-normalize";
+import { decideTaskVerdict, UNCERTAIN_NOTE, verdictToStoredCorrect } from "@/lib/task-verdict";
 import { verifiedReferenceAnswer } from "@/lib/linear-equation";
 import { quotaErrorResponse } from "@/lib/api/quota-response";
 import { assertLlmConfigured } from "@/lib/llm-config";
@@ -14,7 +14,9 @@ import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 const TASK_CHECK_SYSTEM_PROMPT =
   "Ты — добрый репетитор (мужской род: «рад», «понял», «готов»). Пиши по-русски, используй LaTeX при необходимости.\n" +
   "Верни ответ СТРОГО в JSON формате:\n" +
-  '{ "correct": true|false, "feedback": "..." }\n' +
+  '{ "own_answer": "...", "correct": true|false, "feedback": "..." }\n' +
+  "Сначала реши задачу сам, не глядя на эталон, и запиши свой итоговый ответ в own_answer (только число/выражение, без пояснений). " +
+  "Эталон может содержать ошибку: если ответ ученика совпадает с твоим решением, ставь correct: true.\n" +
   "Поле correct обязательно: true — ответ верный, false — неверный. Вердикт только через correct, не только словами в feedback.\n" +
   "Без markdown, без пояснений вокруг JSON. Поле \"feedback\" — текст для ученика.\n" +
   "Поле feedback — не длиннее 800 символов, до 6 шагов. Принимай ответы с тем же результатом, даже если они записаны по-другому. В feedback — простой язык для школьника.";
@@ -76,7 +78,6 @@ export async function POST(req: Request) {
   const verified = verifiedReferenceAnswer(task.taskText, task.correctAnswer ?? "");
   const hasVerifiedReference = verified.verified;
   const correctAnswer = verified.answer;
-  const deterministicCorrect = answersMatchForTask(userAnswer, correctAnswer);
 
   let modelRaw = await runTaskCheckLlm({
     taskText: task.taskText,
@@ -106,18 +107,32 @@ export async function POST(req: Request) {
     resolved = resolveTaskCheckResult(modelRaw);
   }
 
-  // Если эталон проверен вычислением, вердикт LLM не может его перебить.
-  const modelSaysCorrect = hasVerifiedReference ? deterministicCorrect : resolved.correct === true;
-  const feedbackText = resolved.feedbackText;
+  const { verdict, referenceSuspect } = decideTaskVerdict({
+    userAnswer,
+    referenceAnswer: correctAnswer,
+    hasVerifiedReference,
+    modelCorrect: resolved.correct,
+    modelOwnAnswer: resolved.ownAnswer,
+  });
+  if (referenceSuspect) {
+    console.warn("[tasks/check] reference answer looks wrong", {
+      taskId,
+      reference: correctAnswer,
+      modelOwnAnswer: resolved.ownAnswer,
+      verdict,
+    });
+  }
+  const correct = verdictToStoredCorrect(verdict);
+  const feedbackText =
+    verdict === "uncertain" ? `${UNCERTAIN_NOTE}\n\n${resolved.feedbackText}` : resolved.feedbackText;
 
   await setTaskCheckResult({
     userId: user.id,
     taskId,
     userAnswer,
-    correct: deterministicCorrect || modelSaysCorrect,
+    correct,
     aiFeedback: feedbackText,
   });
 
-  const correct = deterministicCorrect || modelSaysCorrect;
-  return NextResponse.json({ ok: true, correct, aiFeedback: feedbackText });
+  return NextResponse.json({ ok: true, correct, verdict, aiFeedback: feedbackText });
 }

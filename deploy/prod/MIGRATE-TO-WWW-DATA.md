@@ -110,6 +110,10 @@ journalctl -u tutor-ai -n 100 --no-pager | grep -iE 'EACCES|EPERM|SQLITE_READONL
 
 ## 4. Деплой в будущем (от www-data)
 
+> **Рекомендуется следующим шагом перейти на деплой релизами** (сборка в отдельном каталоге, атомарный
+> `current`-симлинк, `rollback`): `deploy/prod/MIGRATE-TO-RELEASES.md`, скрипт `deploy/prod/deploy-prod.sh`.
+> Команды ниже — старый способ: сборка на месте роняет сервис до её окончания.
+
 ```bash
 cd "$PROD_DIR"
 sudo -u www-data git pull

@@ -1,0 +1,46 @@
+# /etc/systemd/system/tutor-ai.service
+# ПРОД tutor-ai (mishkaznaet.ru), запуск от www-data вместо root.
+# Вариант с релизами (current -> releases/<ts>-<sha>), инструкция: deploy/prod/MIGRATE-TO-RELEASES.md
+# Предыдущий шаг (root -> www-data): deploy/prod/MIGRATE-TO-WWW-DATA.md + deploy/prod/tutor-ai.service
+#
+# !!! ПЛЕЙСХОЛДЕРЫ — заменить перед установкой (sed, см. инструкцию):
+#   PROD_DIR       — базовый каталог релизов (содержит repo/ releases/ shared/ current), напр. /var/www/tutor-ai
+#   DB_DIR         — каталог, где лежит файл DATABASE_PATH (ЭТО КАТАЛОГ, не файл: SQLite пишет -wal/-shm рядом)
+#   UPLOADS_DIR    — значение CHAT_UPLOADS_PATH
+#   NPM_BIN        — вывод `which npm` (обычно /usr/bin/npm); сверить с текущим ExecStart
+# Порт оставлен как у прода: 3000 (nginx проксирует на 127.0.0.1:3000).
+# Если в текущем прод-юните ExecStart/порт/хост другие — перенести их как есть.
+[Unit]
+Description=tutor-ai PROD (mishkaznaet.ru)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=PROD_DIR/current
+Environment=NODE_ENV=production
+Environment=PORT=3000
+# Next.js читает .env.local из релиза (симлинк на shared/.env.local); здесь дублируем для явности.
+EnvironmentFile=-PROD_DIR/shared/.env.local
+ExecStart=NPM_BIN start -- -p 3000
+Restart=on-failure
+RestartSec=5
+
+# --- Hardening ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+# ProtectHome не включаем: если БД/загрузки/кэш лежат в /root или /home, сервис упадёт.
+# Включить (ProtectHome=true) после проверки, что ничего не пишется в /home и /root.
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# Куда сервису разрешено писать (при ProtectSystem=strict это обязательно; при full — документирует намерение)
+ReadWritePaths=PROD_DIR/releases PROD_DIR/shared DB_DIR UPLOADS_DIR
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

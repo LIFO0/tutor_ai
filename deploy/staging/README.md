@@ -105,11 +105,17 @@ sudo visudo -c
 (или запускайте скрипт от своего пользователя с sudo).
 
 ## Обновление staging
+Деплой идёт «релизами»: сборка в `releases/<дата>-<sha>/`, затем атомарное переключение симлинка `current`
+и рестарт; при ошибке сборки работающий релиз не трогается. Схема и разовый переход — `MIGRATE-TO-RELEASES.md`.
 ```bash
-sudo -u www-data /var/www/tutor-ai-staging/deploy/staging/deploy-staging.sh
+D=/var/www/tutor-ai-staging/current/deploy/staging/deploy-staging.sh
+sudo -u www-data $D            # деплой origin/develop
+sudo -u www-data $D list       # релизы
+sudo -u www-data $D rollback   # откат на предыдущий (автодеплой встаёт на паузу до `unpin`)
+sudo -u www-data $D unpin
 ```
-Скрипт: `git fetch` → `checkout develop` → `reset --hard origin/develop` → `npm ci` → `npm run build` → `systemctl restart tutor-ai-staging`.
-Локальные правки в каталоге staging будут затёрты; `.env.local`, `public/uploads` (неотслеживаемые) и `/var/lib/tutor-ai-staging` сохраняются.
+`.env.local` и `public/uploads` живут в `/var/www/tutor-ai-staging/shared/`, БД и чат-вложения — в `/var/lib/tutor-ai-staging`.
+Параллельные запуски (ручной + таймер `tutor-ai-staging-autodeploy`) исключены через `flock` (код выхода 75).
 
 ## robots.txt
 `src/app/robots.ts` при `ROBOTS_DISALLOW_ALL=1` отдаёт `Disallow: /`. Значение читается при `npm run build` (robots статичен), поэтому после изменения переменной нужна пересборка. На проде переменную не задавать.

@@ -29,6 +29,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   // Нативные Node-модули не бандлить для клиента (better-sqlite3 тянет `fs`)
   serverExternalPackages: ["better-sqlite3"],
   // Меньше модулей в dev/production за счёт точечных импортов из «толстых» пакетов
@@ -37,6 +38,9 @@ const nextConfig: NextConfig = {
       "@heroui/react",
       "lucide-react",
     ],
+  },
+  async redirects() {
+    return [{ source: "/plus", destination: "/pricing", permanent: true }];
   },
   async headers() {
     return [

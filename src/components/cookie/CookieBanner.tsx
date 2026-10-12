@@ -10,43 +10,39 @@ export function CookieBanner() {
 
   return (
     <div
-      role="dialog"
+      role="region"
       aria-labelledby="cookie-banner-title"
       aria-describedby="cookie-banner-description"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card shadow-[0_-4px_24px_rgba(0,0,0,0.08)]"
+      className="fixed inset-x-2 bottom-2 z-50 rounded-2xl border border-border bg-card shadow-[0_4px_24px_rgba(0,0,0,0.12)] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-xl"
     >
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 sm:py-5 lg:px-8">
-        <div className="min-w-0 flex-1">
-          <p id="cookie-banner-title" className="sr-only">
-            Согласие на использование cookie
-          </p>
-          <p
-            id="cookie-banner-description"
-            className="text-sm leading-relaxed text-muted-foreground"
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4 sm:py-3">
+        <p id="cookie-banner-title" className="sr-only">
+          Согласие на использование cookie
+        </p>
+        <p
+          id="cookie-banner-description"
+          className="min-w-0 flex-1 basis-48 text-xs leading-snug text-muted-foreground sm:text-sm"
+        >
+          Мы используем cookie для работы сайта и аналитики.{" "}
+          <Link
+            href="/privacy"
+            className="text-[color:var(--color-accent)] underline underline-offset-2"
           >
-            Сервис использует обязательные cookie для входа и работы учётной записи, а также
-            аналитические cookie (Яндекс.Метрика) для улучшения Сервиса. Подробнее — в{" "}
-            <Link
-              href="/privacy"
-              className="text-[color:var(--color-accent)] underline-offset-2 hover:underline"
-            >
-              Политике конфиденциальности
-            </Link>
-            .
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+            Подробнее
+          </Link>
+        </p>
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={acceptEssentialOnly}
-            className="inline-flex h-10 items-center justify-center rounded-full border border-border bg-background px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className="inline-flex h-8 items-center justify-center rounded-full border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted sm:text-sm"
           >
-            Только необходимые
+            Только нужные
           </button>
           <button
             type="button"
             onClick={acceptAll}
-            className="inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--color-accent)] px-5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            className="inline-flex h-8 items-center justify-center rounded-full bg-[color:var(--color-accent)] px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:text-sm"
           >
             Принять
           </button>

@@ -55,7 +55,7 @@ export default function LoginPage() {
         loading={loading}
         defaultEmail={email}
         rightImage="/bears/bear_welcoming_update.webp"
-        rightImageAlt="Bear illustration"
+        rightImageAlt="Мишка приветствует тебя"
       />
 
       <div className="sr-only">

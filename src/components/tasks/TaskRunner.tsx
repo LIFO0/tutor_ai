@@ -8,7 +8,7 @@ import { normalizeStoredTaskFeedback } from "@/lib/task-check-json";
 import { AnswerInput } from "./AnswerInput";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
-import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
+import { quotaExceededMessage, quotaWarningMessage, isQuotaLow } from "@/lib/usage-types";
 
 export function TaskRunner({
   taskId,
@@ -46,8 +46,7 @@ export function TaskRunner({
     !usage?.exempt &&
     !checkBlocked &&
     usage != null &&
-    usage.remaining.taskCheck > 0 &&
-    usage.remaining.taskCheck <= 3;
+    isQuotaLow(usage.remaining.taskCheck, usage.limits.taskCheck);
 
   const canCheck = useMemo(
     () => answer.trim().length > 0 && !loading && !checkBlocked,

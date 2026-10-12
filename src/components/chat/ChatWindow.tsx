@@ -14,7 +14,7 @@ import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
 import { LLM_UNAVAILABLE_MESSAGE, MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat-limits";
-import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
+import { quotaExceededMessage, quotaWarningMessage, isQuotaLow } from "@/lib/usage-types";
 
 export type UiMessage = {
   id: string;
@@ -83,14 +83,12 @@ export function ChatWindow({
     !usage?.exempt &&
     !chatBlocked &&
     usage != null &&
-    usage.remaining.chatMessages > 0 &&
-    usage.remaining.chatMessages <= 3;
+    isQuotaLow(usage.remaining.chatMessages, usage.limits.chatMessages);
   const imagesWarning =
     !usage?.exempt &&
     !imagesExhausted &&
     usage != null &&
-    usage.remaining.chatImages > 0 &&
-    usage.remaining.chatImages <= 2;
+    isQuotaLow(usage.remaining.chatImages, usage.limits.chatImages);
 
   const [headerTitle, setHeaderTitle] = useState<string>(() => title || "Чат");
 

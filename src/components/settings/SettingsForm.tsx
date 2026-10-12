@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ListBox, Select } from "@heroui/react";
 import type { CurrentUser } from "@/lib/current-user";
+import { UsageTodayBlock } from "@/components/settings/UsageTodayBlock";
 import { UserAvatar, AVATAR_IDS } from "@/components/ui/UserAvatar";
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
 
@@ -283,6 +284,8 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
           {baseline?.email ?? initialUser.email}
         </div>
       </section>
+
+      <UsageTodayBlock />
 
       {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
       {ok ? <div className="text-sm text-emerald-600 dark:text-emerald-400">{ok}</div> : null}

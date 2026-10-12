@@ -10,6 +10,11 @@ function getSiteOrigin(): string {
 export default function robots(): MetadataRoute.Robots {
   const origin = getSiteOrigin();
 
+  // Staging (test.mishkaznaet.ru): ROBOTS_DISALLOW_ALL=1 закрывает весь сайт.
+  if (process.env.ROBOTS_DISALLOW_ALL === "1") {
+    return { rules: { userAgent: "*", disallow: "/" } };
+  }
+
   return {
     rules: {
       userAgent: "*",

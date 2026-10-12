@@ -1,0 +1,25 @@
+# /etc/systemd/system/tutor-ai-staging.service
+# Staging-копия tutor-ai (ветка develop) для test.mishkaznaet.ru.
+# Перед установкой сверьте User/Group и путь к npm с прод-юнитом:
+#   systemctl cat tutor-ai ; which npm
+[Unit]
+Description=tutor-ai STAGING (test.mishkaznaet.ru, branch develop)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/tutor-ai-staging
+Environment=NODE_ENV=production
+Environment=PORT=3001
+# Next.js сам читает .env.local из WorkingDirectory; здесь дублируем для явности.
+EnvironmentFile=-/var/www/tutor-ai-staging/.env.local
+ExecStart=/usr/bin/npm start -- -p 3001 -H 127.0.0.1
+Restart=on-failure
+RestartSec=5
+# Staging не должен отнимать всю память у прода
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

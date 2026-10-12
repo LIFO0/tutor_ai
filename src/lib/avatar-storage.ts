@@ -25,9 +25,18 @@ export function resolveAvatarUploadsDir(): string {
   return dir;
 }
 
+/**
+ * Legacy location (local dev / old releases). `turbopackIgnore` stops Turbopack from treating
+ * this as a static directory asset: on staging public/uploads was a symlink pointing outside
+ * the project, and tracing it crashed `next build` ("Symlink … points out of the filesystem root").
+ */
 function legacyAvatarDir(): string {
-  return path.join(process.cwd(), "public", "uploads", "avatars");
+  // Сегменты передаются переменной, а не литералами: так путь не превращается в статическую ссылку на каталог.
+  const segments: string[] = LEGACY_AVATAR_SEGMENTS.slice();
+  return path.join(/* turbopackIgnore: true */ process.cwd(), ...segments);
 }
+
+const LEGACY_AVATAR_SEGMENTS = (process.env.AVATAR_LEGACY_SUBDIR ?? "public/uploads/avatars").split("/");
 
 export async function writeAvatarFile(filename: string, data: Buffer): Promise<void> {
   if (!isSafeAvatarFilename(filename)) throw new Error("Invalid avatar filename");

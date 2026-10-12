@@ -136,6 +136,9 @@ cmd_deploy() {
   git -C "$REPO_DIR" archive --format=tar "$sha" | tar -x -C "$dir"
   printf '%s\n' "$sha" > "$dir/REVISION"
   ln -sfn "$SHARED_DIR/.env.local" "$dir/.env.local"
+  # Старые релизы делали public/uploads -> shared/uploads; симлинк наружу роняет Turbopack-сборку.
+  if [ -L "$dir/public/uploads" ]; then rm -f "$dir/public/uploads"; fi
+  rm -rf "$dir/public/uploads"
   # Аватары НЕ в public/: next start не отдаёт файлы, добавленные в public/ после старта.
   # Они лежат в AVATAR_UPLOADS_PATH (по умолчанию <каталог DATABASE_PATH>/avatars) и отдаются роутом.
 

@@ -7,6 +7,53 @@ import type { Subject } from "@/lib/subjects";
 import { CHAT_SUBJECTS } from "@/lib/subjects";
 import { formatRelativeTimeRu, parseSqliteUtcDate } from "@/lib/sqlite-datetime";
 import { ConfirmDeleteChatModal } from "./ConfirmDeleteChatModal";
+import { normalizeSearchQuery, type SnippetPart } from "@/lib/chat-search-query";
+
+type SearchResult = {
+  sessionId: number;
+  title: string | null;
+  subject: string;
+  messageId: number | null;
+  role: "user" | "assistant" | null;
+  snippet: SnippetPart[] | null;
+  titleMatch: boolean;
+};
+
+function useChatSearch(q: string) {
+  const [state, setState] = useState<{ norm: string; results: SearchResult[] } | null>(null);
+  const norm = normalizeSearchQuery(q);
+  const raw = q.trim();
+  useEffect(() => {
+    if (!norm) return;
+    const ctrl = new AbortController();
+    const t = window.setTimeout(async () => {
+      let results: SearchResult[] = [];
+      try {
+        const res = await fetch(`/api/chat/search?q=${encodeURIComponent(raw)}`, {
+          signal: ctrl.signal,
+          cache: "no-store",
+        });
+        const data = (await res.json().catch(() => null)) as { ok?: boolean; results?: SearchResult[] } | null;
+        if (data?.ok) results = data.results ?? [];
+      } catch {
+        // aborted or network error
+      }
+      if (!ctrl.signal.aborted) setState({ norm, results });
+    }, 300);
+    return () => {
+      ctrl.abort();
+      clearTimeout(t);
+    };
+    // raw changes only matter when norm changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [norm]);
+  const fresh = norm !== null && state?.norm === norm;
+  return {
+    results: fresh ? state.results : null,
+    loading: norm !== null && !fresh,
+    active: norm !== null,
+  };
+}
 
 type ChatSessionRow = {
   id: number;
@@ -58,6 +105,8 @@ export function ChatSessionsSidebar({
     document.addEventListener("mousedown", onDocMouseDown);
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, [newChatOpen]);
+
+  const search = useChatSearch(q);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -161,10 +210,68 @@ export function ChatSessionsSidebar({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-8 pt-2 sm:px-0 md:max-h-[calc(100vh-3rem-200px)]">
+        {(() => {
+          if (!search.active) return null;
+          const shown = new Set(filtered.map((s) => s.id));
+          const extra = (search.results ?? []).filter((r) => r.snippet || !shown.has(r.sessionId));
+          if (search.loading && !search.results) {
+            return <div className="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">Ищем в сообщениях…</div>;
+          }
+          if (extra.length === 0) return null;
+          return (
+            <div className="mb-3">
+              <div className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Найдено в сообщениях
+              </div>
+              <ul className="flex flex-col gap-0.5">
+                {extra.map((r) => (
+                  <li key={`sr-${r.sessionId}`}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(r.messageId ? `/chat/${r.sessionId}?m=${r.messageId}` : `/chat/${r.sessionId}`)
+                      }
+                      className="w-full rounded-2xl border border-transparent px-3 py-2.5 text-left hover:border-zinc-300/90 hover:bg-zinc-50/90 dark:hover:border-zinc-500/65 dark:hover:bg-zinc-900/50"
+                    >
+                      <div className="truncate text-[15px] font-medium text-zinc-900 dark:text-zinc-50">
+                        {r.title || "Новый чат"}
+                      </div>
+                      {r.snippet ? (
+                        <div className="mt-0.5 line-clamp-2 text-xs text-zinc-600 dark:text-zinc-300">
+                          <span className="text-zinc-400 dark:text-zinc-500">
+                            {r.role === "user" ? "Ты: " : "Мишка: "}
+                          </span>
+                          {r.snippet.map((p, i) =>
+                            p.match ? (
+                              <mark
+                                key={i}
+                                className="rounded bg-amber-200/80 px-0.5 text-zinc-900 dark:bg-amber-400/30 dark:text-amber-100"
+                              >
+                                {p.text}
+                              </mark>
+                            ) : (
+                              <span key={i}>{p.text}</span>
+                            ),
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                          {subjectLabel(r.subject)}
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
         {filtered.length === 0 ? (
-          <div className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Ничего не найдено
-          </div>
+          search.active && (search.loading || (search.results?.length ?? 0) > 0) ? null : (
+            <div className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
+              Ничего не найдено
+            </div>
+          )
         ) : (
           <ul className="flex flex-col gap-0.5">
             {filtered.map((s) => {

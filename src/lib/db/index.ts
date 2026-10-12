@@ -9,6 +9,7 @@ import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 import { ensureTables } from "./bootstrap";
+import { foldForSearch } from "@/lib/chat-search-query";
 
 function resolveDbPath() {
   if (process.env.DATABASE_PATH) return process.env.DATABASE_PATH;
@@ -167,9 +168,15 @@ function getSqlite() {
     }
     globalThis.__tutorDb.pragma("journal_mode = WAL");
     ensureTables(globalThis.__tutorDb);
+    // Unicode-aware case folding for chat search (SQLite lower() is ASCII-only).
+    globalThis.__tutorDb.function("ru_fold", { deterministic: true }, (v: unknown) =>
+      typeof v === "string" ? foldForSearch(v) : v,
+    );
   }
   return globalThis.__tutorDb;
 }
+
+export { getSqlite };
 
 export function getDb() {
   if (!globalThis.__tutorDrizzle) {

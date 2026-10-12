@@ -582,6 +582,20 @@ export function ChatWindow({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length, streaming, lastMessageFingerprint]);
 
+  // Переход из поиска: /chat/:id?m=<messageId> — прокрутить к сообщению и подсветить.
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("m");
+    if (!raw) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`msg-${raw}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("search-hit");
+      window.setTimeout(() => el.classList.remove("search-hit"), 2500);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [sessionId]);
+
   return (
     <div className="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden">
       <div className="flex shrink-0 items-center gap-3 pb-3">
@@ -617,7 +631,7 @@ export function ChatWindow({
             }
 
             return (
-              <div key={m.id} className="group flex w-full min-w-0 flex-col gap-1">
+              <div key={m.id} id={`msg-${m.id}`} className="group flex w-full min-w-0 flex-col gap-1 rounded-2xl transition-shadow [&.search-hit]:ring-2 [&.search-hit]:ring-amber-400/70">
                 <MessageBubble
                   role={m.role}
                   content={m.content}

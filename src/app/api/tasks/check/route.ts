@@ -63,9 +63,11 @@ async function blindSolve(taskText: string): Promise<string | null> {
       temperature: 0,
       maxTokens: 2000,
     });
+    if (!/"answer"/.test(raw)) console.warn("[tasks/check] blind solve unparsed", raw.slice(0, 300));
     const m = /"answer"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(raw);
     return m?.[1]?.trim() || null;
-  } catch {
+  } catch (e) {
+    console.warn("[tasks/check] blind solve failed", e);
     return null;
   }
 }
@@ -138,6 +140,7 @@ export async function POST(req: Request) {
   let blindAnswer: string | null = null;
   if (verdict === "incorrect" && !hasVerifiedReference) {
     blindAnswer = await blindSolve(task.taskText);
+    console.info("[tasks/check] blind solve", { taskId, reference: correctAnswer, modelOwnAnswer: resolved.ownAnswer, blindAnswer });
     if (blindAnswer) {
       ({ verdict, referenceSuspect } = decideTaskVerdict({
         userAnswer,

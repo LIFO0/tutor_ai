@@ -60,7 +60,7 @@ echo 'www-data ALL=(root) NOPASSWD: /usr/bin/systemctl restart tutor-ai' > /etc/
 ## Деплой и откат
 
 ```bash
-D=$PROD_DIR/current/deploy/prod/deploy-prod.sh     # BASE_DIR по умолчанию /var/www/tutor-ai; иначе BASE_DIR=… перед вызовом
+D=$PROD_DIR/current/deploy/prod/deploy-prod.sh     # BASE_DIR по умолчанию /srv/tutor_ai; иначе BASE_DIR=… перед вызовом
 sudo -u www-data $D             # сборка origin/master в новый релиз, атомарное переключение, рестарт, health-check
 sudo -u www-data $D list
 sudo -u www-data $D rollback    # на предыдущий релиз

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Деплой прода (релизы + атомарное переключение, см. deploy/release-deploy.sh):
-#   sudo -u www-data /var/www/tutor-ai/current/deploy/prod/deploy-prod.sh            # deploy
-#   sudo -u www-data /var/www/tutor-ai/current/deploy/prod/deploy-prod.sh rollback   # откат
-#   sudo -u www-data /var/www/tutor-ai/current/deploy/prod/deploy-prod.sh list
-# BASE_DIR по умолчанию /var/www/tutor-ai — сверить с реальным каталогом прода (MIGRATE-TO-RELEASES.md).
+#   sudo -u www-data /srv/tutor_ai/current/deploy/prod/deploy-prod.sh            # deploy
+#   sudo -u www-data /srv/tutor_ai/current/deploy/prod/deploy-prod.sh rollback   # откат
+#   sudo -u www-data /srv/tutor_ai/current/deploy/prod/deploy-prod.sh list
+# BASE_DIR по умолчанию /srv/tutor_ai (реальный каталог прода).
 # Требует sudo-права www-data на `systemctl restart tutor-ai`.
 set -euo pipefail
 
-export BASE_DIR="${BASE_DIR:-/var/www/tutor-ai}"
+export BASE_DIR="${BASE_DIR:-/srv/tutor_ai}"
 export BRANCH="${BRANCH:-master}"
 export SERVICE="${SERVICE:-tutor-ai}"
 export PORT="${PORT:-3000}"

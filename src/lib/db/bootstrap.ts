@@ -64,6 +64,23 @@ function ensureUsageDailyTable(sqlite: Database.Database) {
   ensureUsageDailyColumns(sqlite);
 }
 
+function ensureFeedbackTable(sqlite: Database.Database) {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      topic TEXT NOT NULL,
+      text TEXT NOT NULL,
+      screenshot_key TEXT,
+      page_url TEXT,
+      user_agent TEXT,
+      msk_date TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_feedback_user_date ON feedback(user_id, msk_date);
+  `);
+}
+
 function ensureTasksTable(sqlite: Database.Database) {
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS tasks (
@@ -255,6 +272,7 @@ export function ensureTables(sqlite: Database.Database) {
   ensureUsageDailyTable(sqlite);
   ensureMessagesColumns(sqlite);
   ensureTasksTable(sqlite);
+  ensureFeedbackTable(sqlite);
   ensureTaskSessionsColumns(sqlite);
   backfillTaskSessionsToBank(sqlite);
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FEEDBACK_CONTACTS } from "@/lib/site-contacts";
 
 const linkClass =
@@ -7,6 +8,13 @@ export function FeedbackContacts() {
   return (
     <div className="mt-4 space-y-2 rounded-2xl border border-border bg-card p-4">
       <p className="text-sm font-semibold text-foreground">Вопросы и предложения</p>
+      <p className="text-sm text-muted-foreground">
+        Проще всего написать прямо на сайте:{" "}
+        <Link href="/support" className={linkClass}>
+          форма обратной связи
+        </Link>{" "}
+        (нужно войти в аккаунт). Или по почте:
+      </p>
       <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
         {FEEDBACK_CONTACTS.map(({ email }) => (
           <li key={email}>

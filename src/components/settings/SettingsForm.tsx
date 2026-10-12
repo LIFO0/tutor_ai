@@ -40,6 +40,10 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
   const [grade, setGrade] = useState(initialUser.grade);
   const [avatar, setAvatar] = useState(initialUser.avatar);
   const [chatName, setChatName] = useState(initialUser.chatName?.trim() ?? "");
+  // Своя загруженная картинка остаётся в списке, даже если выбрать мишку.
+  const [uploadedAvatar, setUploadedAvatar] = useState<string | null>(
+    initialUser.avatar.startsWith("/uploads/avatars/") ? initialUser.avatar : null,
+  );
   const yandexAvatarUrl = isYandexAvatarUrl(initialUser.avatar) ? initialUser.avatar : null;
 
   useEffect(() => {
@@ -216,6 +220,22 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
             </button>
           ) : null}
 
+          {uploadedAvatar ? (
+            <button
+              type="button"
+              onClick={() => setAvatar(uploadedAvatar)}
+              className={[
+                "flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors",
+                avatar === uploadedAvatar
+                  ? "border-[color:var(--color-accent)] bg-[color:var(--color-accent)]/10"
+                  : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900",
+              ].join(" ")}
+            >
+              <UserAvatar avatar={uploadedAvatar} size="lg" selected={avatar === uploadedAvatar} />
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">Моя картинка</span>
+            </button>
+          ) : null}
+
           <input
             ref={fileRef}
             type="file"
@@ -240,6 +260,7 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
                   throw new Error((data as { error?: string } | null)?.error || "Не удалось загрузить аватар");
                 }
                 setAvatar(data.avatar);
+                setUploadedAvatar(data.avatar);
                 setOk("Аватар загружен. Нажмите «Сохранить изменения».");
               } catch (err) {
                 setError(err instanceof Error ? err.message : "Ошибка");
@@ -262,7 +283,6 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
             <div
               className={[
                 "inline-flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-xl font-semibold text-zinc-600 ring-2 ring-transparent dark:bg-zinc-900 dark:text-zinc-300",
-                avatar.startsWith("/uploads/avatars/") ? "ring-[color:var(--color-accent)] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950" : "",
               ].join(" ")}
               aria-hidden
             >

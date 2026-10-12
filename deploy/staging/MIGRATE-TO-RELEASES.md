@@ -15,11 +15,10 @@
   repo/                         git-клон (только fetch; ничего не собирается)
   releases/20261012-131500-abc1234/   экспорт develop + node_modules + .next
   shared/.env.local             секреты (симлинк в каждый релиз)
-  shared/uploads/               public/uploads (аватары), симлинк в каждый релиз
   current -> releases/…         WorkingDirectory сервиса
   .deploy.lock                  flock: ручной деплой и таймер не пересекаются
   .deploy-pinned                появляется после rollback: автодеплой на паузе
-/var/lib/tutor-ai-staging/      БД и chat-uploads — без изменений, вне релизов
+/var/lib/tutor-ai-staging/      БД, chat-uploads и avatars (AVATAR_UPLOADS_PATH) — вне релизов
 ```
 
 Хранятся последние 3 релиза (`KEEP_RELEASES`). Ожидаемый простой: один `systemctl restart`.
@@ -69,8 +68,10 @@ sudo -u www-data git -C $BASE/repo fetch --quiet origin develop && git -C $BASE/
 
 # общие файлы
 install -o www-data -g www-data -m 600 $BASE.old/.env.local $BASE/shared/.env.local
-mkdir -p $BASE/shared/uploads
-[ -d $BASE.old/public/uploads ] && cp -a $BASE.old/public/uploads/. $BASE/shared/uploads/
+# аватары — в каталог данных (отдаются роутом /uploads/avatars/<file>)
+install -d -o www-data -g www-data /var/lib/tutor-ai-staging/avatars
+[ -d $BASE.old/public/uploads/avatars ] && cp -a $BASE.old/public/uploads/avatars/. /var/lib/tutor-ai-staging/avatars/
+chown -R www-data:www-data /var/lib/tutor-ai-staging/avatars
 chown -R www-data:www-data $BASE/shared
 ls -la $BASE $BASE/shared
 ```
@@ -118,7 +119,7 @@ systemctl start tutor-ai-staging-autodeploy.timer
 
 ## 6. Проверка в браузере, затем уборка
 
-Вход, чат, загрузка аватара (должна появиться в `$BASE/shared/uploads/avatars`). Через день-два, если всё ок:
+Вход, чат, загрузка аватара (файл появится в `/var/lib/tutor-ai-staging/avatars`, картинка открывается по `/uploads/avatars/<file>.png`). Через день-два, если всё ок:
 ```bash
 rm -rf /var/www/tutor-ai-staging.old
 ```
@@ -148,4 +149,22 @@ mv $BASE $BASE.releases-failed && mv $BASE.old $BASE
 systemctl daemon-reload && systemctl restart tutor-ai-staging
 curl -sI http://127.0.0.1:3001 | head -1
 systemctl start tutor-ai-staging-autodeploy.timer
+```
+
+## Дополнение: перенос аватаров из shared/uploads (для staging, уже переведённого на релизы)
+
+До коммита с роутом `/uploads/avatars/[file]` аватары писались в `shared/uploads/avatars` (симлинк `public/uploads`),
+но `next start` не отдаёт файлы, появившиеся в `public/` после старта, → 404. Теперь они лежат в `AVATAR_UPLOADS_PATH`.
+Однократно (URL в БД не меняются):
+
+```bash
+sudo -i
+grep -q '^AVATAR_UPLOADS_PATH=' /var/www/tutor-ai-staging/shared/.env.local || \
+  echo 'AVATAR_UPLOADS_PATH=/var/lib/tutor-ai-staging/avatars' >> /var/www/tutor-ai-staging/shared/.env.local
+install -d -o www-data -g www-data /var/lib/tutor-ai-staging/avatars
+cp -an /var/www/tutor-ai-staging/shared/uploads/avatars/. /var/lib/tutor-ai-staging/avatars/ 2>/dev/null || true
+chown -R www-data:www-data /var/lib/tutor-ai-staging/avatars
+sudo -u www-data FORCE=1 /var/www/tutor-ai-staging/current/deploy/staging/deploy-staging.sh   # новый релиз без симлинка public/uploads
+curl -sI -u tester:ПАРОЛЬ https://test.mishkaznaet.ru/uploads/avatars/$(ls /var/lib/tutor-ai-staging/avatars | head -1) | head -1   # 200
+# после проверки: rm -rf /var/www/tutor-ai-staging/shared/uploads
 ```

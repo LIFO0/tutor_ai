@@ -26,11 +26,14 @@ sqlite3 "<DATABASE_PATH>" ".backup '$BK/database.db'"
 
 # 1. раскладка (прод продолжает работать из $BASE.old)
 mv $BASE $BASE.old
-mkdir -p $BASE/shared/uploads $BASE/releases
+mkdir -p $BASE/shared $BASE/releases
 sudo -u www-data git clone --quiet $BASE.old $BASE/repo 2>/dev/null || { chown www-data: $BASE; sudo -u www-data git clone --quiet $BASE.old $BASE/repo; }
 sudo -u www-data git -C $BASE/repo remote set-url origin "$(git -C $BASE.old remote get-url origin)"
 install -o www-data -g www-data -m 640 $BASE.old/.env.local $BASE/shared/.env.local
-[ -d $BASE.old/public/uploads ] && cp -a $BASE.old/public/uploads/. $BASE/shared/uploads/
+# аватары: в каталог данных рядом с БД (или AVATAR_UPLOADS_PATH в .env.local); отдаются роутом
+install -d -o www-data -g www-data $DB_DIR/avatars
+[ -d $BASE.old/public/uploads/avatars ] && cp -a $BASE.old/public/uploads/avatars/. $DB_DIR/avatars/ && chown -R www-data: $DB_DIR/avatars
+grep -q "^AVATAR_UPLOADS_PATH=" $BASE/shared/.env.local || echo "AVATAR_UPLOADS_PATH=$DB_DIR/avatars" >> $BASE/shared/.env.local
 chown -R www-data:www-data $BASE
 
 # 2. первая сборка без рестарта

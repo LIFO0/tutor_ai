@@ -5,7 +5,6 @@
 #   repo/                      git-клон (только fetch, рабочую копию не трогаем)
 #   releases/<YYYYmmdd-HHMMSS>-<sha>/   экспорт ветки + node_modules + .next
 #   shared/.env.local          секреты (симлинк в каждый релиз)
-#   shared/uploads/            public/uploads (аватары) — симлинк в каждый релиз
 #   current -> releases/...    то, что запускает systemd (WorkingDirectory)
 #   .deploy.lock               flock против параллельных запусков (ручной + таймер)
 #
@@ -18,7 +17,7 @@
 # Переменные: BASE_DIR, BRANCH, SERVICE, PORT (обязательны), KEEP_RELEASES (3), FORCE=1 (собрать даже без новых коммитов),
 #             NO_RESTART=1 (только собрать и переключить current — для первичной миграции),
 #             HEALTH_URL (по умолчанию http://127.0.0.1:$PORT/), SYSTEMCTL (по умолчанию "sudo systemctl").
-# БД и CHAT_UPLOADS_PATH должны лежать вне BASE_DIR/releases (например, /var/lib/...).
+# БД, CHAT_UPLOADS_PATH и AVATAR_UPLOADS_PATH должны лежать вне BASE_DIR/releases (например, /var/lib/...).
 set -euo pipefail
 
 : "${BASE_DIR:?BASE_DIR не задан}"
@@ -105,7 +104,7 @@ cleanup_failed_build() {
 cmd_deploy() {
   [ -d "$REPO_DIR/.git" ] || die "нет git-клона $REPO_DIR (см. MIGRATE-TO-RELEASES.md)"
   [ -f "$SHARED_DIR/.env.local" ] || die "нет $SHARED_DIR/.env.local"
-  mkdir -p "$RELEASES_DIR" "$SHARED_DIR/uploads"
+  mkdir -p "$RELEASES_DIR"
 
   if [ -f "$PIN_FILE" ] && [ "${FORCE:-0}" != "1" ]; then
     log "деплой заблокирован после отката: $(cat "$PIN_FILE")"
@@ -137,9 +136,8 @@ cmd_deploy() {
   git -C "$REPO_DIR" archive --format=tar "$sha" | tar -x -C "$dir"
   printf '%s\n' "$sha" > "$dir/REVISION"
   ln -sfn "$SHARED_DIR/.env.local" "$dir/.env.local"
-  mkdir -p "$dir/public"
-  rm -rf "$dir/public/uploads"
-  ln -sfn "$SHARED_DIR/uploads" "$dir/public/uploads"
+  # Аватары НЕ в public/: next start не отдаёт файлы, добавленные в public/ после старта.
+  # Они лежат в AVATAR_UPLOADS_PATH (по умолчанию <каталог DATABASE_PATH>/avatars) и отдаются роутом.
 
   (
     cd "$dir"

@@ -20,7 +20,7 @@ A-запись `test.mishkaznaet.ru → 2.26.92.166`. Проверка: `dig +sh
 
 ### 1. Клонирование
 ```bash
-sudo mkdir -p /var/www/tutor-ai-staging /var/lib/tutor-ai-staging/chat-uploads
+sudo mkdir -p /var/www/tutor-ai-staging /var/lib/tutor-ai-staging/chat-uploads /var/lib/tutor-ai-staging/avatars
 sudo chown -R www-data:www-data /var/www/tutor-ai-staging /var/lib/tutor-ai-staging
 sudo -u www-data git clone -b develop https://github.com/LIFO0/tutor_ai.git /var/www/tutor-ai-staging
 ```
@@ -39,7 +39,7 @@ sudo chmod 600 .env.local
 - `DATABASE_PATH` / `CHAT_UPLOADS_PATH` — в `/var/lib/tutor-ai-staging/`, **не** прод-БД;
 - `NEXT_PUBLIC_YANDEX_METRIKA_DISABLED=1`, `ROBOTS_DISALLOW_ALL=1`.
 
-Аватары пишутся в `public/uploads/avatars` внутри каталога проекта — у staging они свои автоматически.
+Аватары пишутся в `AVATAR_UPLOADS_PATH` (по умолчанию `<каталог DATABASE_PATH>/avatars`) и отдаются роутом `/uploads/avatars/<file>`.
 
 ### 2a. Лимиты для тестовых аккаунтов (опционально)
 
@@ -114,7 +114,7 @@ sudo -u www-data $D list       # релизы
 sudo -u www-data $D rollback   # откат на предыдущий (автодеплой встаёт на паузу до `unpin`)
 sudo -u www-data $D unpin
 ```
-`.env.local` и `public/uploads` живут в `/var/www/tutor-ai-staging/shared/`, БД и чат-вложения — в `/var/lib/tutor-ai-staging`.
+`.env.local` живёт в `/var/www/tutor-ai-staging/shared/`, БД, чат-вложения и аватары — в `/var/lib/tutor-ai-staging`.
 Параллельные запуски (ручной + таймер `tutor-ai-staging-autodeploy`) исключены через `flock` (код выхода 75).
 
 ## robots.txt

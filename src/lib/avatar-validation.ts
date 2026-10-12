@@ -17,3 +17,20 @@ export function uploadedAvatarPathFromUrl(avatar: string): string | null {
   const m = avatar.match(/^(\/uploads\/avatars\/[^?]+\.png)/i);
   return m?.[1] ?? null;
 }
+
+const SAFE_AVATAR_FILENAME =
+  /^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|user-\d+)\.png$/i;
+
+/** Filename (no dirs) of an uploaded avatar: UUID.png or user-<id>.png. */
+export function isSafeAvatarFilename(name: string): boolean {
+  return SAFE_AVATAR_FILENAME.test(name);
+}
+
+/** Filename part of a stored upload avatar URL (/uploads/avatars/<file>.png?v=…). */
+export function uploadedAvatarFilenameFromUrl(avatar: string | null | undefined): string | null {
+  if (!avatar) return null;
+  const p = uploadedAvatarPathFromUrl(avatar);
+  if (!p) return null;
+  const name = p.slice("/uploads/avatars/".length);
+  return isSafeAvatarFilename(name) ? name : null;
+}

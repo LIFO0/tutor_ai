@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidAvatar, uploadedAvatarPathFromUrl } from "@/lib/avatar-validation";
+import { isSafeAvatarFilename, isValidAvatar, uploadedAvatarFilenameFromUrl, uploadedAvatarPathFromUrl } from "@/lib/avatar-validation";
 
 describe("isValidAvatar", () => {
   it("accepts built-in bears", () => {
@@ -36,5 +36,20 @@ describe("uploadedAvatarPathFromUrl", () => {
     expect(
       uploadedAvatarPathFromUrl("/uploads/avatars/uuid.png?v=1"),
     ).toBe("/uploads/avatars/uuid.png");
+  });
+});
+
+describe("avatar filenames", () => {
+  it("safe filename", () => {
+    expect(isSafeAvatarFilename("123e4567-e89b-42d3-a456-426614174000.png")).toBe(true);
+    expect(isSafeAvatarFilename("user-12.png")).toBe(true);
+    expect(isSafeAvatarFilename("../etc/passwd")).toBe(false);
+    expect(isSafeAvatarFilename("x.png")).toBe(false);
+    expect(isSafeAvatarFilename("user-1.png/../a")).toBe(false);
+  });
+  it("from url", () => {
+    expect(uploadedAvatarFilenameFromUrl("/uploads/avatars/user-3.png?v=123")).toBe("user-3.png");
+    expect(uploadedAvatarFilenameFromUrl("bear1")).toBeNull();
+    expect(uploadedAvatarFilenameFromUrl(null)).toBeNull();
   });
 });

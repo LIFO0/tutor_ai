@@ -129,7 +129,7 @@ export default function Hero() {
                   <button
                     type="button"
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-medium text-primary"
-                    aria-label="Математические символы (скоро)"
+                    aria-label="Математические символы"
                   >
                     Σ
                   </button>

@@ -96,7 +96,6 @@ function VideoTestimonialCard({
         <iframe
           src={`https://kinescope.io/embed/${testimonial.kinescopeId}`}
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;"
-          allowFullScreen
           title={`Видео-отзыв: ${testimonial.name}`}
           className="absolute inset-0 h-full w-full border-0"
         />

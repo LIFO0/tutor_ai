@@ -109,7 +109,7 @@ export default function SubjectPageTemplate({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <main className="landing-light-theme min-h-screen bg-background text-foreground">
-        <Header />
+        <Header overlay />
 
         {/* Hero */}
         <section className="relative overflow-hidden pb-16 pt-28 md:pb-24 md:pt-36">

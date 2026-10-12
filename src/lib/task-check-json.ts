@@ -41,7 +41,17 @@ export function extractBalancedJsonObject(text: string): string | null {
 export type ParsedTaskCheck = {
   correct: boolean | null;
   feedback: string | null;
+  /** Ответ, который модель получила, решив задачу сама (поле own_answer). */
+  ownAnswer?: string | null;
 };
+
+const OWN_ANSWER_RE = /"own_answer"\s*:\s*"((?:\\.|[^"\\])*)"/;
+
+function readOwnAnswer(v: unknown): string | null {
+  if (typeof v === "string" && v.trim()) return v.trim().slice(0, 200);
+  if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  return null;
+}
 
 /** Убирает markdown-ограждение ```json ... ``` вокруг ответа модели. */
 export function stripMarkdownJsonFence(text: string): string {
@@ -73,7 +83,9 @@ export function extractPartialTaskCheck(text: string): ParsedTaskCheck {
       feedback = feedbackMatch[1]!.replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
     }
   }
-  return { correct, feedback };
+  const own = text.match(OWN_ANSWER_RE);
+  const ownAnswer = own ? readOwnAnswer(own[1]) : null;
+  return { correct, feedback, ...(ownAnswer ? { ownAnswer } : {}) };
 }
 
 export function parseTaskCheckModelOutput(modelRaw: string): ParsedTaskCheck {
@@ -95,7 +107,9 @@ export function parseTaskCheckModelOutput(modelRaw: string): ParsedTaskCheck {
         "feedback" in parsed && typeof (parsed as { feedback: unknown }).feedback === "string"
           ? (parsed as { feedback: string }).feedback
           : null;
-      if (correct !== null || feedback !== null) return { correct, feedback };
+      const ownAnswer =
+        "own_answer" in parsed ? readOwnAnswer((parsed as { own_answer: unknown }).own_answer) : null;
+      if (correct !== null || feedback !== null) return { correct, feedback, ...(ownAnswer ? { ownAnswer } : {}) };
     } catch {
       continue;
     }
@@ -113,6 +127,7 @@ export const TASK_CHECK_PARSE_FALLBACK =
 
 export type ResolvedTaskCheck = {
   correct: boolean | null;
+  ownAnswer?: string | null;
   feedbackText: string;
   parseOk: boolean;
 };
@@ -125,6 +140,7 @@ export function resolveTaskCheckResult(modelRaw: string): ResolvedTaskCheck {
   if (parsed.feedback?.trim()) {
     return {
       correct: parsed.correct,
+      ownAnswer: parsed.ownAnswer ?? null,
       feedbackText: parsed.feedback.trim(),
       parseOk: true,
     };

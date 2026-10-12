@@ -5,7 +5,8 @@ import { getTask, setTaskCheckResult } from "@/lib/tasks";
 import { taskCheckPrompt } from "@/lib/prompts";
 import { completeOnce } from "@/lib/llm";
 import { resolveTaskCheckResult } from "@/lib/task-check-json";
-import { answersMatchForTask } from "@/lib/answer-normalize";
+import { decideTaskVerdict, UNCERTAIN_NOTE, verdictToStoredCorrect } from "@/lib/task-verdict";
+import { verifiedReferenceAnswer } from "@/lib/linear-equation";
 import { quotaErrorResponse } from "@/lib/api/quota-response";
 import { assertLlmConfigured } from "@/lib/llm-config";
 import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
@@ -13,7 +14,9 @@ import { checkAndConsume, toQuotaUser } from "@/lib/usage-quota";
 const TASK_CHECK_SYSTEM_PROMPT =
   "Ты — добрый репетитор (мужской род: «рад», «понял», «готов»). Пиши по-русски, используй LaTeX при необходимости.\n" +
   "Верни ответ СТРОГО в JSON формате:\n" +
-  '{ "correct": true|false, "feedback": "..." }\n' +
+  '{ "own_answer": "...", "correct": true|false, "feedback": "..." }\n' +
+  "Сначала реши задачу сам, не глядя на эталон, и запиши свой итоговый ответ в own_answer (только число/выражение, без пояснений). " +
+  "Эталон может содержать ошибку: если ответ ученика совпадает с твоим решением, ставь correct: true.\n" +
   "Поле correct обязательно: true — ответ верный, false — неверный. Вердикт только через correct, не только словами в feedback.\n" +
   "Без markdown, без пояснений вокруг JSON. Поле \"feedback\" — текст для ученика.\n" +
   "Поле feedback — не длиннее 800 символов, до 6 шагов. Принимай ответы с тем же результатом, даже если они записаны по-другому. В feedback — простой язык для школьника.";
@@ -46,6 +49,29 @@ async function runTaskCheckLlm(params: {
   });
 }
 
+const BLIND_SOLVE_SYSTEM_PROMPT =
+  "Реши задачу. Верни СТРОГО JSON без markdown: { \"answer\": \"...\" } — только итоговое число/выражение, без единиц и пояснений.";
+
+/** Независимое решение без эталона: модель, видя эталон, склонна под него подстраиваться. */
+async function blindSolve(taskText: string): Promise<string | null> {
+  try {
+    const raw = await completeOnce({
+      messages: [
+        { role: "system", text: BLIND_SOLVE_SYSTEM_PROMPT },
+        { role: "user", text: taskText },
+      ],
+      temperature: 0,
+      maxTokens: 2000,
+    });
+    if (!/"answer"/.test(raw)) console.warn("[tasks/check] blind solve unparsed", raw.slice(0, 300));
+    const m = /"answer"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(raw);
+    return m?.[1]?.trim() || null;
+  } catch (e) {
+    console.warn("[tasks/check] blind solve failed", e);
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return jsonError("Unauthorized", 401);
@@ -70,8 +96,11 @@ export async function POST(req: Request) {
   const quota = await checkAndConsume(toQuotaUser(user), "task_check");
   if (!quota.ok) return quotaErrorResponse(quota);
 
-  const correctAnswer = task.correctAnswer ?? "";
-  const deterministicCorrect = answersMatchForTask(userAnswer, correctAnswer);
+  // Эталон из БД мог быть посчитан LLM с ошибкой (уже сохранённые задачи банка) —
+  // для линейных уравнений пересчитываем корень детерминированно.
+  const verified = verifiedReferenceAnswer(task.taskText, task.correctAnswer ?? "");
+  const hasVerifiedReference = verified.verified;
+  const correctAnswer = verified.answer;
 
   let modelRaw = await runTaskCheckLlm({
     taskText: task.taskText,
@@ -101,17 +130,47 @@ export async function POST(req: Request) {
     resolved = resolveTaskCheckResult(modelRaw);
   }
 
-  const modelSaysCorrect = resolved.correct === true;
-  const feedbackText = resolved.feedbackText;
+  let { verdict, referenceSuspect } = decideTaskVerdict({
+    userAnswer,
+    referenceAnswer: correctAnswer,
+    hasVerifiedReference,
+    modelCorrect: resolved.correct,
+    modelOwnAnswer: resolved.ownAnswer,
+  });
+  let blindAnswer: string | null = null;
+  if (verdict === "incorrect" && !hasVerifiedReference) {
+    blindAnswer = await blindSolve(task.taskText);
+    console.info("[tasks/check] blind solve", { taskId, reference: correctAnswer, modelOwnAnswer: resolved.ownAnswer, blindAnswer });
+    if (blindAnswer) {
+      ({ verdict, referenceSuspect } = decideTaskVerdict({
+        userAnswer,
+        referenceAnswer: correctAnswer,
+        hasVerifiedReference,
+        modelCorrect: false,
+        modelOwnAnswer: blindAnswer,
+      }));
+    }
+  }
+  if (referenceSuspect) {
+    console.warn("[tasks/check] reference answer looks wrong", {
+      taskId,
+      reference: correctAnswer,
+      modelOwnAnswer: resolved.ownAnswer,
+      blindAnswer,
+      verdict,
+    });
+  }
+  const correct = verdictToStoredCorrect(verdict);
+  const feedbackText =
+    verdict === "uncertain" ? `${UNCERTAIN_NOTE}\n\n${resolved.feedbackText}` : resolved.feedbackText;
 
   await setTaskCheckResult({
     userId: user.id,
     taskId,
     userAnswer,
-    correct: deterministicCorrect || modelSaysCorrect,
+    correct,
     aiFeedback: feedbackText,
   });
 
-  const correct = deterministicCorrect || modelSaysCorrect;
-  return NextResponse.json({ ok: true, correct, aiFeedback: feedbackText });
+  return NextResponse.json({ ok: true, correct, verdict, aiFeedback: feedbackText });
 }

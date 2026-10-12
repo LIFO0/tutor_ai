@@ -1,10 +1,9 @@
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import path from "node:path";
-import fs from "node:fs/promises";
 import sharp from "sharp";
 import { NextResponse } from "next/server";
-import { uploadedAvatarPathFromUrl } from "@/lib/avatar-validation";
+import { uploadedAvatarFilenameFromUrl } from "@/lib/avatar-validation";
+import { deleteAvatarFile, writeAvatarFile } from "@/lib/avatar-storage";
 import { jsonError } from "@/lib/api/auth";
 import { getCurrentUser } from "@/lib/current-user";
 import { getDb, schema } from "@/lib/db";
@@ -27,23 +26,18 @@ export async function POST(req: Request) {
 
   const buf = Buffer.from(await file.arrayBuffer());
 
-  const outDir = path.join(process.cwd(), "public", "uploads", "avatars");
-  await fs.mkdir(outDir, { recursive: true });
-
-  const previousPath = uploadedAvatarPathFromUrl(user.avatar);
-  if (previousPath) {
-    const previousFile = path.join(process.cwd(), "public", previousPath.slice(1));
-    await fs.unlink(previousFile).catch(() => undefined);
-  }
-
   const filename = `${randomUUID()}.png`;
-  const outPath = path.join(outDir, filename);
 
-  const png = await sharp(buf)
-    .resize(256, 256, { fit: "cover" })
-    .png()
-    .toBuffer();
-  await fs.writeFile(outPath, png);
+  let png: Buffer;
+  try {
+    png = await sharp(buf).rotate().resize(256, 256, { fit: "cover" }).png().toBuffer();
+  } catch {
+    return jsonError("Не удалось обработать изображение. Попробуй JPEG, PNG или WebP.", 400);
+  }
+  await writeAvatarFile(filename, png);
+
+  const previous = uploadedAvatarFilenameFromUrl(user.avatar);
+  if (previous && previous !== filename) await deleteAvatarFile(previous);
 
   const url = `/uploads/avatars/${filename}?v=${Date.now()}`;
 

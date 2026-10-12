@@ -11,7 +11,7 @@ import { PENDING_CHAT_MESSAGE_KEY } from "@/lib/pending-chat-message";
 import { setPendingChatFile } from "@/lib/pending-chat-file";
 import type { Subject } from "@/lib/subjects";
 import { CHAT_SUBJECTS, DEFAULT_CHAT_SUBJECT } from "@/lib/subjects";
-import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
+import { quotaExceededMessage, quotaWarningMessage, isQuotaLow } from "@/lib/usage-types";
 
 const TOTEM_INTRO_SESSION_KEY = "totem_dashboard_welcome_done";
 const DASHBOARD_PLACEHOLDERS = [
@@ -45,22 +45,19 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
     !usage?.exempt &&
     !sessionsBlocked &&
     usage != null &&
-    usage.remaining.chatSessions > 0 &&
-    usage.remaining.chatSessions <= 3;
+    isQuotaLow(usage.remaining.chatSessions, usage.limits.chatSessions);
 
   const messagesWarning =
     !usage?.exempt &&
     !messagesBlocked &&
     usage != null &&
-    usage.remaining.chatMessages > 0 &&
-    usage.remaining.chatMessages <= 3;
+    isQuotaLow(usage.remaining.chatMessages, usage.limits.chatMessages);
 
   const imagesWarning =
     !usage?.exempt &&
     !imagesExhausted &&
     usage != null &&
-    usage.remaining.chatImages > 0 &&
-    usage.remaining.chatImages <= 2;
+    isQuotaLow(usage.remaining.chatImages, usage.limits.chatImages);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

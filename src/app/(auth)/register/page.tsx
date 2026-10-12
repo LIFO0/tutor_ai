@@ -317,7 +317,7 @@ export default function RegisterPage() {
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-[31%] justify-center">
                 <Image
                   src="/bears/bear_welcoming_update.webp"
-                  alt="Bear illustration"
+                  alt="Мишка приветствует тебя"
                   width={720}
                   height={960}
                   className="h-auto w-[min(44vw,620px)] max-w-[calc(50vw-1.5rem)] translate-x-[1%] select-none object-contain md:w-[min(42vw,580px)]"

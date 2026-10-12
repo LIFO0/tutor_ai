@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MessageBubble } from "./MessageBubble";
 import { MessageActions } from "./MessageActions";
 import { MessageEditor } from "./MessageEditor";
@@ -14,7 +14,7 @@ import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
 import { LLM_UNAVAILABLE_MESSAGE, MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat-limits";
-import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
+import { quotaExceededMessage, quotaWarningMessage, isQuotaLow } from "@/lib/usage-types";
 
 export type UiMessage = {
   id: string;
@@ -83,14 +83,12 @@ export function ChatWindow({
     !usage?.exempt &&
     !chatBlocked &&
     usage != null &&
-    usage.remaining.chatMessages > 0 &&
-    usage.remaining.chatMessages <= 3;
+    isQuotaLow(usage.remaining.chatMessages, usage.limits.chatMessages);
   const imagesWarning =
     !usage?.exempt &&
     !imagesExhausted &&
     usage != null &&
-    usage.remaining.chatImages > 0 &&
-    usage.remaining.chatImages <= 2;
+    isQuotaLow(usage.remaining.chatImages, usage.limits.chatImages);
 
   const [headerTitle, setHeaderTitle] = useState<string>(() => title || "Чат");
 
@@ -584,6 +582,38 @@ export function ChatWindow({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length, streaming, lastMessageFingerprint]);
 
+  // Переход из поиска: /chat/:id?m=<messageId> — прокрутить к сообщению и подсветить.
+  // Реагируем на смену ?m= (в т.ч. в уже открытом чате) и на событие повторного клика.
+  const searchParams = useSearchParams();
+  const jumpParam = searchParams.get("m");
+  const [jumpTarget, setJumpTarget] = useState<{ id: string; nonce: number } | null>(null);
+  const [lastJumpParam, setLastJumpParam] = useState<string | null>(null);
+  if (jumpParam !== lastJumpParam) {
+    setLastJumpParam(jumpParam);
+    if (jumpParam) setJumpTarget({ id: jumpParam, nonce: Date.now() });
+  }
+  useEffect(() => {
+    const onJump = (e: Event) => {
+      const d = (e as CustomEvent<{ sessionId: number; messageId: number }>).detail;
+      if (d?.sessionId === sessionId) setJumpTarget({ id: String(d.messageId), nonce: Date.now() });
+    };
+    window.addEventListener("chat:jump-to-message", onJump);
+    return () => window.removeEventListener("chat:jump-to-message", onJump);
+  }, [sessionId]);
+  useEffect(() => {
+    if (!jumpTarget) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`msg-${jumpTarget.id}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("search-hit");
+      void el.offsetWidth;
+      el.classList.add("search-hit");
+      window.setTimeout(() => el.classList.remove("search-hit"), 2500);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [jumpTarget]);
+
   return (
     <div className="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden">
       <div className="flex shrink-0 items-center gap-3 pb-3">
@@ -619,7 +649,7 @@ export function ChatWindow({
             }
 
             return (
-              <div key={m.id} className="group flex w-full min-w-0 flex-col gap-1">
+              <div key={m.id} id={`msg-${m.id}`} className="group flex w-full min-w-0 flex-col gap-1 rounded-2xl transition-shadow [&.search-hit]:ring-2 [&.search-hit]:ring-amber-400/70">
                 <MessageBubble
                   role={m.role}
                   content={m.content}

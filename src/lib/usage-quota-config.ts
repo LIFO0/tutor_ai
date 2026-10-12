@@ -89,3 +89,64 @@ export function getPlanLimits(plan: UserPlan): QuotaLimits {
     burstChatPerMin: envInt("USAGE_BURST_CHAT_PER_MIN", 8),
   };
 }
+
+/**
+ * Staging-only test accounts with relaxed limits.
+ * TEST_ACCOUNT_EMAILS — comma list of emails (Yandex OAuth email), case-insensitive.
+ * TEST_ACCOUNT_USER_IDS — comma list of numeric user ids.
+ * TEST_LIMIT_MULTIPLIER — positive number (e.g. 10) or "unlimited". Default when
+ * accounts are listed but multiplier is unset: 10.
+ * Nothing happens unless TEST_ACCOUNT_EMAILS or TEST_ACCOUNT_USER_IDS is set.
+ */
+function parseList(raw: string | undefined): string[] {
+  return (raw ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isTestAccount(user: { id: number; email?: string | null }): boolean {
+  const emails = parseList(process.env.TEST_ACCOUNT_EMAILS);
+  const ids = parseList(process.env.TEST_ACCOUNT_USER_IDS)
+    .map(Number)
+    .filter((n) => Number.isInteger(n));
+  if (emails.length === 0 && ids.length === 0) return false;
+  if (user.email && emails.includes(user.email.trim().toLowerCase())) return true;
+  return ids.includes(user.id);
+}
+
+export type TestLimitMode = { unlimited: true } | { unlimited: false; multiplier: number };
+
+export function getTestLimitMode(): TestLimitMode {
+  const raw = (process.env.TEST_LIMIT_MULTIPLIER ?? "").trim().toLowerCase();
+  if (raw === "unlimited" || raw === "inf") return { unlimited: true };
+  const n = Number(raw);
+  if (raw && Number.isFinite(n) && n > 0) return { unlimited: false, multiplier: n };
+  return { unlimited: false, multiplier: 10 };
+}
+
+export function isTestAccountUnlimited(user: { id: number; email?: string | null }): boolean {
+  return isTestAccount(user) && getTestLimitMode().unlimited;
+}
+
+/** Plan limits with the staging test multiplier applied (if the user is a test account). */
+export function getUserLimits(
+  plan: UserPlan,
+  user: { id: number; email?: string | null },
+): QuotaLimits {
+  const base = getPlanLimits(plan);
+  if (!isTestAccount(user)) return base;
+  const mode = getTestLimitMode();
+  if (mode.unlimited) return base;
+  const m = mode.multiplier;
+  const mul = (v: number) => Math.max(1, Math.floor(v * m));
+  return {
+    chatMessages: mul(base.chatMessages),
+    chatImages: mul(base.chatImages),
+    taskGenerate: mul(base.taskGenerate),
+    taskCheck: mul(base.taskCheck),
+    taskOpen: mul(base.taskOpen),
+    chatSessions: mul(base.chatSessions),
+    burstChatPerMin: mul(base.burstChatPerMin),
+  };
+}

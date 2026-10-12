@@ -8,7 +8,8 @@ export function normalizeAnswerForCompare(s: string): string {
     .replace(/\s+/g, " ")
     .replace(/÷|∶|:/g, "/")
     .replace(/×|·|\*/g, "*")
-    .replace(/−|–|—/g, "-")
+    .replace(/[\u2212\u2012\u2013\u2014\u2015\uFE63\uFF0D]/g, "-")
+    .replace(/\\minus/g, "-")
     .replace(/,/g, ".")
     .replace(/\s*([+\-*/()])\s*/g, "$1");
 }
@@ -165,7 +166,31 @@ export function areNumericExpressionsEquivalent(a: string, b: string, epsilon = 
   return Math.abs(va - vb) <= epsilon;
 }
 
+/** Убирает префикс «x =» в ответе вида «x = −4». */
+export function stripVariablePrefix(s: string): string {
+  return s.replace(/^\s*\$?\s*[a-zA-Z]\s*=\s*/, "");
+}
+
+/**
+ * Убирает хвостовые единицы измерения: «11,25 км/ч» → «11,25», «5 см²» → «5».
+ * Единица начинается с буквы (или °/%) после числа/выражения.
+ */
+export function stripTrailingUnits(s: string): string {
+  const m = s.trim().match(/^(.*?[\d)])\s*[a-zа-яё°%][a-zа-яё°%/.²³\s]*$/i);
+  return m ? m[1]!.trim() : s.trim();
+}
+
 export function answersMatchForTask(userAnswer: string, correctAnswer: string): boolean {
+  if (answersMatchStrict(userAnswer, correctAnswer)) return true;
+  const u = stripTrailingUnits(stripVariablePrefix(userAnswer));
+  const c = stripTrailingUnits(stripVariablePrefix(correctAnswer));
+  if (u === userAnswer.trim() && c === correctAnswer.trim()) return false;
+  return answersMatchStrict(u, c);
+}
+
+function answersMatchStrict(userAnswer: string, correctAnswer: string): boolean {
+  userAnswer = stripVariablePrefix(userAnswer);
+  correctAnswer = stripVariablePrefix(correctAnswer);
   const u = normalizeAnswerForCompare(userAnswer);
   const c = normalizeAnswerForCompare(correctAnswer);
   if (!c || c === "—") return false;

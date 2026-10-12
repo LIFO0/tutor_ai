@@ -133,3 +133,18 @@ export function formatQuotaResetsAt(resetsAt: string): string {
     return "завтра в 00:00 (МСК)";
   }
 }
+
+/** Share of the daily quota at which a soft warning is shown. */
+export const QUOTA_WARNING_RATIO = 0.2;
+
+/** Remaining count at or below which we warn: 20% of the limit, at least 1. */
+export function quotaWarningThreshold(limit: number): number {
+  if (!Number.isFinite(limit) || limit <= 0) return 0;
+  return Math.max(1, Math.floor(limit * QUOTA_WARNING_RATIO));
+}
+
+/** True when the quota is not exhausted yet but 20% or less of it remains. */
+export function isQuotaLow(remaining: number, limit: number): boolean {
+  if (remaining <= 0 || limit <= 0) return false;
+  return remaining <= quotaWarningThreshold(limit);
+}

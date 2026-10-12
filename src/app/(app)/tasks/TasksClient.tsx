@@ -8,7 +8,7 @@ import type { Subject } from "@/lib/subjects";
 import { SUBJECTS } from "@/lib/subjects";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
-import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
+import { quotaExceededMessage, quotaWarningMessage, isQuotaLow } from "@/lib/usage-types";
 
 export function TasksClient({
   solvedToday,
@@ -41,8 +41,7 @@ export function TasksClient({
     !usage?.exempt &&
     !genBlocked &&
     usage != null &&
-    usage.remaining.taskGenerate > 0 &&
-    usage.remaining.taskGenerate <= 3;
+    isQuotaLow(usage.remaining.taskGenerate, usage.limits.taskGenerate);
 
   const can = useMemo(
     () => topic.trim().length > 0 && !loading && !genBlocked,

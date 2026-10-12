@@ -6,9 +6,10 @@ import { MessageBubble } from "@/components/chat/MessageBubble";
 import { BearTotem, type BearTotemVariant } from "@/components/ui/BearTotem";
 import { normalizeStoredTaskFeedback } from "@/lib/task-check-json";
 import { AnswerInput } from "./AnswerInput";
+import { UNCERTAIN_NOTE } from "@/lib/task-verdict";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
-import { quotaExceededMessage, quotaWarningMessage } from "@/lib/usage-types";
+import { quotaExceededMessage, quotaWarningMessage, isQuotaLow } from "@/lib/usage-types";
 
 export function TaskRunner({
   taskId,
@@ -30,10 +31,11 @@ export function TaskRunner({
   const [answer, setAnswer] = useState(initialAnswer ?? "");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [result, setResult] = useState<null | { correct: boolean; aiFeedback: string }>(
+  const [result, setResult] = useState<null | { correct: boolean; aiFeedback: string; uncertain?: boolean }>(
     checked && initialFeedback
       ? {
           correct: Boolean(initialCorrect),
+          uncertain: initialFeedback.startsWith(UNCERTAIN_NOTE.slice(0, 20)),
           aiFeedback: normalizeStoredTaskFeedback(initialFeedback),
         }
       : null,
@@ -46,8 +48,7 @@ export function TaskRunner({
     !usage?.exempt &&
     !checkBlocked &&
     usage != null &&
-    usage.remaining.taskCheck > 0 &&
-    usage.remaining.taskCheck <= 3;
+    isQuotaLow(usage.remaining.taskCheck, usage.limits.taskCheck);
 
   const canCheck = useMemo(
     () => answer.trim().length > 0 && !loading && !checkBlocked,
@@ -74,7 +75,7 @@ export function TaskRunner({
         body: JSON.stringify({ taskId, userAnswer: answer }),
       });
       const data = (await res.json().catch(() => null)) as
-        | { ok: true; correct: boolean; aiFeedback: string }
+        | { ok: true; correct: boolean; aiFeedback: string; verdict?: "correct" | "incorrect" | "uncertain" }
         | { ok: false; error: string; message?: string }
         | null;
       const quota = parseQuotaResponse(res, data);
@@ -94,7 +95,7 @@ export function TaskRunner({
         throw new Error(msg);
       }
       void refreshUsage();
-      setResult({ correct: Boolean(data.correct), aiFeedback: normalizeStoredTaskFeedback(String(data.aiFeedback || "")) });
+      setResult({ correct: Boolean(data.correct), uncertain: data.verdict === "uncertain", aiFeedback: normalizeStoredTaskFeedback(String(data.aiFeedback || "")) });
     } catch (e) {
       setResult({
         correct: false,
@@ -173,7 +174,7 @@ export function TaskRunner({
       {result ? (
         <Card>
           <CardHeader className="font-semibold">
-            {result.correct ? "✅ Верно!" : "❌ Неверно"}
+            {result.uncertain ? "🤔 Похоже, верно!" : result.correct ? "✅ Верно!" : "❌ Неверно"}
           </CardHeader>
           <CardContent>
             <MessageBubble role="assistant" content={result.aiFeedback} />

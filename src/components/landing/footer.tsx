@@ -92,6 +92,14 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
+                  href="/pricing"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Тарифы
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/help"
                   className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >

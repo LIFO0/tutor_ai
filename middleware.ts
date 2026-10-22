@@ -3,6 +3,16 @@ import { readAuthCookieFromRequest, verifyAuthToken } from "@/lib/auth";
 import { NOT_FOUND_REWRITE_PATH, isUnknownContentSlug } from "@/lib/content-routes";
 import { sanitizeNextPath } from "@/lib/safe-next";
 
+/** Совпадает с REQUEST_PATH_HEADER в @/lib/session-redirect (тот модуль server-only). */
+const REQUEST_PATH_HEADER = "x-mz-request-path";
+
+/** Пропустить запрос дальше, передав страницам текущий путь (для ?next= при протухшей сессии). */
+function nextWithPath(req: NextRequest) {
+  const headers = new Headers(req.headers);
+  headers.set(REQUEST_PATH_HEADER, `${req.nextUrl.pathname}${req.nextUrl.search}`);
+  return NextResponse.next({ request: { headers } });
+}
+
 const PUBLIC_PATHS = new Set([
   "/",
   "/privacy",
@@ -87,7 +97,7 @@ export async function middleware(req: NextRequest) {
 
   try {
     await verifyAuthToken(token);
-    return NextResponse.next();
+    return nextWithPath(req);
   } catch {
     if (isApi(pathname)) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });

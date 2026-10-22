@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
+import { redirectToLoginForInvalidSession } from "@/lib/session-redirect";
 import { DashboardClaudeHome } from "@/components/dashboard/DashboardClaudeHome";
 import { GradeOnboardingModal } from "@/components/onboarding/GradeOnboardingModal";
 
@@ -11,7 +11,7 @@ export default async function DashboardPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return redirectToLoginForInvalidSession();
 
   const sp = (await searchParams) ?? {};
   const onboardingRaw = sp.onboarding;

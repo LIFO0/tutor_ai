@@ -18,6 +18,8 @@ export function normalizeAnswerForCompare(s: string): string {
 export function prepareExpressionForEval(raw: string): string {
   let s = raw.trim();
   s = s.replace(/\$+/g, "");
+  // Смешанное число в LaTeX: 11\frac{1}{4} = 11 + 1/4 (не умножение).
+  s = s.replace(/(\d+)\s*\\d?frac\s*\{(\d+)\}\s*\{(\d+)\}/g, "($1+$2/$3)");
   s = s.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, "($1)/($2)");
   s = s.replace(/\\dfrac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, "($1)/($2)");
   s = s.replace(/(\d+)\s+(\d+)\s*\/\s*(\d+)/g, "($1+$2/$3)");

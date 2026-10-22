@@ -112,6 +112,25 @@ function div(x: Lin | null, y: Lin | null): Lin | null {
 
 export type LinearSolution = { variable: string; root: number; equation: string };
 
+/** Единицы измерения в тексте: признак текстовой задачи («2 км/ч», «3 часа», «5 кг»). */
+const UNIT_RE =
+  /(?:^|[^а-яё])(?:км|м|см|мм|дм|ч|час(?:а|ов)?|мин(?:ута|уты|ут)?|сек(?:унд[аы]?)?|кг|г|т|ц|л|мл|руб(?:л[ья]|лей)?|коп(?:е[ей]к[аи]?)?|шт|га)(?=[^а-яё]|$)|%/i;
+/** Сколько слов прозы допускаем вокруг уравнения: «Решите уравнение», «Найдите корень уравнения:». */
+const MAX_PROSE_WORDS = 12;
+
+/**
+ * Решаем только «голую» задачу на уравнение («Решите уравнение: 3(2x − 4) = …»).
+ * В текстовой задаче (лодка, скорости, единицы) уравнение в тексте — подсказка или промежуточный шаг,
+ * а спрашивают может быть другое; «проверенный» эталон из него давал чистое ❌ (M-XHMK37).
+ */
+function isStandaloneEquationTask(prepared: string, candidates: string[]): boolean {
+  let prose = prepared;
+  for (const c of candidates) prose = prose.replace(c, " ");
+  if (UNIT_RE.test(prose)) return false;
+  const words = prose.match(/[а-яёa-z]{2,}/gi) ?? [];
+  return words.length <= MAX_PROSE_WORDS;
+}
+
 /**
  * Ищет в тексте задачи ровно одно линейное уравнение с одной латинской переменной
  * и решает его. Возвращает null, если уравнение не найдено/не линейно/не однозначно.
@@ -119,10 +138,13 @@ export type LinearSolution = { variable: string; root: number; equation: string 
 export function solveLinearEquationFromText(text: string): LinearSolution | null {
   const s = prepareMath(text);
   const candidates = s.match(/[0-9a-z+\-*/().\s]+=[0-9a-z+\-*/().\s]+/gi) ?? [];
+  if (candidates.length === 0 || !isStandaloneEquationTask(s, candidates)) return null;
   const solutions: LinearSolution[] = [];
   for (const raw of candidates) {
     const eq = raw.trim().replace(/^[*/+.\s]+/, "").replace(/[.\s]+$/, "");
     // в кандидат не должны попадать куски слов: переменная — одиночная буква
+    // «t1 + t2 = 3», «v2» — индексы обозначений, а не умножение t·1: такое не решаем.
+    if (/[a-z]\d/i.test(eq)) continue;
     const letters = eq.match(/[a-z]+/gi) ?? [];
     if (letters.length === 0 || letters.some((w) => w.length !== 1)) continue;
     const vars = new Set(letters.map((l) => l.toLowerCase()));

@@ -32,7 +32,8 @@
     "predb:push": "npm run doctor:native",
     "db:push": "drizzle-kit push",
     "predb:studio": "npm run doctor:native",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "smoke:404": "node scripts/smoke-404.mjs"
   },
   "dependencies": {
     "@heroui/react": "^3.0.3",

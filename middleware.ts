@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readAuthCookieFromRequest, verifyAuthToken } from "@/lib/auth";
-import { NOT_FOUND_REWRITE_PATH, isUnknownContentSlug } from "@/lib/content-routes";
 import { sanitizeNextPath } from "@/lib/safe-next";
 
 /** Совпадает с REQUEST_PATH_HEADER в @/lib/session-redirect (тот модуль server-only). */
@@ -74,13 +73,6 @@ async function redirectAuthenticatedFromAuthPages(req: NextRequest) {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  if (isUnknownContentSlug(pathname)) {
-    const url = req.nextUrl.clone();
-    url.pathname = NOT_FOUND_REWRITE_PATH;
-    url.search = "";
-    return NextResponse.rewrite(url);
-  }
 
   const authRedirect = await redirectAuthenticatedFromAuthPages(req);
   if (authRedirect) return authRedirect;

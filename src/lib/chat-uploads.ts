@@ -46,7 +46,11 @@ function absolutePathForKey(key: string): string | null {
   return path.join(resolveChatUploadsDir(), key);
 }
 
-export async function saveChatImage(input: Buffer): Promise<{ key: string; mimeType: "image/jpeg" }> {
+/**
+ * Декодирует и пережимает фото в JPEG, ничего не сохраняя. Бросает Error с текстом для
+ * пользователя, если файл не JPEG/PNG/WebP или битый. Вызывать до списания лимитов.
+ */
+export async function prepareChatImage(input: Buffer): Promise<Buffer> {
   if (input.length <= 0 || input.length > CHAT_IMAGE_MAX_INPUT_BYTES) {
     throw new Error("Файл слишком большой (макс. 8 МБ).");
   }
@@ -70,7 +74,11 @@ export async function saveChatImage(input: Buffer): Promise<{ key: string; mimeT
   if (jpeg.length <= 0) {
     throw new Error(UNSUPPORTED_IMAGE_MESSAGE);
   }
+  return jpeg;
+}
 
+/** Сохраняет уже подготовленный prepareChatImage() JPEG. */
+export async function storeChatImage(jpeg: Buffer): Promise<{ key: string; mimeType: "image/jpeg" }> {
   const key = `${randomUUID()}.jpg`;
   const outPath = absolutePathForKey(key);
   if (!outPath) throw new Error("Invalid image key");

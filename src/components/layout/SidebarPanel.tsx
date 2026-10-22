@@ -101,6 +101,12 @@ export function SidebarPanel({
     router.push(href);
   }
 
+  /** Обычный клик по ссылке закрывает мобильное меню; Ctrl/Cmd/Shift-клик открывает вкладку — меню не трогаем. */
+  function onLinkClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    onNavigate?.();
+  }
+
   function requestDelete(id: number) {
     if (deleting) return;
     setPendingDeleteId(id);
@@ -200,10 +206,10 @@ export function SidebarPanel({
           const active = pathname === item.href || pathname?.startsWith(item.href + "/");
           const Icon = item.icon;
           return (
-            <button
+            <Link
               key={item.href}
-              type="button"
-              onClick={() => go(item.href)}
+              href={item.href}
+              onClick={onLinkClick}
               title={item.label}
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
@@ -226,7 +232,7 @@ export function SidebarPanel({
                 aria-hidden
               />
               {!collapsed ? <span className="truncate">{item.label}</span> : null}
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -263,9 +269,10 @@ export function SidebarPanel({
                       const active = pathname === `/chat/${s.id}`;
                       return (
                         <li key={s.id} className="group relative">
-                          <button
-                            type="button"
-                            onClick={() => go(`/chat/${s.id}`)}
+                          <Link
+                            href={`/chat/${s.id}`}
+                            onClick={onLinkClick}
+                            aria-current={active ? "page" : undefined}
                             className={[
                               "flex w-full min-w-0 items-center rounded-2xl py-2 pl-2 pr-9 text-left text-sm transition-colors",
                               active
@@ -274,7 +281,7 @@ export function SidebarPanel({
                             ].join(" ")}
                           >
                             <span className="truncate">{s.title || "Новый чат"}</span>
-                          </button>
+                          </Link>
                           <button
                             type="button"
                             aria-label="Удалить чат"

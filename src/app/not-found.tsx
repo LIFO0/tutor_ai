@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Страница не найдена",
-  robots: { index: false, follow: true },
+  // robots не задаём: Next сам добавляет <meta name="robots" content="noindex"> на 404,
+  // а второй тег дал бы дубль.
 };
 
 export default function NotFound() {

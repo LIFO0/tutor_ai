@@ -253,6 +253,14 @@ function candidateFinishReason(payload: unknown): string | null {
   return typeof reason === "string" ? reason : null;
 }
 
+function countThoughtParts(payload: unknown): number {
+  const parts = (payload as { candidates?: Array<{ content?: { parts?: unknown } }> } | null)?.candidates?.[0]
+    ?.content?.parts;
+  if (!Array.isArray(parts)) return 0;
+  return parts.filter((p) => typeof p === "object" && p !== null && (p as { thought?: unknown }).thought === true)
+    .length;
+}
+
 /** Exported for unit tests. */
 export function extractGeminiText(payload: unknown): string | null {
   if (typeof payload !== "object" || payload === null) return null;
@@ -267,12 +275,30 @@ export function extractGeminiText(payload: unknown): string | null {
 
   const texts: string[] = [];
   for (const part of parts) {
-    if (typeof part === "object" && part !== null && typeof (part as { text?: unknown }).text === "string") {
+    if (typeof part !== "object" || part === null) continue;
+    // Внутренние рассуждения модели (thought: true) — не ответ. Gemma 4 (наши fallback-модели)
+    // возвращает их всегда, даже без includeThoughts; без фильтра черновик склеивался с ответом
+    // без разделителя и попадал ученику / ломал разбор JSON проверки задачи.
+    if ((part as { thought?: unknown }).thought === true) continue;
+    if (typeof (part as { text?: unknown }).text === "string") {
       texts.push((part as { text: string }).text);
     }
   }
   if (texts.length === 0) return null;
-  return texts.join("");
+  return stripInlineThoughtChannel(texts.join(""));
+}
+
+/**
+ * Gemma 4 иногда отдаёт рассуждения не отдельной частью thought:true, а прямо в тексте
+ * в разметке канала: «<|channel>thought … <channel|>ответ». Оставляем только ответ
+ * и убираем служебные токены хода. Exported for unit tests.
+ */
+export function stripInlineThoughtChannel(text: string): string {
+  let s = text;
+  const close = s.lastIndexOf("<channel|>");
+  if (close !== -1) s = s.slice(close + "<channel|>".length);
+  else if (/^\s*<\|channel>/.test(s)) return "";
+  return s.replace(/<\|?(?:turn|channel)\|?>(?:model|user|system)?/g, "").replace(/<\|think\|>/g, "");
 }
 
 /** Exported for unit tests. */
@@ -354,6 +380,10 @@ async function fetchCompletionText(params: {
     }
 
     const payload = (await response.json().catch(() => null)) as unknown;
+    const thoughtParts = countThoughtParts(payload);
+    if (thoughtParts > 0) {
+      console.info(`[gemini] model=${params.model}: skipped ${thoughtParts} thought part(s)`);
+    }
     return throwIfNoText(payload);
   } catch (e) {
     remapAbort(e, params.signal);

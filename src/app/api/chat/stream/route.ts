@@ -11,8 +11,9 @@ import {
 import {
   CHAT_IMAGE_MAX_INPUT_BYTES,
   deleteChatImage,
+  prepareChatImage,
   readChatImage,
-  saveChatImage,
+  storeChatImage,
 } from "@/lib/chat-uploads";
 import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 import { systemPrompt } from "@/lib/prompts";
@@ -83,6 +84,18 @@ export async function POST(req: Request) {
     }
   }
 
+  // Фото проверяем и пережимаем ДО списания лимитов: отклонённый файл (GIF, «фейковый» PNG)
+  // не должен съедать ни фото, ни сообщение. Списание идёт только после успешной проверки,
+  // так что откатывать ничего не нужно и гонок нет.
+  let preparedJpeg: Buffer | null = null;
+  if (file) {
+    try {
+      preparedJpeg = await prepareChatImage(Buffer.from(await file.arrayBuffer()));
+    } catch (e) {
+      return jsonError(e instanceof Error ? e.message : "Не удалось обработать изображение.", 400);
+    }
+  }
+
   const quotaUser = toQuotaUser(user);
 
   if (hasImage) {
@@ -100,15 +113,14 @@ export async function POST(req: Request) {
   let currentImageBase64: string | null = null;
   let currentImageMime: string | null = null;
 
-  if (file) {
+  if (preparedJpeg) {
     try {
-      const buf = Buffer.from(await file.arrayBuffer());
-      const saved = await saveChatImage(buf);
+      const saved = await storeChatImage(preparedJpeg);
       imageKey = saved.key;
       currentImageMime = saved.mimeType;
-      currentImageBase64 = (await readChatImage(saved.key))?.buffer.toString("base64") ?? null;
-    } catch (e) {
-      return jsonError(e instanceof Error ? e.message : "Не удалось сохранить изображение.", 400);
+      currentImageBase64 = preparedJpeg.toString("base64");
+    } catch {
+      return jsonError("Не удалось сохранить изображение.", 500);
     }
   }
 

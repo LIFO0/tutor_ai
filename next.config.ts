@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { contentNotFoundRewrites } from "./src/lib/content-routes";
 
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
@@ -45,6 +46,11 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [{ source: "/plus", destination: "/pricing", permanent: true }];
+  },
+  async rewrites() {
+    // Неизвестный slug в /blog, /matematika-5-klass, /matematika-6-klass → серверный 404
+    // (см. src/lib/content-routes.ts, почему не в middleware).
+    return { beforeFiles: contentNotFoundRewrites(), afterFiles: [], fallback: [] };
   },
   async headers() {
     return [

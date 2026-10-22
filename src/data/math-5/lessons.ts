@@ -1,9 +1,9 @@
 import type { Math5Lesson } from "@/data/math-5/types";
-import { obyknovennyeDrobi } from "@/data/math-5/obyknovennye-drobi";
-import { desyatichnyeDrobi } from "@/data/math-5/desyatichnye-drobi";
-import { zadachiNaDvizhenie } from "@/data/math-5/zadachi-na-dvizhenie";
-import { nodINok } from "@/data/math-5/nod-i-nok";
-import { obyomIEdinicy } from "@/data/math-5/obyom-i-edinicy";
+import { obyknovennyeDrobi } from "./obyknovennye-drobi";
+import { desyatichnyeDrobi } from "./desyatichnye-drobi";
+import { zadachiNaDvizhenie } from "./zadachi-na-dvizhenie";
+import { nodINok } from "./nod-i-nok";
+import { obyomIEdinicy } from "./obyom-i-edinicy";
 
 export const math5Lessons: Math5Lesson[] = [
   obyknovennyeDrobi,

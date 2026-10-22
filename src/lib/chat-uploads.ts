@@ -6,6 +6,7 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { safeSharp } from "@/lib/safe-image";
+import { UNSUPPORTED_IMAGE_MESSAGE } from "@/lib/image-formats";
 
 export const CHAT_IMAGE_MAX_INPUT_BYTES = 8 * 1024 * 1024;
 const MAX_SIDE = 1600;
@@ -45,7 +46,11 @@ function absolutePathForKey(key: string): string | null {
   return path.join(resolveChatUploadsDir(), key);
 }
 
-export async function saveChatImage(input: Buffer): Promise<{ key: string; mimeType: "image/jpeg" }> {
+/**
+ * Декодирует и пережимает фото в JPEG, ничего не сохраняя. Бросает Error с текстом для
+ * пользователя, если файл не JPEG/PNG/WebP или битый. Вызывать до списания лимитов.
+ */
+export async function prepareChatImage(input: Buffer): Promise<Buffer> {
   if (input.length <= 0 || input.length > CHAT_IMAGE_MAX_INPUT_BYTES) {
     throw new Error("Файл слишком большой (макс. 8 МБ).");
   }
@@ -63,13 +68,17 @@ export async function saveChatImage(input: Buffer): Promise<{ key: string; mimeT
       .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
       .toBuffer();
   } catch {
-    throw new Error("Не удалось обработать изображение. Загрузите JPEG, PNG или WebP.");
+    throw new Error(UNSUPPORTED_IMAGE_MESSAGE);
   }
 
   if (jpeg.length <= 0) {
-    throw new Error("Не удалось обработать изображение.");
+    throw new Error(UNSUPPORTED_IMAGE_MESSAGE);
   }
+  return jpeg;
+}
 
+/** Сохраняет уже подготовленный prepareChatImage() JPEG. */
+export async function storeChatImage(jpeg: Buffer): Promise<{ key: string; mimeType: "image/jpeg" }> {
   const key = `${randomUUID()}.jpg`;
   const outPath = absolutePathForKey(key);
   if (!outPath) throw new Error("Invalid image key");

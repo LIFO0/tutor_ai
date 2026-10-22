@@ -3,15 +3,18 @@ import Link from "next/link";
 import Footer from "@/components/landing/footer";
 import Header from "@/components/landing/header";
 import { Button } from "@/components/ui/button";
-import { SITE_ORIGIN } from "@/lib/seo";
+import { pageSeo } from "@/lib/seo";
 import { getPlanLimits } from "@/lib/usage-quota-config";
 import type { QuotaLimits } from "@/lib/usage-types";
 
+const TITLE = "Тарифы и Мишка Plus";
+const DESCRIPTION =
+  "Тарифы сервиса «Мишка знает»: бесплатный доступ и Мишка Plus с увеличенными дневными лимитами.";
+
 export const metadata: Metadata = {
-  title: "Тарифы и Мишка Plus",
-  description:
-    "Тарифы сервиса «Мишка знает»: бесплатный доступ и Мишка Plus с увеличенными дневными лимитами.",
-  alternates: { canonical: `${SITE_ORIGIN}/pricing` },
+  title: TITLE,
+  description: DESCRIPTION,
+  ...pageSeo({ path: "/pricing", title: TITLE, description: DESCRIPTION }),
 };
 
 // Лимиты читаются из env (USAGE_FREE_* / USAGE_PLUS_*) во время запроса.

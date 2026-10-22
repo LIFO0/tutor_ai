@@ -1,5 +1,6 @@
 "use client";
 
+import { IMAGE_INPUT_ACCEPT } from "@/lib/image-formats";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -239,7 +240,7 @@ export function SettingsForm({ initialUser }: { initialUser: CurrentUser }) {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept={IMAGE_INPUT_ACCEPT}
             className="hidden"
             onChange={async (e) => {
               const file = e.target.files?.[0] ?? null;

@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { LLM_UNAVAILABLE_MESSAGE } from "@/lib/chat-limits";
+import { resolveTaskCheckResult } from "@/lib/task-check-json";
 import {
   completeGeminiText,
   extractGeminiText,
   getGeminiModelChain,
   mapGeminiHttpError,
   streamGeminiCompletion,
+  stripInlineThoughtChannel,
   toGeminiRequest,
 } from "@/lib/gemini";
 
@@ -69,6 +71,36 @@ describe("toGeminiRequest / extractGeminiText / mapGeminiHttpError", () => {
       { role: "user", parts: [{ text: "2+2?" }] },
     ]);
     expect(body.generationConfig).toEqual({ temperature: 0.1, maxOutputTokens: 100 });
+  });
+
+  test("skips thought parts (Gemma 4 returns them even without includeThoughts)", () => {
+    const text = extractGeminiText({
+      candidates: [
+        {
+          content: {
+            parts: [
+              { text: "The student answered 1/2. Draft: Привет! Да", thought: true },
+              { text: '{"correct": false, "feedback": "Привет! Давай разберем эту задачу вместе."}' },
+            ],
+          },
+        },
+      ],
+    });
+    expect(text).toBe('{"correct": false, "feedback": "Привет! Давай разберем эту задачу вместе."}');
+  });
+
+  test("thought-only response is not returned as an answer", () => {
+    expect(
+      extractGeminiText({ candidates: [{ content: { parts: [{ text: "thinking…", thought: true }] } }] }),
+    ).toBeNull();
+  });
+
+  test("strips Gemma inline thought channel and turn tokens", () => {
+    expect(stripInlineThoughtChannel("<|channel>thought\nplan: Привет! Да<channel|>{\"feedback\": \"ok\"}<turn|>")).toBe(
+      '{"feedback": "ok"}',
+    );
+    expect(stripInlineThoughtChannel("<|channel>thought\nunfinished reasoning")).toBe("");
+    expect(stripInlineThoughtChannel("Обычный ответ")).toBe("Обычный ответ");
   });
 
   test("joins multiple text parts", () => {
@@ -163,6 +195,34 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
     const parsed = JSON.parse(String(init.body)) as ReturnType<typeof toGeminiRequest>;
     expect(parsed.systemInstruction?.parts[0].text).toBe("sys");
     expect(parsed.contents[0].role).toBe("user");
+  });
+
+  test("task check: Gemma thought draft does not leak into feedback («Привет!вай …» regression)", async () => {
+    const feedback = "Привет! Давай разберем эту задачу вместе.\nШаг 1: $\\frac{1}{2} = \\frac{2}{4}$.";
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: 'The student wrote 2/6, reference 3/4. Draft: {"correct": false, "feedback": "Привет! Да',
+                  thought: true,
+                },
+                { text: JSON.stringify({ own_answer: "3/4", correct: false, feedback }) },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    const raw = await completeGeminiText({ messages: [{ role: "user", text: "check" }] });
+    const resolved = resolveTaskCheckResult(raw ?? "");
+    expect(resolved.parseOk).toBe(true);
+    expect(resolved.correct).toBe(false);
+    expect(resolved.feedbackText).toBe(feedback);
+    expect(resolved.feedbackText).not.toContain("Привет!вай");
+    expect(resolved.feedbackText).not.toContain("Draft");
   });
 
   test("complete returns joined candidate text", async () => {

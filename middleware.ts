@@ -1,5 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readAuthCookieFromRequest, verifyAuthToken } from "@/lib/auth";
+import { sanitizeNextPath } from "@/lib/safe-next";
+
+/** Совпадает с REQUEST_PATH_HEADER в @/lib/session-redirect (тот модуль server-only). */
+const REQUEST_PATH_HEADER = "x-mz-request-path";
+
+/** Пропустить запрос дальше, передав страницам текущий путь (для ?next= при протухшей сессии). */
+function nextWithPath(req: NextRequest) {
+  const headers = new Headers(req.headers);
+  headers.set(REQUEST_PATH_HEADER, `${req.nextUrl.pathname}${req.nextUrl.search}`);
+  return NextResponse.next({ request: { headers } });
+}
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -25,6 +36,8 @@ function isProtected(pathname: string) {
   if (pathname.startsWith("/tasks")) return true;
   if (pathname.startsWith("/profile")) return true;
   if (pathname.startsWith("/settings")) return true;
+  if (pathname === "/support" || pathname.startsWith("/support/")) return true;
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) return true;
   if (pathname.startsWith("/api/chat")) return true;
   if (pathname.startsWith("/api/tasks")) return true;
   if (pathname.startsWith("/api/profile")) return true;
@@ -32,8 +45,13 @@ function isProtected(pathname: string) {
   return false;
 }
 
-function isSafeInternalPath(path: string) {
-  return path.startsWith("/") && !path.startsWith("//");
+function redirectToLogin(req: NextRequest) {
+  const url = req.nextUrl.clone();
+  const next = sanitizeNextPath(`${req.nextUrl.pathname}${req.nextUrl.search}`);
+  url.pathname = "/login";
+  url.search = "";
+  if (next) url.searchParams.set("next", next);
+  return NextResponse.redirect(url);
 }
 
 async function redirectAuthenticatedFromAuthPages(req: NextRequest) {
@@ -49,15 +67,8 @@ async function redirectAuthenticatedFromAuthPages(req: NextRequest) {
     return null;
   }
 
-  const next = req.nextUrl.searchParams.get("next");
-  const url = req.nextUrl.clone();
-  url.search = "";
-  if (next && isSafeInternalPath(next) && isProtected(next)) {
-    url.pathname = next;
-  } else {
-    url.pathname = "/dashboard";
-  }
-  return NextResponse.redirect(url);
+  const next = sanitizeNextPath(req.nextUrl.searchParams.get("next"));
+  return NextResponse.redirect(new URL(next ?? "/dashboard", req.nextUrl.origin));
 }
 
 export async function middleware(req: NextRequest) {
@@ -73,23 +84,17 @@ export async function middleware(req: NextRequest) {
     if (isApi(pathname)) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    return redirectToLogin(req);
   }
 
   try {
     await verifyAuthToken(token);
-    return NextResponse.next();
+    return nextWithPath(req);
   } catch {
     if (isApi(pathname)) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    return redirectToLogin(req);
   }
 }
 

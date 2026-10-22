@@ -1,4 +1,4 @@
-import { egeInformatika2026Posts } from "@/data/blog/ege-informatika-2026";
+import { egeInformatika2026Posts } from "./ege-informatika-2026";
 
 export type BlogPost = {
   slug: string;

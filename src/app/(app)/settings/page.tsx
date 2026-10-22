@@ -1,12 +1,12 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
+import { redirectToLoginForInvalidSession } from "@/lib/session-redirect";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return redirectToLoginForInvalidSession();
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center px-4 py-10">

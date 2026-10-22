@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
+import { redirectToLoginForInvalidSession } from "@/lib/session-redirect";
 import { getTaskStats, listTaskHistory } from "@/lib/tasks";
 import { TasksClient } from "./TasksClient";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TasksPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return redirectToLoginForInvalidSession();
 
   const stats = await getTaskStats(user.id);
   const history = await listTaskHistory(user.id);

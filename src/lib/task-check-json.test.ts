@@ -77,3 +77,33 @@ describe("normalizeStoredTaskFeedback", () => {
     expect(normalizeStoredTaskFeedback(stored)).toBe("К сожалению, твой ответ неверен.");
   });
 });
+
+describe("reasoning text before the final JSON (Gemma inline thoughts)", () => {
+  const FINAL = JSON.stringify({ own_answer: "11.25", correct: true, feedback: "Привет! Давай разберем эту задачу вместе." });
+
+  test("takes the last JSON object, not LaTeX braces or a draft", () => {
+    const raw = 'thought\n\\frac{x}{10}+\\frac{x}{6}=3\nDraft: {"correct": false, "feedback": "Черновик"}\n' + FINAL;
+    expect(parseTaskCheckModelOutput(raw)).toEqual({
+      correct: true,
+      feedback: "Привет! Давай разберем эту задачу вместе.",
+      ownAnswer: "11.25",
+    });
+  });
+
+  test("truncated draft before the final JSON", () => {
+    const raw = 'thought \\frac{1}{2} Draft: {"own_answer": "5", "correct": false, "feedback": "Привет! Да\n' + FINAL;
+    const r = resolveTaskCheckResult(raw);
+    expect(r.correct).toBe(true);
+    expect(r.feedbackText).toBe("Привет! Давай разберем эту задачу вместе.");
+  });
+
+  test("full draft followed by a truncated final JSON uses the tail", () => {
+    const raw =
+      '{"own_answer": "5", "correct": false, "feedback": "Черновик"}\n' +
+      '{"own_answer": 11.25, "correct": true, "feedback": "Привет! Давай разберем';
+    const parsed = parseTaskCheckModelOutput(raw);
+    expect(parsed.correct).toBe(true);
+    expect(parsed.ownAnswer).toBe("11.25");
+    expect(parsed.feedback).toBe("Привет! Давай разберем");
+  });
+});

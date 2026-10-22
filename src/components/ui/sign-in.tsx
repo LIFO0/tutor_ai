@@ -66,9 +66,12 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               <div className="bg-transparent p-0 shadow-none backdrop-blur-0">
                 <form className="space-y-5" onSubmit={onSignIn} suppressHydrationWarning>
                   <div className="animate-element animate-delay-200">
-                    <label className="text-sm font-medium text-zinc-700">Email</label>
+                    <label htmlFor="login-email" className="text-sm font-medium text-zinc-700">
+                      Электронная почта
+                    </label>
                     <GlassInputWrapper>
                       <input
+                        id="login-email"
                         name="email"
                         type="email"
                         defaultValue={defaultEmail}
@@ -80,10 +83,13 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                   </div>
 
                   <div className="animate-element animate-delay-300">
-                    <label className="text-sm font-medium text-zinc-700">Пароль</label>
+                    <label htmlFor="login-password" className="text-sm font-medium text-zinc-700">
+                      Пароль
+                    </label>
                     <GlassInputWrapper>
                       <div className="relative">
                         <input
+                          id="login-password"
                           name="password"
                           type={showPassword ? "text" : "password"}
                           autoComplete="current-password"
@@ -106,7 +112,11 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                     </GlassInputWrapper>
                   </div>
 
-                  {error ? <div className="text-sm text-red-600">{error}</div> : null}
+                  {error ? (
+                    <div role="alert" className="text-sm text-red-600">
+                      {error}
+                    </div>
+                  ) : null}
 
                   <button
                     type="submit"

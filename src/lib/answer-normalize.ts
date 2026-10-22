@@ -18,6 +18,8 @@ export function normalizeAnswerForCompare(s: string): string {
 export function prepareExpressionForEval(raw: string): string {
   let s = raw.trim();
   s = s.replace(/\$+/g, "");
+  // Смешанное число в LaTeX: 11\frac{1}{4} = 11 + 1/4 (не умножение).
+  s = s.replace(/(\d+)\s*\\d?frac\s*\{(\d+)\}\s*\{(\d+)\}/g, "($1+$2/$3)");
   s = s.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, "($1)/($2)");
   s = s.replace(/\\dfrac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, "($1)/($2)");
   s = s.replace(/(\d+)\s+(\d+)\s*\/\s*(\d+)/g, "($1+$2/$3)");
@@ -180,7 +182,31 @@ export function stripTrailingUnits(s: string): string {
   return m ? m[1]!.trim() : s.trim();
 }
 
+/**
+ * «31/20 = 1,55» → ["31/20", "1,55"]: несколько записей одного и того же числа.
+ * Делим только если каждая часть вычисляется и все части равны; иначе null
+ * (уравнения вида «2x = 10» и несогласованные цепочки не трогаем).
+ */
+export function splitEquivalentForms(s: string): string[] | null {
+  if (!s.includes("=")) return null;
+  const parts = s.split("=").map((p) => p.trim());
+  if (parts.length < 2 || parts.some((p) => !p)) return null;
+  const values = parts.map((p) => tryEvaluateNumericExpression(stripTrailingUnits(p)));
+  if (values.some((v) => v === null)) return null;
+  const first = values[0]!;
+  if (values.some((v) => Math.abs(v! - first) > EPSILON)) return null;
+  return parts;
+}
+
 export function answersMatchForTask(userAnswer: string, correctAnswer: string): boolean {
+  if (matchSingleForm(userAnswer, correctAnswer)) return true;
+  const userForms = splitEquivalentForms(userAnswer) ?? [userAnswer];
+  const refForms = splitEquivalentForms(correctAnswer) ?? [correctAnswer];
+  if (userForms.length === 1 && refForms.length === 1) return false;
+  return userForms.some((u) => refForms.some((c) => matchSingleForm(u, c)));
+}
+
+function matchSingleForm(userAnswer: string, correctAnswer: string): boolean {
   if (answersMatchStrict(userAnswer, correctAnswer)) return true;
   const u = stripTrailingUnits(stripVariablePrefix(userAnswer));
   const c = stripTrailingUnits(stripVariablePrefix(correctAnswer));

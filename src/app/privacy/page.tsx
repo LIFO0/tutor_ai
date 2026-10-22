@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Footer from "@/components/landing/footer";
 import Header from "@/components/landing/header";
 import { PrivacyPolicyContent } from "@/components/legal/privacy-policy-content";
-import { SITE_ORIGIN } from "@/lib/seo";
+import { pageSeo } from "@/lib/seo";
+
+const TITLE = "Политика конфиденциальности";
+const DESCRIPTION =
+  "Политика конфиденциальности сервиса «Мишка знает»: обработка персональных данных школьников, изображения в чате, cookies, Google Gemini API и права пользователей.";
 
 export const metadata: Metadata = {
-  title: "Политика конфиденциальности",
-  description:
-    "Политика конфиденциальности сервиса «Мишка знает»: обработка персональных данных школьников, изображения в чате, cookies, Google Gemini API и права пользователей.",
-  alternates: { canonical: `${SITE_ORIGIN}/privacy` },
-  robots: { index: false, follow: true },
+  title: TITLE,
+  description: DESCRIPTION,
+  ...pageSeo({ path: "/privacy", title: TITLE, description: DESCRIPTION }),
 };
 
 export default function PrivacyPage() {

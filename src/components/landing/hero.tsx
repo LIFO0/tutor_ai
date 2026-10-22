@@ -31,9 +31,9 @@ export default function Hero() {
             </div>
 
             <h1 className="mb-6 font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl lg:text-6xl">
-              <span className="text-balance">ИИ-репетитор</span>
+              <span className="text-balance">ИИ-репетитор</span>{" "}
               <br />
-              <span className="text-primary">для школьников</span>
+              <span className="text-primary">для школьников</span>{" "}
               <br />
               <span className="text-balance">5–11 класса</span>
             </h1>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
+import { redirectToLoginForInvalidSession } from "@/lib/session-redirect";
 import { createChatSession, listChatSessions } from "@/lib/chat";
 import { isValidChatSubject, type Subject } from "@/lib/subjects";
 import { ChatSessionsSidebar } from "@/components/chat/ChatSessionsSidebar";
@@ -13,7 +14,7 @@ export default async function ChatListPage({
   searchParams: Promise<{ subject?: Subject }>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return redirectToLoginForInvalidSession();
 
   const sp = await searchParams;
   const subject = sp.subject;

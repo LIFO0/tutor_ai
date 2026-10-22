@@ -46,12 +46,13 @@ export const metadata: Metadata = {
   },
   description: DEFAULT_DESCRIPTION,
   keywords: SEO_KEYWORDS,
-  robots: { index: true, follow: true },
-  alternates: { canonical: SITE_ORIGIN },
+  // robots по умолчанию не задаём (index, follow — поведение поисковиков без тега): иначе он
+  // наследуется на 404 рядом с автоматическим noindex от Next, и тегов становится два.
+  // canonical и og:url здесь не задаём: иначе их наследуют страницы без своих (404, /login…)
+  // и указывают на главную. Страницы задают их сами через pageSeo() из @/lib/seo.
   openGraph: {
     title: OG_TITLE,
     description: OG_DESCRIPTION,
-    url: SITE_ORIGIN,
     siteName: SITE_NAME,
     locale: "ru_RU",
     type: "website",

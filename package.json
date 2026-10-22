@@ -28,10 +28,12 @@
     "test": "vitest run",
     "migrate:normalize-messages": "tsx scripts/migrate-normalize-messages.ts",
     "migrate:normalize-task-feedback": "tsx scripts/migrate-normalize-task-feedback.ts",
+    "fix:mixed-script-chat-titles": "tsx scripts/fix-mixed-script-chat-titles.ts",
     "predb:push": "npm run doctor:native",
     "db:push": "drizzle-kit push",
     "predb:studio": "npm run doctor:native",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "smoke:404": "node scripts/smoke-404.mjs"
   },
   "dependencies": {
     "@heroui/react": "^3.0.3",

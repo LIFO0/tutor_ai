@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/current-user";
+import { redirectToLoginForInvalidSession } from "@/lib/session-redirect";
 import { FeedbackForm } from "@/components/support/FeedbackForm";
 import { FEEDBACK_CONTACTS } from "@/lib/site-contacts";
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Написать в поддержк
 
 export default async function SupportPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return redirectToLoginForInvalidSession();
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center px-4 py-10">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import type { Subject } from "@/lib/subjects";
 import { CHAT_SUBJECTS } from "@/lib/subjects";
@@ -226,29 +227,30 @@ export function ChatSessionsSidebar({
               <ul className="flex flex-col gap-0.5">
                 {extra.map((r) => (
                   <li key={`sr-${r.sessionId}`}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!r.messageId) {
-                          router.push(`/chat/${r.sessionId}`);
-                          return;
-                        }
-                        const href = `/chat/${r.sessionId}?m=${r.messageId}`;
+                    <Link
+                      href={
+                        r.messageId
+                          ? `/chat/${r.sessionId}?m=${r.messageId}`
+                          : `/chat/${r.sessionId}`
+                      }
+                      scroll={false}
+                      onClick={(e) => {
+                        if (!r.messageId) return;
+                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
                         const sameUrl =
                           pathname === `/chat/${r.sessionId}` &&
                           new URLSearchParams(window.location.search).get("m") === String(r.messageId);
                         if (sameUrl) {
                           // URL не меняется — просим открытый чат прокрутить ещё раз.
+                          e.preventDefault();
                           window.dispatchEvent(
                             new CustomEvent("chat:jump-to-message", {
                               detail: { sessionId: r.sessionId, messageId: r.messageId },
                             }),
                           );
-                        } else {
-                          router.push(href, { scroll: false });
                         }
                       }}
-                      className="w-full rounded-2xl border border-transparent px-3 py-2.5 text-left hover:border-zinc-300/90 hover:bg-zinc-50/90 dark:hover:border-zinc-500/65 dark:hover:bg-zinc-900/50"
+                      className="block w-full rounded-2xl border border-transparent px-3 py-2.5 text-left hover:border-zinc-300/90 hover:bg-zinc-50/90 dark:hover:border-zinc-500/65 dark:hover:bg-zinc-900/50"
                     >
                       <div className="truncate text-[15px] font-medium text-zinc-900 dark:text-zinc-50">
                         {r.title || "Новый чат"}
@@ -276,7 +278,7 @@ export function ChatSessionsSidebar({
                           {subjectLabel(r.subject)}
                         </div>
                       )}
-                    </button>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -302,11 +304,11 @@ export function ChatSessionsSidebar({
 
               return (
                 <li key={s.id} className="group relative">
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/chat/${s.id}`)}
+                  <Link
+                    href={`/chat/${s.id}`}
+                    aria-current={active ? "page" : undefined}
                     className={[
-                      "w-full rounded-2xl border py-3.5 pl-3 pr-11 text-left shadow-sm shadow-transparent ring-1 ring-inset ring-transparent",
+                      "block w-full rounded-2xl border py-3.5 pl-3 pr-11 text-left shadow-sm shadow-transparent ring-1 ring-inset ring-transparent",
                       "transition-[border-color,box-shadow,background-color,ring-color] duration-200 ease-out sm:py-4 sm:pl-3.5",
                       active
                         ? "border-zinc-200/80 bg-zinc-100/95 dark:border-zinc-600/45 dark:bg-zinc-800/55 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] dark:hover:border-zinc-500/55"
@@ -329,7 +331,7 @@ export function ChatSessionsSidebar({
                       <span className="text-zinc-300 dark:text-zinc-600"> · </span>
                       {metaText}
                     </div>
-                  </button>
+                  </Link>
                   <button
                     type="button"
                     aria-label="Удалить чат"

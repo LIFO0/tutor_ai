@@ -15,7 +15,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const staticPages: MetadataRoute.Sitemap = [
     {
-      url: `${origin}/`,
+      // Без завершающего слэша — как canonical главной (см. absoluteUrl в @/lib/seo).
+      url: origin,
       lastModified: new Date("2026-06-18"),
       changeFrequency: "weekly",
       priority: 1.0,
@@ -67,6 +68,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date("2026-09-22"),
       changeFrequency: "weekly",
       priority: 0.85,
+    },
+    {
+      url: `${origin}/pricing`,
+      lastModified: new Date("2026-10-22"),
+      changeFrequency: "monthly",
+      priority: 0.6,
     },
     {
       url: `${origin}/help`,

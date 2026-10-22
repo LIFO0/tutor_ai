@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChatInput } from "@/components/chat/ChatInput";
+import { ChatInput, type ChatSendRejection } from "@/components/chat/ChatInput";
 import { BearTotem, type BearTotemVariant } from "@/components/ui/BearTotem";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
+import { UNSUPPORTED_IMAGE_MESSAGE, isDecodableImageFile } from "@/lib/image-formats";
 import { PENDING_CHAT_MESSAGE_KEY } from "@/lib/pending-chat-message";
 import { setPendingChatFile } from "@/lib/pending-chat-file";
 import type { Subject } from "@/lib/subjects";
@@ -83,7 +84,7 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
     return () => window.clearTimeout(id);
   }, []);
 
-  async function handleSend(text: string, file?: File | null) {
+  async function handleSend(text: string, file?: File | null): Promise<ChatSendRejection | void> {
     const message = text.trim();
     if ((!message && !file) || submitting) return;
     const isDev = process.env.NODE_ENV !== "production";
@@ -92,6 +93,12 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
     if (file && imagesExhausted) {
       setSubmitError(quotaExceededMessage("chat_image", usage?.limits.chatImages ?? 4));
       return;
+    }
+
+    // Картинку проверяем до создания чата: иначе сервер отклонит её уже в пустом чате,
+    // а новый чат и текст пропадут зря. ChatInput покажет ошибку и вернёт текст.
+    if (file && !(await isDecodableImageFile(file))) {
+      return { rejected: true, error: UNSUPPORTED_IMAGE_MESSAGE };
     }
 
     setSubmitting(true);
@@ -249,6 +256,23 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
             );
           })}
         </div>
+
+        {usage && !usage.exempt ? (
+          <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
+            Сегодня осталось: вопросов {usage.remaining.chatMessages} из {usage.limits.chatMessages}
+            <span className="mx-1.5 text-zinc-300 dark:text-zinc-600">·</span>
+            фото {usage.remaining.chatImages} из {usage.limits.chatImages}
+            <span className="mx-1.5 text-zinc-300 dark:text-zinc-600">·</span>
+            новых чатов {usage.remaining.chatSessions} из {usage.limits.chatSessions}
+            <span className="mx-1.5 text-zinc-300 dark:text-zinc-600">·</span>
+            <Link
+              href="/settings#usage-today-title"
+              className="underline decoration-zinc-400 underline-offset-4 hover:text-zinc-800 dark:hover:text-zinc-200"
+            >
+              все лимиты
+            </Link>
+          </p>
+        ) : null}
 
         {/* Пока не нужно: ссылки «Все чаты» / «Задания»
         <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">

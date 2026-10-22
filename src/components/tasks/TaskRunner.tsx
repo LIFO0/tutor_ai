@@ -5,6 +5,7 @@ import { Button, Card, CardContent, CardHeader } from "@heroui/react";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { BearTotem, type BearTotemVariant } from "@/components/ui/BearTotem";
 import { normalizeStoredTaskFeedback } from "@/lib/task-check-json";
+import { softBreaksToHardBreaks } from "@/lib/plain-text-breaks";
 import { AnswerInput } from "./AnswerInput";
 import { UNCERTAIN_NOTE } from "@/lib/task-verdict";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
@@ -177,7 +178,7 @@ export function TaskRunner({
             {result.uncertain ? "🤔 Похоже, верно!" : result.correct ? "✅ Верно!" : "❌ Неверно"}
           </CardHeader>
           <CardContent>
-            <MessageBubble role="assistant" content={result.aiFeedback} />
+            <MessageBubble role="assistant" content={softBreaksToHardBreaks(result.aiFeedback)} />
           </CardContent>
         </Card>
       ) : null}

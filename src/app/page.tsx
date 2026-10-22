@@ -9,12 +9,12 @@ import HowItWorks from "@/components/landing/how-it-works";
 import { SubjectsMarquee } from "@/components/landing/subjects-marquee";
 import Testimonials from "@/components/landing/testimonials";
 import { getHomePageJsonLd } from "@/lib/json-ld";
-import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_ORIGIN } from "@/lib/seo";
+import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, OG_DESCRIPTION, OG_TITLE, pageSeo } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: DEFAULT_TITLE,
   description: DEFAULT_DESCRIPTION,
-  alternates: { canonical: SITE_ORIGIN },
+  ...pageSeo({ path: "/", title: OG_TITLE, description: OG_DESCRIPTION }),
 };
 
 export default function Home() {

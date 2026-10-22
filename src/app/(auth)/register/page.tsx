@@ -123,10 +123,14 @@ export default function RegisterPage() {
                   </div>
                   <form className="space-y-5" onSubmit={onSubmit} suppressHydrationWarning>
                     <div className="animate-element animate-delay-200">
-                      <label className="text-sm font-medium text-zinc-700">Имя</label>
+                      <label htmlFor="register-name" className="text-sm font-medium text-zinc-700">
+                        Имя
+                      </label>
                       <GlassInputWrapper>
                         <input
+                          id="register-name"
                           name="name"
+                          autoComplete="given-name"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           placeholder="Как вас зовут?"
@@ -136,9 +140,12 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="animate-element animate-delay-300">
-                      <label className="text-sm font-medium text-zinc-700">Email</label>
+                      <label htmlFor="register-email" className="text-sm font-medium text-zinc-700">
+                        Электронная почта
+                      </label>
                       <GlassInputWrapper>
                         <input
+                          id="register-email"
                           name="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -151,10 +158,13 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="animate-element animate-delay-400">
-                      <label className="text-sm font-medium text-zinc-700">Пароль</label>
+                      <label htmlFor="register-password" className="text-sm font-medium text-zinc-700">
+                        Пароль
+                      </label>
                       <GlassInputWrapper>
                         <div className="relative">
                           <input
+                            id="register-password"
                             name="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -236,10 +246,16 @@ export default function RegisterPage() {
                       </div>
 
                       <div className="animate-element animate-delay-500 flex min-h-0 flex-col">
-                        <label className="text-sm font-medium text-zinc-700">Аватар</label>
+                        <span id="register-avatar-label" className="text-sm font-medium text-zinc-700">
+                          Аватар
+                        </span>
                         <input type="hidden" name="avatar" value={avatar} />
                         <GlassInputWrapper>
-                          <div className="flex items-center justify-between gap-2 px-4 py-1.5">
+                          <div
+                            role="group"
+                            aria-labelledby="register-avatar-label"
+                            className="flex items-center justify-between gap-2 px-4 py-1.5"
+                          >
                             {AVATAR_IDS.map((id) => (
                               <button
                                 key={id}

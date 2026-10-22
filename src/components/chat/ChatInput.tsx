@@ -49,6 +49,10 @@ export function ChatInput({
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
+  // Файл, который пользователь пытался прикрепить, но он не прошёл проверку (GIF, не картинка,
+  // слишком большой). Пока он не убран, отправка блокируется: иначе ушёл бы только текст,
+  // а картинка молча потерялась бы.
+  const [rejectedFileName, setRejectedFileName] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragDepthRef = useRef(0);
   const previewUrlRef = useRef<string | null>(null);
@@ -84,23 +88,34 @@ export function ChatInput({
     setFile(null);
     replacePreview(null);
     setAttachError(null);
+    setRejectedFileName(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  function rejectPick(name: string, message: string) {
+    // Неподходящий файл заменяет прежнее вложение: пользователь хотел отправить именно его.
+    setFile(null);
+    replacePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setRejectedFileName(name || "файл");
+    setAttachError(message);
+  }
+
   function onPickFile(list: FileList | null) {
-    setAttachError(null);
     const next = list?.[0] ?? null;
     if (!next) return;
+    setAttachError(null);
+    setRejectedFileName(null);
     if (!next.type.startsWith("image/")) {
-      setAttachError("Можно прикрепить только изображение.");
+      rejectPick(next.name, "Можно прикрепить только изображение.");
       return;
     }
     if (!isAllowedImageMime(next.type)) {
-      setAttachError(UNSUPPORTED_IMAGE_MESSAGE);
+      rejectPick(next.name, UNSUPPORTED_IMAGE_MESSAGE);
       return;
     }
     if (next.size <= 0 || next.size > MAX_ATTACH_BYTES) {
-      setAttachError("Файл слишком большой (макс. 8 МБ).");
+      rejectPick(next.name, "Файл слишком большой (макс. 8 МБ).");
       return;
     }
     setFile(next);
@@ -137,6 +152,11 @@ export function ChatInput({
 
   function submit() {
     if (!canSend) return;
+    if (rejectedFileName) {
+      // Ничего не отправляем и текст не трогаем, пока неподходящий файл не убран.
+      setAttachError((current) => current ?? UNSUPPORTED_IMAGE_MESSAGE);
+      return;
+    }
     const text = value.trim();
     if (text.length > MAX_CHAT_MESSAGE_CHARS) return;
     const attach = file;
@@ -219,9 +239,23 @@ export function ChatInput({
           </div>
         ) : null}
         {attachError ? (
-          <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">
-            {attachError}
-          </p>
+          <div className="mb-2 flex items-start gap-2">
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              {attachError}
+            </p>
+            {rejectedFileName ? (
+              <button
+                type="button"
+                onClick={clearFile}
+                disabled={inputDisabled}
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                aria-label={`Убрать файл ${rejectedFileName}`}
+                title="Убрать файл"
+              >
+                <X className="h-3.5 w-3.5" strokeWidth={2} />
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         <div className="flex min-w-0 items-end gap-2">

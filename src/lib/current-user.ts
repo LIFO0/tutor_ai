@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { authCookieName, verifyAuthToken } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { assertProductionEnv } from "@/lib/llm-config";
+import { isAdminEmail } from "@/lib/feedback";
 
 /** Проверка сессии по JWT в cookie без запроса к БД (для публичной шапки). */
 export async function isUserAuthenticated(): Promise<boolean> {
@@ -27,6 +28,8 @@ export type CurrentUser = {
   chatName: string | null;
   plan: string;
   planExpiresAt: string | null;
+  /** Email в ADMIN_EMAILS — показываем ссылку на /admin/feedback в меню профиля. */
+  isAdmin: boolean;
 };
 
 async function readCurrentUser(): Promise<CurrentUser | null> {
@@ -52,7 +55,8 @@ async function readCurrentUser(): Promise<CurrentUser | null> {
       .from(schema.users)
       .where(eq(schema.users.id, payload.userId))
       .limit(1);
-    return rows[0] ?? null;
+    const row = rows[0];
+    return row ? { ...row, isAdmin: isAdminEmail(row.email) } : null;
   } catch {
     return null;
   }

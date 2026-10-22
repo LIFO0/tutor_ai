@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
+import { sanitizeNextPath } from "@/lib/safe-next";
 
 const OAUTH_STATE_COOKIE = "yandex_oauth_state";
 const OAUTH_VERIFIER_COOKIE = "yandex_oauth_verifier";
+/** Куда вернуть после входа (?next=). Проверяется здесь и ещё раз в callback. */
+const OAUTH_NEXT_COOKIE = "yandex_oauth_next";
 
 function requiredEnv(name: string) {
   const v = process.env[name];
@@ -24,7 +27,7 @@ function sha256Base64Url(input: string) {
   return base64UrlEncode(hash);
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const clientId = requiredEnv("YANDEX_OAUTH_CLIENT_ID");
   const redirectUri = requiredEnv("YANDEX_OAUTH_REDIRECT_URI");
 
@@ -50,6 +53,13 @@ export async function GET() {
     path: "/",
     maxAge,
   });
+
+  const next = sanitizeNextPath(new URL(req.url).searchParams.get("next"));
+  if (next) {
+    c.set(OAUTH_NEXT_COOKIE, next, { httpOnly: true, sameSite: "lax", secure, path: "/", maxAge });
+  } else {
+    c.set(OAUTH_NEXT_COOKIE, "", { httpOnly: true, sameSite: "lax", secure, path: "/", maxAge: 0 });
+  }
 
   const url = new URL("https://oauth.yandex.ru/authorize");
   url.searchParams.set("response_type", "code");

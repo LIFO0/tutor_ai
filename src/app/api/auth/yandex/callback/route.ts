@@ -5,9 +5,11 @@ import { jsonError } from "@/lib/api/auth";
 import { signAuthToken, setAuthCookie } from "@/lib/auth";
 import { buildAppUrl } from "@/lib/app-url";
 import { getDb, schema } from "@/lib/db";
+import { sanitizeNextPath } from "@/lib/safe-next";
 
 const OAUTH_STATE_COOKIE = "yandex_oauth_state";
 const OAUTH_VERIFIER_COOKIE = "yandex_oauth_verifier";
+const OAUTH_NEXT_COOKIE = "yandex_oauth_next";
 
 function requiredEnv(name: string) {
   const v = process.env[name];
@@ -74,10 +76,13 @@ export async function GET(req: Request) {
   const c = await cookies();
   const expectedState = c.get(OAUTH_STATE_COOKIE)?.value;
   const codeVerifier = c.get(OAUTH_VERIFIER_COOKIE)?.value;
+  // Повторная проверка: cookie мог подменить сам пользователь, доверять ему нельзя.
+  const next = sanitizeNextPath(c.get(OAUTH_NEXT_COOKIE)?.value);
 
   // Clear cookies early to avoid reuse.
   c.set(OAUTH_STATE_COOKIE, "", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 0 });
   c.set(OAUTH_VERIFIER_COOKIE, "", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 0 });
+  c.set(OAUTH_NEXT_COOKIE, "", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 0 });
 
   if (!expectedState || expectedState !== state || !codeVerifier) {
     return jsonError("Invalid OAuth state", 400);
@@ -188,10 +193,10 @@ export async function GET(req: Request) {
   const token = await signAuthToken({ userId, grade, sv });
   await setAuthCookie(token);
 
-  const redirectTo = buildAppUrl(
-    "/dashboard",
-    created ? "onboarding=grade" : "",
-  );
+  // Вернуть туда, откуда пришли (?next=). Новый аккаунт без next — на выбор класса.
+  const redirectTo = next
+    ? buildAppUrl(next)
+    : buildAppUrl("/dashboard", created ? "onboarding=grade" : "");
   return NextResponse.redirect(redirectTo);
 }
 

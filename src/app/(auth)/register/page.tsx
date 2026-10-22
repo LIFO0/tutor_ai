@@ -8,6 +8,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { ListBox, Select } from "@heroui/react";
 import { AVATAR_IDS, UserAvatar } from "@/components/ui/UserAvatar";
 import { YandexSignInButton } from "@/components/ui/YandexSignInButton";
+import { readSafeNextParam, useSafeNextParam } from "@/hooks/useSafeNextParam";
+import { loginPathWithNext } from "@/lib/safe-next";
 
 const grades = Array.from({ length: 7 }, (_, i) => 5 + i);
 
@@ -19,6 +21,7 @@ const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
 
 export default function RegisterPage() {
   const router = useRouter();
+  const next = useSafeNextParam();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,7 +83,7 @@ export default function RegisterPage() {
         | { ok: boolean; error?: string }
         | null;
       if (!res.ok || !data?.ok) throw new Error(data?.error || "Ошибка регистрации");
-      router.replace("/dashboard");
+      router.replace(readSafeNextParam() ?? "/dashboard");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка регистрации");
     } finally {
@@ -119,7 +122,13 @@ export default function RegisterPage() {
 
                 <div className="bg-transparent p-0 shadow-none backdrop-blur-0">
                   <div className="animate-element animate-delay-150">
-                    <YandexSignInButton />
+                    <YandexSignInButton
+                      href={
+                        next
+                          ? `/api/auth/yandex/start?next=${encodeURIComponent(next)}`
+                          : "/api/auth/yandex/start"
+                      }
+                    />
                   </div>
                   <form className="space-y-5" onSubmit={onSubmit} suppressHydrationWarning>
                     <div className="animate-element animate-delay-200">
@@ -318,7 +327,7 @@ export default function RegisterPage() {
                     Уже есть аккаунт?{" "}
                     <Link
                       className="text-[color:var(--color-accent)] transition-colors hover:brightness-95 hover:underline"
-                      href="/login"
+                      href={loginPathWithNext(next)}
                     >
                       Войти
                     </Link>
@@ -346,7 +355,7 @@ export default function RegisterPage() {
       </div>
 
       <div className="sr-only">
-        <Link href="/login">Войти</Link>
+        <Link href={loginPathWithNext(next)}>Войти</Link>
       </div>
     </>
   );

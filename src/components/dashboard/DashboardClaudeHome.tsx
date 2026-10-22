@@ -250,6 +250,23 @@ export function DashboardClaudeHome({ userName }: { userName: string }) {
           })}
         </div>
 
+        {usage && !usage.exempt ? (
+          <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
+            Сегодня осталось: вопросов {usage.remaining.chatMessages} из {usage.limits.chatMessages}
+            <span className="mx-1.5 text-zinc-300 dark:text-zinc-600">·</span>
+            фото {usage.remaining.chatImages} из {usage.limits.chatImages}
+            <span className="mx-1.5 text-zinc-300 dark:text-zinc-600">·</span>
+            новых чатов {usage.remaining.chatSessions} из {usage.limits.chatSessions}
+            <span className="mx-1.5 text-zinc-300 dark:text-zinc-600">·</span>
+            <Link
+              href="/settings#usage-today-title"
+              className="underline decoration-zinc-400 underline-offset-4 hover:text-zinc-800 dark:hover:text-zinc-200"
+            >
+              все лимиты
+            </Link>
+          </p>
+        ) : null}
+
         {/* Пока не нужно: ссылки «Все чаты» / «Задания»
         <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
           <Link href="/chat" className="underline decoration-zinc-400 underline-offset-4 hover:text-zinc-800 dark:hover:text-zinc-200">

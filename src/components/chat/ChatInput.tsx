@@ -4,7 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ImagePlus, Square, X } from "lucide-react";
 import { Button } from "@heroui/react";
 import { MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat-limits";
-import { IMAGE_INPUT_ACCEPT, UNSUPPORTED_IMAGE_MESSAGE, isAllowedImageMime } from "@/lib/image-formats";
+import {
+  IMAGE_INPUT_ACCEPT,
+  UNSUPPORTED_IMAGE_MESSAGE,
+  isAllowedImageMime,
+  isDecodableImageFile,
+} from "@/lib/image-formats";
 import { MathKeyboard } from "./MathKeyboard";
 import { MixedMathInput, type MixedMathInputHandle } from "@/components/math/MixedMathInput";
 
@@ -53,6 +58,9 @@ export function ChatInput({
   // слишком большой). Пока он не убран, отправка блокируется: иначе ушёл бы только текст,
   // а картинка молча потерялась бы.
   const [rejectedFileName, setRejectedFileName] = useState<string | null>(null);
+  // Пока проверяем содержимое файла (сигнатура + пробное декодирование), отправка недоступна.
+  const [checkingFile, setCheckingFile] = useState(false);
+  const pickSeqRef = useRef(0);
   const [dragging, setDragging] = useState(false);
   const dragDepthRef = useRef(0);
   const previewUrlRef = useRef<string | null>(null);
@@ -61,8 +69,8 @@ export function ChatInput({
   const inputDisabled = Boolean(disabled || streaming);
   const canAttach = allowImage && !inputDisabled;
   const canSend = useMemo(
-    () => (value.trim().length > 0 || file != null) && !inputDisabled,
-    [value, file, inputDisabled],
+    () => (value.trim().length > 0 || file != null) && !inputDisabled && !checkingFile,
+    [value, file, inputDisabled, checkingFile],
   );
 
   function replacePreview(nextFile: File | null) {
@@ -85,6 +93,8 @@ export function ChatInput({
   }, []);
 
   function clearFile() {
+    pickSeqRef.current += 1;
+    setCheckingFile(false);
     setFile(null);
     replacePreview(null);
     setAttachError(null);
@@ -93,6 +103,7 @@ export function ChatInput({
   }
 
   function rejectPick(name: string, message: string) {
+    setCheckingFile(false);
     // Неподходящий файл заменяет прежнее вложение: пользователь хотел отправить именно его.
     setFile(null);
     replacePreview(null);
@@ -104,6 +115,7 @@ export function ChatInput({
   function onPickFile(list: FileList | null) {
     const next = list?.[0] ?? null;
     if (!next) return;
+    const seq = ++pickSeqRef.current;
     setAttachError(null);
     setRejectedFileName(null);
     if (!next.type.startsWith("image/")) {
@@ -118,8 +130,19 @@ export function ChatInput({
       rejectPick(next.name, "Файл слишком большой (макс. 8 МБ).");
       return;
     }
-    setFile(next);
-    replacePreview(next);
+    // MIME берётся из расширения: «.png», который на деле не PNG, проходит проверку выше.
+    // Смотрим содержимое, чтобы отказать сразу, а не после создания чата / запроса к серверу.
+    setCheckingFile(true);
+    void isDecodableImageFile(next).then((ok) => {
+      if (seq !== pickSeqRef.current) return;
+      if (!ok) {
+        rejectPick(next.name, UNSUPPORTED_IMAGE_MESSAGE);
+        return;
+      }
+      setCheckingFile(false);
+      setFile(next);
+      replacePreview(next);
+    });
   }
 
   function resetDrag() {

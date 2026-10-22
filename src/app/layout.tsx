@@ -46,7 +46,8 @@ export const metadata: Metadata = {
   },
   description: DEFAULT_DESCRIPTION,
   keywords: SEO_KEYWORDS,
-  robots: { index: true, follow: true },
+  // robots по умолчанию не задаём (index, follow — поведение поисковиков без тега): иначе он
+  // наследуется на 404 рядом с автоматическим noindex от Next, и тегов становится два.
   alternates: { canonical: SITE_ORIGIN },
   openGraph: {
     title: OG_TITLE,

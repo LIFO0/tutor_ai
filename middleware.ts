@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readAuthCookieFromRequest, verifyAuthToken } from "@/lib/auth";
+import { NOT_FOUND_REWRITE_PATH, isUnknownContentSlug } from "@/lib/content-routes";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -62,6 +63,13 @@ async function redirectAuthenticatedFromAuthPages(req: NextRequest) {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  if (isUnknownContentSlug(pathname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = NOT_FOUND_REWRITE_PATH;
+    url.search = "";
+    return NextResponse.rewrite(url);
+  }
 
   const authRedirect = await redirectAuthenticatedFromAuthPages(req);
   if (authRedirect) return authRedirect;

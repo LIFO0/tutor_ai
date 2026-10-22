@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import Footer from "@/components/landing/footer";
 import Header from "@/components/landing/header";
 import { HelpContent } from "@/components/help/help-content";
-import { SITE_ORIGIN } from "@/lib/seo";
+import { pageSeo } from "@/lib/seo";
+
+const TITLE = "Помощь";
+const DESCRIPTION =
+  "Инструкция по сервису «Мишка знает»: чат, задания, формулы, настройки и FAQ.";
 
 export const metadata: Metadata = {
-  title: "Помощь",
-  description:
-    "Инструкция по сервису «Мишка знает»: чат, задания, формулы, настройки и FAQ.",
-  alternates: { canonical: `${SITE_ORIGIN}/help` },
+  title: TITLE,
+  description: DESCRIPTION,
+  ...pageSeo({ path: "/help", title: TITLE, description: DESCRIPTION }),
 };
 
 export default function HelpPage() {

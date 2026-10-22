@@ -30,6 +30,7 @@ export async function POST(req: Request) {
       id: schema.users.id,
       password: schema.users.password,
       grade: schema.users.grade,
+      sessionVersion: schema.users.sessionVersion,
     })
     .from(schema.users)
     .where(eq(schema.users.email, email))
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   const ok = await verifyPassword(password, found.password);
   if (!ok) return jsonError("Неверный email или пароль.", 401);
 
-  const token = await signAuthToken({ userId: found.id, grade: found.grade });
+  const token = await signAuthToken({ userId: found.id, grade: found.grade, sv: found.sessionVersion });
   await setAuthCookie(token);
 
   return NextResponse.json({ ok: true });

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import sharp from "sharp";
+import { safeSharp } from "@/lib/safe-image";
 import { NextResponse } from "next/server";
 import { uploadedAvatarFilenameFromUrl } from "@/lib/avatar-validation";
 import { deleteAvatarFile, writeAvatarFile } from "@/lib/avatar-storage";
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
   let png: Buffer;
   try {
-    png = await sharp(buf).rotate().resize(256, 256, { fit: "cover" }).png().toBuffer();
+    png = await safeSharp(buf).rotate().resize(256, 256, { fit: "cover" }).png().toBuffer();
   } catch {
     return jsonError("Не удалось обработать изображение. Попробуй JPEG, PNG или WebP.", 400);
   }

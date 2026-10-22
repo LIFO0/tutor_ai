@@ -17,7 +17,7 @@ describe("llm-config", () => {
   });
 
   test("isLlmConfigured reflects GEMINI_API_KEY", async () => {
-    process.env.NODE_ENV = "test";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "test";
     let mod = await import("@/lib/llm-config");
     expect(mod.isLlmConfigured()).toBe(false);
 
@@ -28,7 +28,7 @@ describe("llm-config", () => {
   });
 
   test("assertLlmConfigured returns 503 in production without key", async () => {
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     delete process.env.GEMINI_API_KEY;
     const mod = await import("@/lib/llm-config");
     const res = mod.assertLlmConfigured();
@@ -40,7 +40,7 @@ describe("llm-config", () => {
   });
 
   test("assertLlmConfigured returns null when configured in production", async () => {
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     process.env.GEMINI_API_KEY = "key";
     const mod = await import("@/lib/llm-config");
     expect(mod.assertLlmConfigured()).toBeNull();

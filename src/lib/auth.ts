@@ -8,6 +8,8 @@ const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 export type AuthTokenPayload = {
   userId: number;
   grade: number;
+  /** users.session_version на момент входа; старые токены без sv считаются 0. */
+  sv: number;
 };
 
 function getJwtSecret() {
@@ -32,10 +34,11 @@ export async function verifyAuthToken(token: string): Promise<AuthTokenPayload> 
   });
   const userId = Number(payload.userId);
   const grade = Number(payload.grade);
-  if (!Number.isFinite(userId) || !Number.isFinite(grade)) {
+  const sv = payload.sv === undefined ? 0 : Number(payload.sv);
+  if (!Number.isFinite(userId) || !Number.isFinite(grade) || !Number.isInteger(sv)) {
     throw new Error("Invalid token payload");
   }
-  return { userId, grade };
+  return { userId, grade, sv };
 }
 
 export async function setAuthCookie(token: string) {

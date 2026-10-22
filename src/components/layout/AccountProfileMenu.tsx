@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CircleHelp, LogOut, Settings } from "lucide-react";
+import { CircleHelp, Inbox, LifeBuoy, LogOut, Settings } from "lucide-react";
 import { Popover } from "@heroui/react";
 import { Button as AriaButton } from "react-aria-components/Button";
 import type { CurrentUser } from "@/lib/current-user";
@@ -58,6 +58,16 @@ export function AccountProfileMenu({
                 <CircleHelp className="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2} aria-hidden />
                 Помощь
               </Link>
+              <Link href="/support" className={itemClass}>
+                <LifeBuoy className="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2} aria-hidden />
+                Написать в поддержку
+              </Link>
+              {user.isAdmin ? (
+                <Link href="/admin/feedback" className={itemClass}>
+                  <Inbox className="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={2} aria-hidden />
+                  Обращения
+                </Link>
+              ) : null}
             </div>
 
             <div className="my-0.5 h-px shrink-0 bg-zinc-200/90 dark:bg-zinc-800" />

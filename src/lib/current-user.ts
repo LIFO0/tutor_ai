@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { authCookieName, verifyAuthToken } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { assertProductionEnv } from "@/lib/llm-config";
+import { isAdminEmail } from "@/lib/feedback";
 
 /** Проверка сессии по JWT в cookie без запроса к БД (для публичной шапки). */
 export async function isUserAuthenticated(): Promise<boolean> {
@@ -27,6 +28,12 @@ export type CurrentUser = {
   chatName: string | null;
   plan: string;
   planExpiresAt: string | null;
+  /**
+   * Email в ADMIN_EMAILS и аккаунт привязан к Яндексу (Яндекс подтвердил владение почтой).
+   * Одного совпадения email мало: при регистрации по паролю почта не проверяется (аудит H2).
+   */
+  isAdmin: boolean;
+  sessionVersion: number;
 };
 
 async function readCurrentUser(): Promise<CurrentUser | null> {
@@ -48,11 +55,16 @@ async function readCurrentUser(): Promise<CurrentUser | null> {
         chatName: schema.users.chatName,
         plan: schema.users.plan,
         planExpiresAt: schema.users.planExpiresAt,
+        yandexId: schema.users.yandexId,
+        sessionVersion: schema.users.sessionVersion,
       })
       .from(schema.users)
       .where(eq(schema.users.id, payload.userId))
       .limit(1);
-    return rows[0] ?? null;
+    const row = rows[0];
+    if (!row || row.sessionVersion !== payload.sv) return null;
+    const { yandexId, ...user } = row;
+    return { ...user, isAdmin: Boolean(yandexId) && isAdminEmail(row.email) };
   } catch {
     return null;
   }

@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/auth";
 import { getCurrentUser } from "@/lib/current-user";
-import { isAdminEmail } from "@/lib/feedback";
 import { readFeedbackScreenshot } from "@/lib/feedback-server";
 
 /** Admin-only access to feedback screenshots. */
 export async function GET(_req: Request, { params }: { params: Promise<{ key: string }> }) {
   const user = await getCurrentUser();
-  if (!user || !isAdminEmail(user.email)) return jsonError("Not found", 404);
+  if (!user?.isAdmin) return jsonError("Not found", 404);
   const { key } = await params;
   const buf = await readFeedbackScreenshot(decodeURIComponent(key));
   if (!buf) return jsonError("Not found", 404);

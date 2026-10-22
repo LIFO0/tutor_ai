@@ -65,7 +65,7 @@ export async function PUT(req: Request) {
   await db.update(schema.users).set(patch).where(eq(schema.users.id, user.id));
 
   const newGrade = patch.grade ?? user.grade;
-  const token = await signAuthToken({ userId: user.id, grade: newGrade });
+  const token = await signAuthToken({ userId: user.id, grade: newGrade, sv: user.sessionVersion });
   await setAuthCookie(token);
 
   return NextResponse.json({ ok: true });

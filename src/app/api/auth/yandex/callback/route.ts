@@ -129,6 +129,8 @@ export async function GET(req: Request) {
       grade: schema.users.grade,
       yandexId: schema.users.yandexId,
       avatar: schema.users.avatar,
+      password: schema.users.password,
+      sessionVersion: schema.users.sessionVersion,
     })
     .from(schema.users)
     .where(or(eq(schema.users.yandexId, yandexId), eq(schema.users.email, email)))
@@ -137,10 +139,21 @@ export async function GET(req: Request) {
   let userId = existing[0]?.id;
   let grade = existing[0]?.grade ?? 7;
   let created = false;
+  let sv = existing[0]?.sessionVersion ?? 0;
 
   if (userId) {
-    const patch: Partial<{ yandexId: string; avatar: string; name: string }> = {};
-    if (!existing[0]?.yandexId) patch.yandexId = yandexId;
+    const patch: Partial<{ yandexId: string; avatar: string; name: string; password: string; sessionVersion: number }> = {};
+    if (!existing[0]?.yandexId) {
+      patch.yandexId = yandexId;
+      // Аудит H1: аккаунт с паролем мог зарегистрировать кто угодно на чужую почту (почта не
+      // проверяется). Яндекс подтвердил, что почта принадлежит этому человеку, поэтому пароль
+      // сбрасываем и разлогиниваем все прежние сессии. Дальше вход через Яндекс.
+      if (existing[0]?.password) {
+        patch.password = "";
+        sv += 1;
+        patch.sessionVersion = sv;
+      }
+    }
     if (avatarUrl && (!existing[0]?.avatar || /^bear[1-4]$/.test(existing[0]?.avatar))) {
       patch.avatar = avatarUrl;
     }
@@ -172,7 +185,7 @@ export async function GET(req: Request) {
 
   if (!userId) return jsonError("Failed to sign in", 500);
 
-  const token = await signAuthToken({ userId, grade });
+  const token = await signAuthToken({ userId, grade, sv });
   await setAuthCookie(token);
 
   const redirectTo = buildAppUrl(

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import sharp from "sharp";
+import { safeSharp } from "@/lib/safe-image";
 import { getSqlite } from "@/lib/db";
 import { resolveChatUploadsDir } from "@/lib/chat-uploads";
 import { getMoscowDateString } from "@/lib/usage-quota-config";
@@ -26,7 +26,7 @@ function feedbackDir(): string {
 export async function saveFeedbackScreenshot(input: Buffer): Promise<string> {
   let jpeg: Buffer;
   try {
-    jpeg = await sharp(input)
+    jpeg = await safeSharp(input)
       .rotate()
       .resize({ width: 2000, height: 2000, fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 82, mozjpeg: true })

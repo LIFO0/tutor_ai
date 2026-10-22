@@ -4,6 +4,7 @@ import { getDb, schema } from "@/lib/db";
 import { utcNowIso } from "@/lib/sqlite-datetime";
 import { completeText } from "@/lib/llm";
 import { deleteChatImages } from "@/lib/chat-uploads";
+import { sanitizeAiChatTitle, sanitizeFallbackChatTitle } from "@/lib/chat-title";
 
 const AUTO_TITLE_INITIAL_WINDOW_MESSAGES = 8;
 const AUTO_TITLE_CONTEXT_MESSAGES = 18;
@@ -36,7 +37,8 @@ function heuristicTitleFromMessages(messages: { role: string; content: string }[
     const c = m.content.trim();
     if (c.length < 4) continue;
     if (/^(привет|здравствуйте|хай|hi|hello|ок|окей|ладно|спасибо)\b/i.test(c)) continue;
-    return normalizeTitleCandidate(c.slice(0, 60));
+    const t = normalizeTitleCandidate(c.slice(0, 60));
+    return t ? sanitizeFallbackChatTitle(t) : null;
   }
   return null;
 }
@@ -275,7 +277,11 @@ export async function maybeUpdateChatTitleInitialWindow(params: {
     maxTokens: 40,
     temperature: 0.2,
   });
-  if (typeof aiText === "string") nextTitle = normalizeTitleCandidate(aiText);
+  if (typeof aiText === "string") {
+    const candidate = normalizeTitleCandidate(aiText);
+    // Смесь алфавитов в слове («Праfила») — сбой модели: берём запасное название.
+    nextTitle = candidate ? sanitizeAiChatTitle(candidate) : null;
+  }
 
   if (!nextTitle) {
     nextTitle = heuristicTitleFromMessages(history);

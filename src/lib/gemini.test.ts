@@ -96,7 +96,7 @@ describe("toGeminiRequest / extractGeminiText / mapGeminiHttpError", () => {
       { role: "user", text: "follow-up" },
     ]);
     expect(body.contents[0].role).toBe("user");
-    expect(body.contents[0].parts[0].text).toBe("next question");
+    expect((body.contents[0].parts[0] as { text?: string }).text).toBe("next question");
     expect(body.contents.at(-1)?.role).toBe("user");
   });
 
@@ -131,7 +131,7 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
     delete process.env.GEMINI_FALLBACK_MODELS;
     // Keep chain to a single model unless a test opts into fallbacks.
     process.env.GEMINI_FALLBACK_MODELS = "gemini-3.5-flash-lite";
-    process.env.NODE_ENV = "test";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "test";
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -251,7 +251,7 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
 
   test("demo mode without key does not call fetch", async () => {
     delete process.env.GEMINI_API_KEY;
-    process.env.NODE_ENV = "development";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "development";
 
     const out: string[] = [];
     for await (const chunk of streamGeminiCompletion({
@@ -267,7 +267,7 @@ describe("completeGeminiText / streamGeminiCompletion", () => {
 
   test("production without key throws LLM_UNAVAILABLE_MESSAGE", async () => {
     delete process.env.GEMINI_API_KEY;
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
 
     await expect(async () => {
       for await (const chunk of streamGeminiCompletion({

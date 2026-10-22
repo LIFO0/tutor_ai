@@ -5,7 +5,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import sharp from "sharp";
+import { safeSharp } from "@/lib/safe-image";
 
 export const CHAT_IMAGE_MAX_INPUT_BYTES = 8 * 1024 * 1024;
 const MAX_SIDE = 1600;
@@ -52,7 +52,7 @@ export async function saveChatImage(input: Buffer): Promise<{ key: string; mimeT
 
   let jpeg: Buffer;
   try {
-    jpeg = await sharp(input)
+    jpeg = await safeSharp(input)
       .rotate()
       .resize({
         width: MAX_SIDE,

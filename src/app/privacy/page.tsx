@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   ...pageSeo({ path: "/privacy", title: TITLE, description: DESCRIPTION }),
-  robots: { index: false, follow: true },
 };
 
 export default function PrivacyPage() {

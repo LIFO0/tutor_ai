@@ -132,6 +132,10 @@ export function solveLinearEquationFromText(text: string): LinearSolution | null
     const L = new Parser(lhs!, v).parse();
     const R = new Parser(rhs!, v).parse();
     if (!L || !R) continue;
+    // «x = 7» — это значение переменной («… при x = 7», «если x = 7»), а не уравнение задачи.
+    // Иначе эталон подменялся на 7 и считался «проверенным», и верный ответ получал ❌.
+    const bareVar = (side: string) => side.replace(/[\s()]/g, "") === v;
+    if ((bareVar(lhs!) && R.a === 0) || (bareVar(rhs!) && L.a === 0)) continue;
     const a = L.a - R.a;
     const b = R.b - L.b;
     if (Math.abs(a) < 1e-12) continue;

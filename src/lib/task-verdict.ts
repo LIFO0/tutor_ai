@@ -28,6 +28,8 @@ export function decideTaskVerdict(p: {
   const referenceSuspect = own !== null && !ownMatchesRef;
 
   if (p.modelCorrect === true) return { verdict: "correct", referenceSuspect };
+  // Решение модели совпало и с ответом ученика, и с эталоном (просто записано иначе) — верно.
+  if (ownMatchesUser && ownMatchesRef) return { verdict: "correct", referenceSuspect: false };
   if (ownMatchesUser && !ownMatchesRef) return { verdict: "uncertain", referenceSuspect: true };
   return { verdict: "incorrect", referenceSuspect };
 }

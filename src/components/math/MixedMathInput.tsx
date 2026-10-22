@@ -236,6 +236,8 @@ export const MixedMathInput = forwardRef<
       // If parent forcibly clears the value (e.g. on submit), we must also clear the DOM
       // even while focused; otherwise the placeholder overlays stale DOM text.
       if (!value) renderValueToDom(root, "");
+      // Parent restored text into an empty editor (e.g. after a rejected send): show it.
+      else if (!serializeFromDom(root).trim()) renderValueToDom(root, value);
       return;
     }
     renderValueToDom(root, value);

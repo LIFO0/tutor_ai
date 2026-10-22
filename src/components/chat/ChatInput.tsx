@@ -4,10 +4,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ImagePlus, Square, X } from "lucide-react";
 import { Button } from "@heroui/react";
 import { MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat-limits";
+import { IMAGE_INPUT_ACCEPT, UNSUPPORTED_IMAGE_MESSAGE, isAllowedImageMime } from "@/lib/image-formats";
 import { MathKeyboard } from "./MathKeyboard";
 import { MixedMathInput, type MixedMathInputHandle } from "@/components/math/MixedMathInput";
 
 const MAX_ATTACH_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Optional result of `onSend`. When the send is rejected, ChatInput shows `error`
+ * and puts the typed text back so the user doesn't lose it.
+ */
+export type ChatSendRejection = { rejected: true; error: string };
 
 function fileListFromFile(file: File): FileList {
   const dt = new DataTransfer();
@@ -25,7 +32,10 @@ export function ChatInput({
   mixedMathInputProps,
   allowImage = true,
 }: {
-  onSend: (text: string, file?: File | null) => void;
+  onSend: (
+    text: string,
+    file?: File | null,
+  ) => void | ChatSendRejection | Promise<void | ChatSendRejection | null> | null;
   onStop?: () => void;
   streaming?: boolean;
   disabled?: boolean;
@@ -85,6 +95,10 @@ export function ChatInput({
       setAttachError("Можно прикрепить только изображение.");
       return;
     }
+    if (!isAllowedImageMime(next.type)) {
+      setAttachError(UNSUPPORTED_IMAGE_MESSAGE);
+      return;
+    }
     if (next.size <= 0 || next.size > MAX_ATTACH_BYTES) {
       setAttachError("Файл слишком большой (макс. 8 МБ).");
       return;
@@ -128,7 +142,12 @@ export function ChatInput({
     const attach = file;
     setValue("");
     clearFile();
-    onSend(text, attach);
+    void Promise.resolve(onSend(text, attach)).then((result) => {
+      if (!result || !result.rejected) return;
+      setAttachError(result.error);
+      // Вернуть набранный текст, если пользователь ещё не начал печатать новый.
+      if (text) setValue((current) => (current.trim() ? current : text));
+    });
   }
 
   return (
@@ -200,7 +219,9 @@ export function ChatInput({
           </div>
         ) : null}
         {attachError ? (
-          <p className="mb-2 text-sm text-red-600 dark:text-red-400">{attachError}</p>
+          <p role="alert" className="mb-2 text-sm text-red-600 dark:text-red-400">
+            {attachError}
+          </p>
         ) : null}
 
         <div className="flex min-w-0 items-end gap-2">
@@ -210,7 +231,7 @@ export function ChatInput({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_INPUT_ACCEPT}
                   className="hidden"
                   onChange={(e) => onPickFile(e.target.files)}
                 />

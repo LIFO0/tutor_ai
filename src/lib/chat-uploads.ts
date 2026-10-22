@@ -6,6 +6,7 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { safeSharp } from "@/lib/safe-image";
+import { UNSUPPORTED_IMAGE_MESSAGE } from "@/lib/image-formats";
 
 export const CHAT_IMAGE_MAX_INPUT_BYTES = 8 * 1024 * 1024;
 const MAX_SIDE = 1600;
@@ -63,11 +64,11 @@ export async function saveChatImage(input: Buffer): Promise<{ key: string; mimeT
       .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
       .toBuffer();
   } catch {
-    throw new Error("Не удалось обработать изображение. Загрузите JPEG, PNG или WebP.");
+    throw new Error(UNSUPPORTED_IMAGE_MESSAGE);
   }
 
   if (jpeg.length <= 0) {
-    throw new Error("Не удалось обработать изображение.");
+    throw new Error(UNSUPPORTED_IMAGE_MESSAGE);
   }
 
   const key = `${randomUUID()}.jpg`;

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MessageBubble } from "./MessageBubble";
 import { MessageActions } from "./MessageActions";
 import { MessageEditor } from "./MessageEditor";
-import { ChatInput } from "./ChatInput";
+import { ChatInput, type ChatSendRejection } from "./ChatInput";
 import { createSseParser } from "./sse";
 import { BearTotem } from "@/components/ui/BearTotem";
 import { PENDING_CHAT_MESSAGE_KEY } from "@/lib/pending-chat-message";
@@ -14,6 +14,7 @@ import { normalizeMathMessageForModel } from "@/lib/math-prompt";
 import { useUsage, parseQuotaResponse } from "@/hooks/useUsage";
 import { QuotaExceededBanner } from "@/components/usage/QuotaExceededBanner";
 import { LLM_UNAVAILABLE_MESSAGE, MAX_CHAT_MESSAGE_CHARS } from "@/lib/chat-limits";
+import { UNSUPPORTED_IMAGE_MESSAGE } from "@/lib/image-formats";
 import { quotaExceededMessage, quotaWarningMessage, isQuotaLow } from "@/lib/usage-types";
 
 export type UiMessage = {
@@ -63,6 +64,8 @@ export function ChatWindow({
   const sendInFlightRef = useRef(false);
   const streamAbortRef = useRef<AbortController | null>(null);
   const lastSendRef = useRef<{ text: string; at: number } | null>(null);
+  /** Человекочитаемая причина последнего отказа сервера (400), напр. неподдерживаемое фото. */
+  const lastSendErrorRef = useRef<string | null>(null);
 
   messagesRef.current = messages;
   const [pendingText, setPendingText] = useState<string | null>(null);
@@ -148,6 +151,7 @@ export function ChatWindow({
     // Guard against accidental double-submits (e.g. Enter + button, or rapid re-entrancy
     // before `streaming` state propagates).
     if (sendInFlightRef.current) return "skipped";
+    lastSendErrorRef.current = null;
 
     const isDev = process.env.NODE_ENV !== "production";
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -260,9 +264,14 @@ export function ChatWindow({
           setQuotaBlock({ message, resetsAt: quota?.resetsAt });
           void refreshUsage();
         } else {
-          setPendingError(
-            typeof errJson?.error === "string" ? errJson.error : "Не удалось отправить.",
-          );
+          // Сообщение не сохранено (например, сервер отклонил фото). Причину показывают вызывающие:
+          // ChatInput — под полем ввода, отложенная отправка — в плашке над ним.
+          lastSendErrorRef.current =
+            typeof errJson?.error === "string" && errJson.error.trim()
+              ? errJson.error
+              : hasFile
+                ? UNSUPPORTED_IMAGE_MESSAGE
+                : "Не удалось отправить сообщение.";
         }
         setStreaming(false);
         return "failed";
@@ -415,14 +424,17 @@ export function ChatWindow({
   sendRef.current = send;
 
   const handleSend = useCallback(
-    (text: string, file?: File | null) => {
+    async (text: string, file?: File | null): Promise<ChatSendRejection | null> => {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(PENDING_CHAT_MESSAGE_KEY);
       }
       setPendingText(null);
       setPendingError(null);
       pendingDeliveryRef.current = "done";
-      void sendRef.current(text, file);
+      const result = await sendRef.current(text, file);
+      const error = lastSendErrorRef.current;
+      if (result === "failed" && error) return { rejected: true, error };
+      return null;
     },
     [],
   );
@@ -439,7 +451,7 @@ export function ChatWindow({
     }
     if (result === "failed") {
       pendingDeliveryRef.current = "idle";
-      setPendingError(PENDING_SEND_ERROR);
+      setPendingError(lastSendErrorRef.current ?? PENDING_SEND_ERROR);
       return;
     }
     pendingDeliveryRef.current = "idle";
@@ -503,7 +515,12 @@ export function ChatWindow({
         setMessages((prev) => prev.slice(0, index));
         setEditingId(null);
         setPendingError(null);
-        void sendRef.current(normalized);
+        void sendRef.current(normalized).then((result) => {
+          if (result === "failed" && lastSendErrorRef.current) {
+            setPendingText(normalized);
+            setPendingError(lastSendErrorRef.current);
+          }
+        });
       } finally {
         setEditSaving(false);
       }
@@ -529,7 +546,7 @@ export function ChatWindow({
           clearPendingStorage();
         } else if (result === "failed") {
           pendingDeliveryRef.current = "idle";
-          setPendingError(PENDING_SEND_ERROR);
+          setPendingError(lastSendErrorRef.current ?? PENDING_SEND_ERROR);
           if (trimmed) setPendingText(trimmed);
         } else {
           pendingDeliveryRef.current = "idle";
@@ -561,7 +578,7 @@ export function ChatWindow({
 
       if (result === "failed") {
         pendingDeliveryRef.current = "idle";
-        setPendingError(PENDING_SEND_ERROR);
+        setPendingError(lastSendErrorRef.current ?? PENDING_SEND_ERROR);
         return;
       }
       pendingDeliveryRef.current = "idle";
@@ -669,22 +686,24 @@ export function ChatWindow({
           })}
         </div>
         <div className="shrink-0 bg-zinc-50/95 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur dark:bg-black/85">
-          {pendingError && pendingText ? (
-            <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
+          {pendingError ? (
+            <div role="alert" className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
               <div className="min-w-0">
                 <div className="font-medium">Сообщение не отправлено</div>
-                <div className="truncate opacity-90">{pendingError}</div>
+                <div className="break-words opacity-90">{pendingError}</div>
               </div>
-              <button
-                type="button"
-                disabled={streaming}
-                onClick={() => {
-                  void retryPendingSend();
-                }}
-                className="shrink-0 rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
-              >
-                Повторить
-              </button>
+              {pendingText ? (
+                <button
+                  type="button"
+                  disabled={streaming}
+                  onClick={() => {
+                    void retryPendingSend();
+                  }}
+                  className="shrink-0 rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-300"
+                >
+                  Повторить
+                </button>
+              ) : null}
             </div>
           ) : null}
           {chatBlocked ? (

@@ -64,8 +64,11 @@ async function blindSolve(taskText: string): Promise<string | null> {
       maxTokens: 2000,
     });
     if (!/"answer"/.test(raw)) console.warn("[tasks/check] blind solve unparsed", raw.slice(0, 300));
-    const m = /"answer"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(raw);
-    return m?.[1]?.trim() || null;
+    // Последнее вхождение: перед ответом модель может вывести черновик с тем же ключом.
+    // Число может прийти без кавычек: { "answer": 11.25 }.
+    const all = [...raw.matchAll(/"answer"\s*:\s*(?:"((?:\\.|[^"\\])*)"|(-?\d+(?:[.,]\d+)?))/g)];
+    const last = all[all.length - 1];
+    return (last?.[1] ?? last?.[2])?.trim() || null;
   } catch (e) {
     console.warn("[tasks/check] blind solve failed", e);
     return null;

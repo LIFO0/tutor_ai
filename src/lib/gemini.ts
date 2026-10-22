@@ -285,7 +285,20 @@ export function extractGeminiText(payload: unknown): string | null {
     }
   }
   if (texts.length === 0) return null;
-  return texts.join("");
+  return stripInlineThoughtChannel(texts.join(""));
+}
+
+/**
+ * Gemma 4 иногда отдаёт рассуждения не отдельной частью thought:true, а прямо в тексте
+ * в разметке канала: «<|channel>thought … <channel|>ответ». Оставляем только ответ
+ * и убираем служебные токены хода. Exported for unit tests.
+ */
+export function stripInlineThoughtChannel(text: string): string {
+  let s = text;
+  const close = s.lastIndexOf("<channel|>");
+  if (close !== -1) s = s.slice(close + "<channel|>".length);
+  else if (/^\s*<\|channel>/.test(s)) return "";
+  return s.replace(/<\|?(?:turn|channel)\|?>(?:model|user|system)?/g, "").replace(/<\|think\|>/g, "");
 }
 
 /** Exported for unit tests. */

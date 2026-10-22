@@ -7,6 +7,7 @@ import {
   getGeminiModelChain,
   mapGeminiHttpError,
   streamGeminiCompletion,
+  stripInlineThoughtChannel,
   toGeminiRequest,
 } from "@/lib/gemini";
 
@@ -92,6 +93,14 @@ describe("toGeminiRequest / extractGeminiText / mapGeminiHttpError", () => {
     expect(
       extractGeminiText({ candidates: [{ content: { parts: [{ text: "thinking…", thought: true }] } }] }),
     ).toBeNull();
+  });
+
+  test("strips Gemma inline thought channel and turn tokens", () => {
+    expect(stripInlineThoughtChannel("<|channel>thought\nplan: Привет! Да<channel|>{\"feedback\": \"ok\"}<turn|>")).toBe(
+      '{"feedback": "ok"}',
+    );
+    expect(stripInlineThoughtChannel("<|channel>thought\nunfinished reasoning")).toBe("");
+    expect(stripInlineThoughtChannel("Обычный ответ")).toBe("Обычный ответ");
   });
 
   test("joins multiple text parts", () => {

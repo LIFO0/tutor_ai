@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/current-user";
-import { feedbackTopicLabel, isAdminEmail } from "@/lib/feedback";
+import { feedbackTopicLabel } from "@/lib/feedback";
 import { listFeedback } from "@/lib/feedback-server";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Обращения", robots: { index
 
 export default async function AdminFeedbackPage() {
   const user = await getCurrentUser();
-  if (!user || !isAdminEmail(user.email)) notFound();
+  if (!user?.isAdmin) notFound();
 
   const rows = listFeedback(200);
 

@@ -20,6 +20,9 @@ function ensureUserColumns(sqlite: Database.Database) {
   if (!has("plan_expires_at")) {
     sqlite.exec("ALTER TABLE users ADD COLUMN plan_expires_at TEXT");
   }
+  if (!has("session_version")) {
+    sqlite.exec("ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0");
+  }
 }
 
 function ensureUsageDailyColumns(sqlite: Database.Database) {

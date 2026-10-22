@@ -68,7 +68,7 @@ export async function POST(req: Request) {
   const userId = inserted[0]?.id;
   if (!userId) return jsonError("Не удалось создать пользователя.", 500);
 
-  const token = await signAuthToken({ userId, grade });
+  const token = await signAuthToken({ userId, grade, sv: 0 });
   await setAuthCookie(token);
 
   return NextResponse.json({ ok: true });

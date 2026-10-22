@@ -13,6 +13,8 @@ export const users = sqliteTable("users", {
   chatName: text("chat_name"),
   plan: text("plan").notNull().default("free"), // free | plus
   planExpiresAt: text("plan_expires_at"),
+  /** Растёт при принудительном выходе со всех устройств; JWT с другим sv отклоняется. */
+  sessionVersion: integer("session_version").notNull().default(0),
   createdAt: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
